@@ -92,6 +92,15 @@ PLAYER_OLD_POS_Y    equ     $1b0
 PLAYER_SHOTS        equ     $1b4
 PLAYER_SCORE        equ     $1b8
 
+PLAYER_FACE_UP      equ     1
+PLAYER_FACE_UP_LEFT equ     8
+PLAYER_FACE_UP_RIGHT equ     2
+PLAYER_FACE_DOWN    equ     5
+PLAYER_FACE_DOWN_LEFT equ     6
+PLAYER_FACE_DOWN_RIGHT equ     4
+PLAYER_FACE_LEFT    equ     7
+PLAYER_FACE_RIGHT   equ     3
+
 WEAPON_MACHINEGUN   equ     1
 WEAPON_TWINFIRE     equ     2
 WEAPON_FLAMEARC     equ     3
@@ -117,6 +126,8 @@ ALIEN_SPEED         equ     $0a
 ALIEN_POS_X         equ     $1e
 ALIEN_POS_Y         equ     $20
 ALIEN_STRENGTH      equ     $3c
+
+TILE_DOOR           equ     3
 
 WAIT_BLIT           MACRO
 wait\@:             btst     #14,$dff002
@@ -334,7 +345,7 @@ flag_destruct_level:
 lbL000586:          dc.l     0
 elapsed_seconds:    dc.l     0
 frames_counter:     dcb.w    2,0
-infinite_keys:      dc.w     0
+infinite_keys:      dc.w     DEBUG
 pass_thru_walls:    dc.w     DEBUG
 lbW0005AA:          dc.w     0
 rnd_number:         dc.w     0
@@ -665,12 +676,13 @@ lbC000E8C:          jsr      lbC00AB0C
                     tst.w    map_overview_on
                     beq.s    lbC000F12
                     btst     #7,player_2_input
-                    bne.s    lbC000F0C
+                    bne.s    map_overview_trigger
                     btst     #7,player_1_input
-                    bne.s    lbC000F0C
+                    bne.s    map_overview_trigger
                     cmp.b    #KEY_M,key_pressed
                     bne      lbC000F12
-lbC000F0C:          jmp      display_map_overview
+map_overview_trigger:          
+                    jmp      display_map_overview
 
 lbC000F12:          cmp.b    #KEY_P,key_pressed
                     beq.s    key_pause
@@ -1004,13 +1016,14 @@ lbC00167C:          tst.w    frame_flipflop
                     move.w   #2,frame_bkgnd_flag
                     rts
 
-init_tables:        bsr      lbC0016C8
-                    bsr      lbC0021DA
+init_tables:        bsr      construct_bkgnd_tiles_block_table
+                    bsr      construct_map_lines_table
                     bsr      lbC00239E
                     bsr      lbC0025B0
                     rts
 
-lbC0016C8:          lea      bkgnd_tiles_block_table,a0
+construct_bkgnd_tiles_block_table:
+                    lea      bkgnd_tiles_block_table,a0
                     move.l   #700,d1
                     move.l   #bkgnd_tiles_block,d0
 .loop:              move.l   d0,(a0)+
@@ -1022,7 +1035,8 @@ lbC0016C8:          lea      bkgnd_tiles_block_table,a0
 bkgnd_tiles_block_table:
                     dcb.l    700,0
 
-lbC0021DA:          lea      map_lines_table,a0
+construct_map_lines_table:
+                    lea      map_lines_table,a0
                     move.l   #cur_map_top,d0
                     sub.l    #248,d0
 .loop:              tst.l    (a0)
@@ -1419,7 +1433,10 @@ lbC0030AA:          addq.w   #1,lbW002FE0
                     bne.s    lbC0030F4
                     move.l   #lbW0231A6,lbL023200
                     clr.w    lbW023204
-lbC0030F4:          subq.b   #1,cur_timer_digit_lo
+lbC0030F4:          
+                    ifeq DEBUG
+                    subq.b   #1,cur_timer_digit_lo
+                    endif
                     cmp.b    #255,cur_timer_digit_lo
                     bne.s    display_timer_digits
                     subq.b   #1,cur_timer_digit_hi
@@ -4138,7 +4155,7 @@ lbC006E4E:          cmp.b    #KEY_RETURN,key_pressed
                     bne.s    lbC006E60
                     move.w   #1,lbW006D38
 lbC006E60:          move.w   d0,lbW006D36
-                    lsl.w    #1,d0
+                    add.w    d0,d0
                     beq      void
                     lea      lbL006E76(pc),a6
                     move.w   0(a6,d0.w),d0
@@ -5331,97 +5348,110 @@ lbC007EDA:          move.w   #1,flag_end_level
 tile_door:          tst.w    lbW007B48
                     beq      void
                     tst.w    pass_thru_walls
-                    bne.s    lbC007F38
+                    bne.s    key_cheat
                     tst.w    infinite_keys
-                    bne.s    lbC007F38
+                    bne.s    key_cheat
                     tst.w    PLAYER_KEYS(a0)
-                    bhi.s    lbC007F3E
+                    bhi.s    force_door
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #$3F,lbW02314E
-                    move.w   #$41,lbW02313A
+                    move.w   #63,lbW02314E
+                    move.w   #65,lbW02313A
                     cmp.l    #player_1_dats,a0
-                    beq      lbC007F30
-                    move.w   #$42,lbW02313A
+                    beq.s    lbC007F30
+                    move.w   #66,lbW02313A
 lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
                     bra      tile_wall
 
-lbC007F38:          move.w   #0,PLAYER_KEYS(a0)
-lbC007F3E:          movem.l  d6/d7/a4-a6,-(sp)
-                    bsr.s    lbC007F62
-                    tst.w    lbW007F60
-                    beq.s    lbC007F5A
+key_cheat:          move.w   #0,PLAYER_KEYS(a0)
+
+force_door:         movem.l  d6/d7/a4-a6,-(sp)
+                    bsr.s    open_door
+                    tst.w    flag_opened_door
+                    beq.s    door_not_opened
                     move.w   #23,sample_to_play
                     jsr      trigger_sample
-lbC007F5A:          movem.l  (sp)+,d6/d7/a4-a6
+door_not_opened:    movem.l  (sp)+,d6/d7/a4-a6
                     rts
 
-lbW007F60:          dc.w     0
+flag_opened_door:   dc.w     0
 
-lbC007F62:          clr.w    lbW007F60
-                    move.l   lbL008040,a4
+open_door:          clr.w    flag_opened_door
+                  
+                    ; check 4 adjacents tiles
+                    move.l   old_map_pos,a4
                     cmp.l    a4,a3
                     beq      void
-                    sub.l    #$F8,a4
+                    sub.l    #248,a4
                     cmp.l    a4,a3
                     beq      void
-                    add.l    #$1F0,a4
+                    add.l    #(248*2),a4
                     cmp.l    a4,a3
                     beq      void
-                    sub.l    #$F8,a4
+                    sub.l    #248,a4
                     subq.l   #2,a4
                     cmp.l    a4,a3
                     beq      void
                     addq.l   #4,a4
                     cmp.l    a4,a3
                     beq      void
-                    move.w   #1,lbW007F60
-                    move.l   a3,lbL008040
-                    addq.l   #1,doors_opened
-                    subq.w   #1,PLAYER_KEYS(a0)
+                    move.l   a3,old_map_pos
+
                     move.w   2(a3),d0
                     and.w    #$3F,d0
-                    cmp.w    #3,d0
-                    bne.s    lbC007FD8
+                    cmp.w    #TILE_DOOR,d0
+                    bne.s    door_on_right
+                    move.w   #1,flag_opened_door
+                    addq.l   #1,doors_opened
+                    subq.w   #1,PLAYER_KEYS(a0)
                     move.l   #lbL020CFE,a2
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
 
-lbC007FD8:          move.w   -2(a3),d0
+door_on_right:      move.w   -2(a3),d0
                     and.w    #$3F,d0
-                    cmp.w    #3,d0
-                    bne.s    lbC007FFC
+                    cmp.w    #TILE_DOOR,d0
+                    bne.s    door_on_left
+                    move.w   #1,flag_opened_door
+                    addq.l   #1,doors_opened
+                    subq.w   #1,PLAYER_KEYS(a0)
                     move.l   #lbL020CFE,a2
-                    sub.l    #2,a3
+                    subq.l   #2,a3
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
 
-lbC007FFC:          move.w   $F8(a3),d0
+door_on_left:       move.w   248(a3),d0
                     and.w    #$3F,d0
-                    cmp.w    #3,d0
-                    bne.s    lbC00801A
+                    cmp.w    #TILE_DOOR,d0
+                    bne.s    door_below
+                    move.w   #1,flag_opened_door
+                    addq.l   #1,doors_opened
+                    subq.w   #1,PLAYER_KEYS(a0)
                     move.l   #lbL020D32,a2
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
 
-lbC00801A:          move.w   -$F8(a3),d0
+door_below:         move.w   -248(a3),d0
                     and.w    #$3F,d0
-                    cmp.w    #3,d0
+                    cmp.w    #TILE_DOOR,d0
                     bne      void
-                    sub.l    #$F8,a3
+                    move.w   #1,flag_opened_door
+                    addq.l   #1,doors_opened
+                    subq.w   #1,PLAYER_KEYS(a0)
+                    sub.l    #248,a3
                     move.l   #lbL020D32,a2
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
 
-lbL008040:          dc.l     0
+old_map_pos:        dc.l     0
 
 tile_key:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
                     move.l   #lbL020EFE,a2
-                    jsr      patch_tiles                      ; possibly changing the tile's gfx
+                    jsr      patch_tiles                        ; possibly changing the tile's gfx
                     tst.w    lbW00AD50
                     beq      lbC008078
-                    and.w    #$FFC0,(a3)                    ; change the property of the tile to "floor"
+                    and.w    #$FFC0,(a3)                        ; change the property of the tile to "floor"
                     move.w   #SAMPLE_KEY,sample_to_play
                     jsr      trigger_sample
                     addq.w   #1,PLAYER_KEYS(a0)
@@ -7899,7 +7929,7 @@ lbC00AD6E:          cmp.l    (a1),a3
                     add.w    #16,d1
                     move.l   a2,4(a1)
                     move.l   a3,8(a1)
-                    move.w   d0,0(a1)
+                    move.w   d0,(a1)
                     move.w   d1,2(a1)
                     move.w   #1,lbW00AD50
                     rts
@@ -8495,7 +8525,7 @@ lbW00CEE2:          dc.w     $32
 display_pause:      clr.w    lbW0004C2
                     clr.b    key_pressed
                     move.w   #10,lbW0001E2
-                    move.w   #$32,lbW00CEE2
+                    move.w   #50,lbW00CEE2
 lbC00CF00:          btst     #4,player_2_input
                     bne.s    lbC00CF00
                     btst     #4,player_1_input
@@ -8528,9 +8558,9 @@ lbC00CF8C:          btst     #4,player_2_input
                     bne      remove_pause
                     cmp.b    #KEY_P,key_pressed
                     beq      remove_pause
-                    cmp.b    #$FF,$dff006
+                    cmp.b    #255,$dff006
                     bne.s    lbC00CF8C
-lbC00CFBA:          cmp.b    #$FE,$dff006
+lbC00CFBA:          cmp.b    #254,$dff006
                     bne.s    lbC00CFBA
                     btst     #5,player_2_input
                     bne.s    lbC00CFDA
@@ -8556,7 +8586,7 @@ lbC00D004:          move.l   (a0),(a1)
                     add.l    #38,a2
                     subq.w   #1,d0
                     bne.s    lbC00D004
-                    move.l   #$19,d0
+                    move.l   #25,d0
 lbC00D02E:          btst     #4,player_2_input
                     bne.s    remove_pause
                     btst     #4,player_1_input
@@ -9782,7 +9812,7 @@ lbC00E520:          move.w   $10(a3),d0
                     bmi.s    lbC00E556
                     clr.w    lbW00E4F0
                     move.l   $14(a3),a4
-                    sub.w    #1,PLAYER_AMMUNITIONS(a4)
+                    subq.w   #1,PLAYER_AMMUNITIONS(a4)
                     cmp.w    #1,PLAYER_AMMUNITIONS(a4)
                     bpl.s    lbC00E556
                     clr.w    PLAYER_AMMUNITIONS(a4)
@@ -9790,9 +9820,10 @@ lbC00E556:          cmp.w    #300,lbW00E4EA
                     bmi.s    lbC00E576
                     clr.w    lbW00E4EA
                     move.l   $14(a3),a0
+                    ; temporary key
                     addq.w   #1,PLAYER_KEYS(a0)
                     move.l   a5,a3
-                    jsr      lbC007F3E
+                    jsr      force_door
 lbC00E576:          movem.l  (sp)+,d0-d7/a0-a6
 
 impact_on_wall:     move.l   8(a3),a1
@@ -12654,7 +12685,7 @@ lbC011C02:          clr.w    d5
                     move.w   #15,d6
                     and.w    #15,d1
                     sub.w    d1,d6
-                    move.w   #$140,d7
+                    move.w   #320,d7
                     add.w    d6,d7
                     move.w   #2,d5
                     add.w    #1,d7
@@ -12712,7 +12743,7 @@ lbC011CE2:          tst.w    (a2)
                     bpl.s    lbC011CF4
                     cmp.w    #1,2(a2)
                     bpl.s    lbC011CF4
-                    add.l    #$FFFFFFD6,a1
+                    add.l    #-42,a1
 lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
@@ -12727,9 +12758,9 @@ lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     swap     d6
                     lsr.l    #4,d6
                     move.w   d6,$42(a6)
-                    or.w     #$FCA,d6
+                    or.w     #$fca,d6
                     move.w   d6,$40(a6)
-                    move.l   #$FFFF0000,$44(a6)
+                    move.l   #$ffff0000,$44(a6)
                     move.w   $26(a2),$60(a6)
                     move.w   $26(a2),$66(a6)
                     move.w   $24(a2),$62(a6)
@@ -13013,7 +13044,7 @@ lbC01208A:          clr.w    lbW0113B8
                     lea      lbL1101C4,a0
                     move.l   #384*40,d0
                     bsr      clear_array_long
-                    
+
                     lea      lbL101098,a0
                     move.l   #$F12C,d0
                     bsr      clear_array_long
