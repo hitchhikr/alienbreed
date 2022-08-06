@@ -25,10 +25,10 @@ anim_loop:          addq.l   #1,frames_counter
                     bsr      set_copper_buffer_2
                     movem.l  d0-d7/a0-a6,-(sp)
                     tst.w    done_fade
-                    bne.s    lbC000092
+                    bne.s    fade_in
                     move.w   #2,lbW0006C6
                     jsr      lbC0003F4
-lbC000092:          movem.l  (sp)+,d0-d7/a0-a6
+fade_in:            movem.l  (sp)+,d0-d7/a0-a6
                     btst     #6,$bfe001
                     beq      exit
                     btst     #7,$bfe001
