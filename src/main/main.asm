@@ -11,7 +11,7 @@
                     mc68000
 
 ; 1 to activate the debug mode
-DEBUG               equ     0
+DEBUG               equ     1
 
 lbW05F7A8           equ     cur_map_datas+612
 map_reactor_up      equ     cur_map_datas+2598

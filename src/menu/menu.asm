@@ -16,7 +16,7 @@ wait\@:             btst     #14,$dff002
 start:              move.l   d5,number_players
                     move.l   d7,share_credits
                     move.l   a1,reg_vbr
-                    bsr      lbC00133C
+                    bsr      setup_context
                     bsr      lbC00112C
                     bsr      lbC00173C
                     clr.l    lbL000A08
@@ -108,7 +108,7 @@ lbC000AEE:          cmp.w    #1,d0
                     addq.w   #1,lbW000C42
 lbC000B04:          bsr      wait_sync2
                     add.w    #1,lbW000C44
-                    cmp.w    #$14,lbW000C44
+                    cmp.w    #20,lbW000C44
                     bne.s    lbC000B22
                     clr.w    lbW000C44
                     clr.w    d0
@@ -190,12 +190,12 @@ lbC000F34:          lea      lbL003DAE,a1
                     cmp.l    #1,lbL000A08
                     beq.s    lbC000F4C
                     lea      lbL003DD6,a1
-lbC000F4C:          jsr      lbC003B4A
+lbC000F4C:          jsr      display_text
                     cmp.l    #1,lbL000A08
                     beq      lbC001006
                     bsr      wait_sync2
                     lea      lbL0052E4,a1
-                    move.l   #$EB0,d0
+                    move.l   #3760,d0
                     add.l    d0,a1
                     lea      lbL01FF94,a0
                     bsr      wait_blitter
@@ -228,26 +228,26 @@ lbC00100C:          btst     #6,$bfe001
                     move.l   #2,lbL000A08
                     rts
 
-text_menu:          dc.w     $10,$70
+text_menu:          dc.w     16,112
                     dc.b     ' ONE PLAYER GAME  ',0
                     dc.b     'SHARE CREDITS  OFF',0
                     dc.b     '    START GAME    '
-                    dc.b     $FF,$ff
-                    dc.w     $10,$70
+                    dc.b     -1,-1
+                    dc.w     16,112
                     dc.b     ' TWO PLAYER GAME  ',0
                     dc.b     'SHARE CREDITS  OFF',0
                     dc.b     '    START GAME    '
-                    dc.b     $FF,$ff
-                    dc.w     $10,$70
+                    dc.b     -1,-1
+                    dc.w     16,112
                     dc.b     ' ONE PLAYER GAME  ',0
                     dc.b     'SHARE CREDITS  ON ',0
                     dc.b     '    START GAME    '
-                    dc.b     $FF,$ff
-                    dc.w     $10,$70
+                    dc.b     -1,-1
+                    dc.w     16,112
                     dc.b     ' TWO PLAYER GAME  ',0
                     dc.b     'SHARE CREDITS  ON ',0
                     dc.b     '    START GAME    '
-                    dc.b     $FF
+                    dc.b     -1
                     even
 
 lbC001124:          clr.b    (a0)+
@@ -361,12 +361,12 @@ lbC0012AC:          move.w   #1,lbW002088
 
 stars_palette:      dc.w     $000,$111,$222,$333,$555,$888,$AAA,0
 
-lbC00133C:          jsr      lbC002B0E
+setup_context:      jsr      setup_stars
                     bsr      install_lev3irq
-                    bsr      lbC00137C
+                    bsr      display_title
                     lea      menu_bps,a0
                     move.l   #lbL0060F4,d0
-                    bsr      lbC0013CE
+                    bsr      set_menu_bps
                     move.l   #copperlist_blank,$dff080
                     lea      lbW002396,a0
                     bsr      lbC00227A
@@ -374,11 +374,11 @@ lbC00133C:          jsr      lbC002B0E
                     jsr      set_random_seed
                     rts
 
-lbC00137C:          move.l   #title_pic,d0
-                    not.w    lbW0013CC
-                    beq.s    lbC001390
-                    add.l    #$DE8,d0
-lbC001390:          lea      title_bps,a0
+display_title:      move.l   #title_pic,d0
+                    not.w    flag_swap_title
+                    beq.s    .second_title
+                    add.l    #(89*40),d0
+.second_title:      lea      title_bps,a0
                     move.w   d0,6(a0)
                     swap     d0
                     move.w   d0,2(a0)
@@ -396,14 +396,14 @@ lbC001390:          lea      title_bps,a0
                     move.w   d0,2(a0)
                     rts
 
-lbW0013CC:          dc.w     0
+flag_swap_title:    dc.w     0
 
-lbC0013CE:          move.l   #3,d1
+set_menu_bps:       move.l   #3,d1
 .loop:              move.w   d0,6(a0)
                     swap     d0
                     move.w   d0,2(a0)
                     swap     d0
-                    add.l    #9600,d0
+                    add.l    #(240*40),d0
                     addq.l   #8,a0
                     subq.l   #1,d1
                     bne.s    .loop
@@ -462,10 +462,10 @@ lev3irq:            movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC001F94
                     bsr      lbC001C54
                     bsr      lbC001916
-                    bsr      lbC00137C
+                    bsr      display_title
                     lea      lbW002396,a0
                     bsr      lbC0022B0
-                    move.w   #$141,lbW002396
+                    move.w   #321,lbW002396
                     btst     #6,$bfe001
                     beq.s    lbC001894
                     btst     #7,$bfe001
@@ -476,9 +476,9 @@ lbC00189C:          tst.w    lbW00198A
                     cmp.l    #$1D01FF00,lbW002912
                     bmi.s    lbC0018BC
                     sub.l    #$1000000,lbW002912
-lbC0018BC:          jsr      lbC002982
+lbC0018BC:          jsr      display_stars
                     bsr      lbC00198C
-                    move.l   #$C8,d0
+                    move.l   #200,d0
 lbC0018CC:          subq.l   #1,d0
                     bne.s    lbC0018CC
 lbC0018D0:          movem.l  (sp)+,d0-d7/a0-a6
@@ -669,7 +669,7 @@ lbC001BCE:          move.w   (a2),d1
                     clr.b    (a3)+
                     bra.s    lbC001BEE
 
-lbC001BE4:          move.b   #$FF,(a3)+
+lbC001BE4:          move.b   #-1,(a3)+
                     bra.s    lbC001BEE
 
 lbC001BEA:          move.b   #1,(a3)+
@@ -683,21 +683,21 @@ lbC001BEE:          move.w   (a2),d1
                     clr.b    (a3)+
                     bra.s    lbC001C0E
 
-lbC001C04:          move.b   #$FF,(a3)+
+lbC001C04:          move.b   #-1,(a3)+
                     bra.s    lbC001C0E
 
 lbC001C0A:          move.b   #1,(a3)+
 lbC001C0E:          move.w   (a2)+,d1
                     move.w   (a1)+,d2
-                    and.w    #15,d1
-                    and.w    #15,d2
+                    and.w    #$F,d1
+                    and.w    #$F,d2
                     cmp.w    d1,d2
                     bmi.s    lbC001C24
                     bhi.s    lbC001C2A
                     clr.b    (a3)+
                     bra.s    lbC001C2E
 
-lbC001C24:          move.b   #$FF,(a3)+
+lbC001C24:          move.b   #-1,(a3)+
                     bra.s    lbC001C2E
 
 lbC001C2A:          move.b   #1,(a3)+
@@ -794,7 +794,7 @@ lbC001D30:          move.w   (a0)+,(a1)
 
 fade_in:            move.w   #2,lbW002086
                     lea      lbL0021BA,a4
-                    move.l   #$30,d2
+                    move.l   #48,d2
 lbC001D4E:          clr.l    (a4)+
                     subq.l   #1,d2
                     bne      lbC001D4E
@@ -802,25 +802,25 @@ lbC001D4E:          clr.l    (a4)+
                     move.l   a1,a2
                     clr.l    d6
                     lea      lbL0020FA,a3
-lbC001D62:          move.w   (a2),d6
+.loop:              move.w   (a2),d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
                     lsl.w    #4,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2)+,d6
                     lsl.w    #8,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne      lbC001D62
+                    bne      .loop
                     move.l   d1,d4
                     subq.l   #2,a0
                     subq.l   #2,a1
@@ -884,8 +884,8 @@ lbC001E6E:          add.l    #2,a2
                     add.l    #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
-                    and.w    #15,d2
-                    and.w    #15,d3
+                    and.w    #$F,d2
+                    and.w    #$F,d3
                     cmp.w    d2,d3
                     beq      lbC001EA0
                     move.w   (a2),d3
@@ -908,7 +908,7 @@ lbC001EC6:          rts
 
 fade_out:           move.w   #3,lbW002086
                     lea      lbL0021BA,a4
-                    move.l   #$30,d2
+                    move.l   #48,d2
 lbC001EDC:          clr.l    (a4)+
                     subq.l   #1,d2
                     bne      lbC001EDC
@@ -949,7 +949,7 @@ lbC001F40:          move.w   (a2),d7
                     lsl.w    #4,d7
                     move.w   d7,(a3)+
                     move.w   (a2),d7
-                    and.w    #15,d7
+                    and.w    #$F,d7
                     lsl.w    #8,d7
                     move.w   d7,(a3)+
                     add.l    #4,a2
@@ -1009,7 +1009,7 @@ lbC002006:          add.l    #2,a2
 lbC002032:          add.l    #2,a2
                     add.l    #2,a3
                     move.w   (a0),d2
-                    and.w    #15,d2
+                    and.w    #$F,d2
                     tst.w    d2
                     beq      lbC00205E
                     move.w   (a2),d3
@@ -1145,7 +1145,7 @@ lbC00240A:          move.w   (a2),d1
                     clr.b    (a3)+
                     bra.s    lbC00242A
 
-lbC002420:          move.b   #$FF,(a3)+
+lbC002420:          move.b   #-1,(a3)+
                     bra.s    lbC00242A
 
 lbC002426:          move.b   #1,(a3)+
@@ -1159,21 +1159,21 @@ lbC00242A:          move.w   (a2),d1
                     clr.b    (a3)+
                     bra.s    lbC00244A
 
-lbC002440:          move.b   #$FF,(a3)+
+lbC002440:          move.b   #-1,(a3)+
                     bra.s    lbC00244A
 
 lbC002446:          move.b   #1,(a3)+
 lbC00244A:          move.w   (a2)+,d1
                     move.w   (a1)+,d2
-                    and.w    #15,d1
-                    and.w    #15,d2
+                    and.w    #$F,d1
+                    and.w    #$F,d2
                     cmp.w    d1,d2
                     bmi.s    lbC002460
                     bhi.s    lbC002466
                     clr.b    (a3)+
                     bra.s    lbC00246A
 
-lbC002460:          move.b   #$FF,(a3)+
+lbC002460:          move.b   #-1,(a3)+
                     bra.s    lbC00246A
 
 lbC002466:          move.b   #1,(a3)+
@@ -1197,9 +1197,7 @@ lbW002570:          dc.w     0
 lbW002572:          dc.w     0
 lbL002574:          dc.l     0
 lbL002578:          dc.l     0
-lbL00257C:          dcb.l    $18,0
-
-lbC0025DC:          rts
+lbL00257C:          dcb.l    24,0
 
 copperlist_blank:   dc.w    $100,$200,$180,0,$96,$20,$FFFF,$FFFE
 
@@ -1261,8 +1259,8 @@ lbW002952:          dc.w    $000,$222,$D31,$B11,$444,$333,$222,$F52
 lbW002962:          dc.w    $000,$822,$A31,$811,$F44,$833,$A22,$852,0,$111,$222
                     dc.w    $333,$444,$500,$700,$900
 
-lbC002982:          jsr      move_stars
-                    bsr      lbC002AA8
+display_stars:      jsr      move_stars
+                    bsr      set_stars_buffer
                     bsr.s    clear_stars
                     bsr.s    do_stars
                     rts
@@ -1272,11 +1270,11 @@ clear_stars:        move.l   stars_bitplanes_ptr,a0
                     lea      256*48(a1),a2
                     move.l   stars_screen_coords_ptr(pc),a3
                     move.w   stars_nbr,d1
-lbC0029B4:          move.l   (a3)+,d0
+.clear:             move.l   (a3)+,d0
                     clr.b    0(a0,d0.l)
                     clr.b    0(a1,d0.l)
                     clr.b    0(a2,d0.l)
-                    dbra     d1,lbC0029B4
+                    dbra     d1,.clear
                     rts
 
 do_stars:           lea      stars_3d_coords,a0
@@ -1286,29 +1284,29 @@ do_stars:           lea      stars_3d_coords,a0
                     lea      stars_centers,a3
                     move.l   stars_bitplanes_ptr,a2
                     move.l   stars_screen_coords_ptr(pc),a4
-lbC0029EA:          movem.w  (a0)+,d4-d6
+.plots:             movem.w  (a0)+,d4-d6
                     add.w    d0,d4
                     add.w    d1,d5
                     add.w    d2,d6
                     cmp.w    #384,d4
-                    blt.s    lbC0029FE
+                    blt.s    .max_x
                     sub.w    #768,d4
-lbC0029FE:          cmp.w    #$FE80,d4
-                    bgt.s    lbC002A08
+.max_x:             cmp.w    #-384,d4
+                    bgt.s    .min_x
                     add.w    #768,d4
-lbC002A08:          cmp.w    #256,d5
-                    blt.s    lbC002A12
+.min_x:             cmp.w    #256,d5
+                    blt.s    .max_y
                     sub.w    #512,d5
-lbC002A12:          cmp.w    #$FF00,d5
-                    bgt.s    lbC002A1C
+.max_y:             cmp.w    #-256,d5
+                    bgt.s    .min_y
                     add.w    #512,d5
-lbC002A1C:          cmp.w    #1024,d6
-                    ble.s    lbC002A26
+.min_y:             cmp.w    #1024,d6
+                    ble.s    .max_z
                     sub.w    #960,d6
-lbC002A26:          cmp.w    #64,d6
-                    bgt.s    lbC002A30
+.max_z:             cmp.w    #64,d6
+                    bgt.s    .min_z
                     add.w    #960,d6
-lbC002A30:          move.w   d4,(a1)+
+.min_z:             move.w   d4,(a1)+
                     move.w   d5,(a1)+
                     move.w   d6,(a1)+
                     muls     stars_aspect_x,d4
@@ -1318,7 +1316,7 @@ lbC002A30:          move.w   d4,(a1)+
                     add.w    (a3),d4
                     add.w    2(a3),d5
                     bsr.s    plot_star
-                    dbra     d3,lbC0029EA
+                    dbra     d3,.plots
                     rts
 
 no_plot:            rts
@@ -1345,36 +1343,36 @@ plot_star:          tst.w    d4
                     sub.b    d7,d4
                     asr.w    #7,d6
                     btst     #0,d6
-                    bne.s    lbC002A90
+                    bne.s    .plane_1
                     bset     d4,(a5)
-lbC002A90:          btst     #1,d6
-                    bne.s    lbC002A9A
-                    bset     d4,256*48(a5)
-lbC002A9A:          btst     #2,d6
-                    bne.s    lbC002AA4
-                    bset     d4,256*2*48(a5)
-lbC002AA4:          move.l   d5,(a4)+                   ; save the coordinate
+.plane_1:           btst     #1,d6
+                    bne.s    .plane_2
+                    bset     d4,(256*48)(a5)
+.plane_2:           btst     #2,d6
+                    bne.s    .plane_3
+                    bset     d4,(256*2*48)(a5)
+.plane_3:           move.l   d5,(a4)+                   ; save the coordinate
                     rts
 
-lbC002AA8:          lea      stars_swap_buffers(pc),a0
+set_stars_buffer:   lea      stars_swap_buffers(pc),a0
                     not.w    (a0)
-                    beq.s    lbC002ADE
+                    beq.s    .buffer_2
                     lea      stars_bps_dat2,a0
                     lea      stars_bps,a1
                     moveq    #6-1,d0
-lbC002ABE:          move.l   (a0)+,(a1)+
-                    dbra     d0,lbC002ABE
+.copy_1:            move.l   (a0)+,(a1)+
+                    dbra     d0,.copy_1
                     lea      stars_bitplane1,a0
                     move.l   a0,stars_bitplanes_ptr
                     lea      stars_screen_coords1,a0
                     move.l   a0,stars_screen_coords_ptr
                     rts
 
-lbC002ADE:          lea      stars_bps_dat1,a0
+.buffer_2:          lea      stars_bps_dat1,a0
                     lea      stars_bps,a1
                     moveq    #6-1,d0
-lbC002AEC:          move.l   (a0)+,(a1)+
-                    dbra     d0,lbC002AEC
+.copy_2:            move.l   (a0)+,(a1)+
+                    dbra     d0,.copy_2
                     lea      stars_bitplane2,a0
                     move.l   a0,stars_bitplanes_ptr
                     lea      stars_screen_coords2,a0
@@ -1383,11 +1381,12 @@ lbC002AEC:          move.l   (a0)+,(a1)+
 
 stars_swap_buffers: dc.w     0
 
-lbC002B0E:          bsr.s    prepare_stars_bitplanes
-                    bsr.s    create_stars
+setup_stars:        bsr.s    prepare_stars_bitplanes
+                    bsr.s    create_stars_coords
                     rts
 
-create_stars:       move.l   #$4D373729,d0
+create_stars_coords:
+                    move.l   #$4D373729,d0
                     move.l   d0,d1
                     rol.w    #3,d1
                     swap     d1
@@ -1395,40 +1394,40 @@ create_stars:       move.l   #$4D373729,d0
                     bsr      set_random_seed
                     lea      stars_3d_coords,a5
                     move.w   #409-1,d5
-lbC002B34:          move.w   #768,d0
+.create_x:          move.w   #768,d0
                     bsr      rand
                     sub.w    #384,d0
                     move.w   d0,(a5)
                     lea      6(a5),a5
-                    dbra     d5,lbC002B34
-                    
+                    dbra     d5,.create_x
+
                     lea      stars_3d_coords+2,a5
                     move.w   #409-1,d5
-lbC002B54:          move.w   #512,d0
+.create_y:          move.w   #512,d0
                     bsr      rand
                     sub.w    #256,d0
                     move.w   d0,(a5)
                     lea      6(a5),a5
-                    dbra     d5,lbC002B54
+                    dbra     d5,.create_y
                     
                     lea      stars_3d_coords+4,a5
                     move.w   #409-1,d5
-lbC002B74:          move.w   #1024,d0
+.create_z:          move.w   #1024,d0
                     bsr      rand
                     move.w   d0,(a5)
                     lea      6(a5),a5
-                    dbra     d5,lbC002B74
+                    dbra     d5,.create_z
                     rts
 
 prepare_stars_bitplanes:
                     lea      stars_bitplane1,a0
-                    move.w   #36864,d0
-lbC002B92:          clr.b    (a0)+
-                    dbra     d0,lbC002B92
+                    move.w   #(256*48*3)-1,d0
+.clear_plane_1:     clr.b    (a0)+
+                    dbra     d0,.clear_plane_1
                     lea      stars_bitplane2,a0
-                    move.w   #36864,d0
-lbC002BA2:          clr.b    (a0)+
-                    dbra     d0,lbC002BA2
+                    move.w   #(256*48*3)-1,d0
+.clear_plane_2:     clr.b    (a0)+
+                    dbra     d0,.clear_plane_2
                     move.l   #stars_bitplane1,d0
                     lea      stars_bps_dat1,a0
                     move.w   #$E0,(a0)+
@@ -1437,14 +1436,14 @@ lbC002BA2:          clr.b    (a0)+
                     move.w   #$E2,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
-                    add.l    #12288,d0
+                    add.l    #(256*48),d0
                     move.w   #$E8,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
                     move.w   #$EA,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
-                    add.l    #12288,d0
+                    add.l    #(256*48),d0
                     move.w   #$F0,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
@@ -1459,14 +1458,14 @@ lbC002BA2:          clr.b    (a0)+
                     move.w   #$E2,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
-                    add.l    #12288,d0
+                    add.l    #(256*48),d0
                     move.w   #$E8,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
                     move.w   #$EA,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
-                    add.l    #12288,d0
+                    add.l    #(256*48),d0
                     move.w   #$F0,(a0)+
                     swap     d0
                     move.w   d0,(a0)+
@@ -1556,10 +1555,10 @@ stars_directions_table:
                     dcb.w    32,-1
                     dc.w     -32
 
-lbC003B4A:          movem.l  d0-d7/a0-a6,-(sp)
+display_text:       movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW002952,a0
                     lea      lbW0028B6,a1
-                    move.l   #8,d0
+                    moveq    #8,d0
                     bsr      set_palette
                     movem.l  (sp)+,d0-d7/a0-a6
                     lea      $dff000,a6
@@ -1567,10 +1566,10 @@ lbC003B4A:          movem.l  d0-d7/a0-a6,-(sp)
                     clr.l    d1
                     move.w   (a0)+,d0
                     move.w   (a0)+,d1
-                    add.w    #$44,d0
+                    add.w    #68,d0
                     add.w    #12,d1
                     move.l   d0,d7
-lbC003B80:          move.l   0(a1),a2
+next_letter:        move.l   (a1),a2
                     move.l   d0,d2
                     move.l   d2,d3
                     and.w    #15,d3
@@ -1586,26 +1585,26 @@ lbC003B80:          move.l   0(a1),a2
                     clr.l    d4
                     move.b   (a0)+,d2
                     cmp.b    #' ',d2
-                    beq      lbC003CF6
+                    beq      space_letter
                     move.l   $24(a1),a3
-lbC003BB2:          cmp.b    (a3)+,d2
-                    beq.s    lbC003BC0
+search_letter:      cmp.b    (a3)+,d2
+                    beq.s    display_letter
                     addq.l   #2,d4
                     tst.b    (a3)
-                    bne.s    lbC003BB2
-                    bra      lbC003D16
+                    bne.s    search_letter
+                    bra      return
 
-lbC003BC0:          move.l   $20(a1),a3
+display_letter:     move.l   $20(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
                     move.l   #$1000000,$40(a6)
-                    move.l   #lbL003D18,$54(a6)
+                    move.l   #letter_buffer,$54(a6)
                     move.w   #2,$66(a6)
                     move.w   #(16*64)+1,$58(a6)
                     WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   $1C(a1),d5
-                    move.l   #lbL003D18,d4
+                    move.l   #letter_buffer,d4
                     move.l   #-1,$44(a6)
                     move.l   #$DFC0000,$40(a6)
                     move.l   $18(a1),d6
@@ -1614,7 +1613,7 @@ lbC003BC0:          move.l   $20(a1),a3
                     move.w   #2,$66(a6)
                     move.w   #2,$62(a6)
                     move.l   a3,d6
-lbC003C2C:          
+blit_letter_mask:          
                     WAIT_BLIT
                     move.l   d6,$50(a6)
                     move.l   d4,$4C(a6)
@@ -1622,7 +1621,7 @@ lbC003C2C:
                     move.w   #(16*64)+1,$58(a6)
                     add.l    d5,d6
                     subq.w   #1,d2
-                    bne.s    lbC003C2C
+                    bne.s    blit_letter_mask
                     WAIT_BLIT
                     move.l   #$FFFF0000,$44(a6)
                     move.w   d3,$dff042
@@ -1635,11 +1634,11 @@ lbC003C2C:
                     move.l   8(a1),d5
                     move.l   4(a1),d2
                     move.l   $1C(a1),d3
-                    move.l   #lbL003D18,d4
+                    move.l   #letter_buffer,d4
                     move.w   $16(a1),d6
                     lsl.w    #6,d6
-                    add.w    #2,d6
-lbC003CA0:          
+                    addq.w   #2,d6
+blit_letter_on_screen:          
                     WAIT_BLIT
                     move.l   d4,$4C(a6)
                     move.l   a3,$50(a6)
@@ -1649,30 +1648,30 @@ lbC003CA0:
                     add.l    d2,a2
                     add.l    d3,a3
                     subq.b   #1,d5
-                    bne.s    lbC003CA0
+                    bne.s    blit_letter_on_screen
                     cmp.l    #2,lbL000A08
-                    beq      lbC003CF6
+                    beq      space_letter
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW002396,a0
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
-                    add.w    #$10,(a0)
+                    add.w    #16,(a0)
                     addq.w   #1,2(a0)
                     jsr      wait_sync
                     movem.l  (sp)+,d0-d7/a0-a6
-lbC003CF6:          add.l    #9,d0
+space_letter:       add.l    #9,d0
                     tst.b    (a0)
-                    bmi      lbC003D16
-                    bne      lbC003B80
+                    bmi      return
+                    bne      next_letter
                     addq.l   #1,a0
                     move.l   d7,d0
                     add.l    #12,d1
                     addq.l   #1,d1
-                    bra      lbC003B80
+                    bra      next_letter
 
-lbC003D16:          rts
+return:             rts
 
-lbL003D18:          dcb.l    32,0
+letter_buffer:      dcb.l    32,0
 
 wait_sync:          cmp.b    #255,$dff006
                     bne.s    wait_sync
@@ -1680,10 +1679,10 @@ wait_sync:          cmp.b    #255,$dff006
                     bne.s    .wait
                     rts
 
-lbL003DAE:          dc.l     lbL0052E4,$2580,3,$24,$10,$10,$50,$540
+lbL003DAE:          dc.l     lbL0052E4,9600,3,$24,$10,$10,$50,$540
                     dc.l     font_pic
                     dc.l     ascii_letters
-lbL003DD6:          dc.l     lbL01F0E4,$16D0,3,$24,$10,$10,$50,$540
+lbL003DD6:          dc.l     lbL01F0E4,5840,3,$24,$10,$10,$50,$540
                     dc.l     font_pic
                     dc.l     ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?:'
@@ -1721,7 +1720,7 @@ lbC003EB6:          addq.l   #1,lbL0042DA
                     clr.l    d0
 lbC003ECA:          move.l   0(a0,d0.l),a0
                     lea      lbL003DAE,a1
-                    bsr      lbC003B4A
+                    bsr      display_text
                     move.l   #$15E,d0
 lbC003EDE:          tst.w    lbW001844
                     bne      lbC003F52
@@ -1754,8 +1753,8 @@ lbC003F54:          move.w   #1,lbW001844
 
 wait_sync2:         cmp.b   #255,$dff006
                     bne.s   wait_sync2
-lbC003F68:          cmp.b   #0,$dff006
-                    bne.s   lbC003F68
+.wait:              cmp.b   #0,$dff006
+                    bne.s   .wait
                     rts
 
 lbC003F74:          lea      lbL0061E4,a0
@@ -1885,8 +1884,8 @@ lbL0052E4:          dcb.b    3600,0
 lbL0060F4:          dcb.b    240,0
 lbL0061E4:          dcb.b    3680,0
 lbL007044:          dcb.b    21280,0
-stars_bitplane1:    dcb.b    36864,0
-stars_bitplane2:    dcb.b    36864,0
+stars_bitplane1:    dcb.b    (256*48*3),0
+stars_bitplane2:    dcb.b    (256*48*3),0
 
 copyright_pic:      incbin   "copyright_320x16x3.raw"
 
