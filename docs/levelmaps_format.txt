@@ -1,0 +1,227 @@
+maps files format:
+------------------
+
+ Note: Data are big endian.
+
+   0.l: "T7MP"
+   4.l: Size of the chunk (4)
+   8.l: File size
+
+  12.l: "XBLK"
+  16.l: Size of the chunk (4)
+  20.l: Horizontal size of the map (all levels have the same size)
+
+  24.l: "YBLK"
+  28.l: Size of the chunk (4)
+  32.l: Vertical size of the map (all levels have the same size)
+
+  36.l: "VERS"
+  40.l: Size of the chunk (0x1c/28)
+  44.l: ??? (Filled with 0s)
+
+  72.l: "COM1"
+  76.l: Size of the chunk (0x1c/28)
+  80.l: ??? (Filled with 0s)
+
+ 108.l: "COM1"
+ 112.l: Size of the chunk (0x1c/28)
+ 118.l: ??? (Filled with 0s)
+
+ 144.l: "REMX"
+ 148.l: Size of the chunk (4)
+ 152.l: Maybe the last X position used in the editor before saving the map
+
+ 156.l: "REMY"
+ 160.l: Size of the chunk (4)
+ 164.l: Maybe the last Y position used in the editor before saving the map
+
+ 168.l: "IFFP"
+ 172.l: Size of the chunk (0x40/64)
+ 176.b: Filename of the background tiles picture used (only chars from 13 to 16 are used)
+
+ 240.l: "PALA"
+ 244.l: Size of the chunk (0xc0/192)
+ 176.b: Filename of the palette (64 bytes) (probably stored in a CAMG IFF chunk for the editor)
+ 312.w: Datas of the palette (128 bytes only 64 used) (used by the game)
+
+ 440.l: "PALB"
+ 444.l: Size of the chunk (0xc0/192)
+ 448.b: Filename of the palette (64 bytes) (probably stored in a CAMG IFF chunk for the editor)
+ 512.w: Datas of the palette (128 bytes only 64 used) (used by the game when the timer is on)
+
+ 640.l: "PALC"
+ 644.l: Size of the chunk (0xc0/192)
+ 648.w: Not used
+ 712.w: Not used
+
+ 840.l: "PALD"
+ 844.l: Size of the chunk (0xc0/192)
+ 848.w: Not used
+ 912.w: Not used
+
+ 1040.l: "COLS"
+ 1044.l: Size of the chunk (4)
+ 1048.l: ??? (0 or 1) (not used in the game)
+
+ 1052.l: "CCCL"
+ 1056.l: Size of the chunk (0x40/64)
+ 1060.b: A series of bytes (not used in the game)
+     
+ 1124.l: "IFFC"
+ 1128.l: Size of the chunk (0x800/2048)
+ 1060.b: A series of bytes (not used in the game)
+     
+ 3180.l: "BODY"
+ 3184.l: Size of the chunk (0x5a00/23040) (XBLK*YBLK*2)
+ 3188.w: tiles datas
+
+     Bits  0-5: Attribute of the tile:
+
+                0x00: floor
+                0x01: wall
+                0x02: exit
+                0x03: door
+                0x04: key
+                0x05: first aid
+                0x06: ammo
+                0x07: 1 up
+                0x08: fire door left button
+                0x09: fire door right button
+                0x0a: small face huggers hatch.
+                0x0b: 100 credits
+                0x0c: 1000 credits
+                0x0d: normal floor but with tiles using metallic grid
+                      (maybe it was meant to use some different footsteps sound
+                       when the players are stepping on them ?)
+                0x0e: one way (players loose health when reaching this tile from below)
+
+                          up 
+                          /\
+                          /\
+                         down
+
+                0x0f: one way (players loose health when reaching this tile from the left)
+
+                     left >> right
+
+                0x10: one way (players loose health when reaching this tile from above)
+
+                          up 
+                          \/
+                          \/
+                         down
+
+                0x11: one way (players loose health when reaching this tile from the right)
+
+                     left << right
+
+                0x12: fire door left button
+                0x13: fire door right button
+                0x14: deadly hole
+                0x15: evil 1 up (initiate immediate level destruction sequence if touched)
+                      also main reactor (same effect except there's time to flee)
+                      also some walls in level 11
+                0x16: acid pool (only used in level 5)
+                0x17: intex terminal
+                0x18: ship reactor up 1 (2x2 tiles)
+                      white force field (2x2 tiles)
+                      ventilation (2x2 tiles)
+                      arms walls (tongues ?) in level 12 (1x4 tiles)
+                0x19: ship reactor up 2 (2x2 tiles)
+                      white force field (2x2 tiles)
+                0x1a: ship reactor up 3 (2x2 tiles)
+                      opening/closing hatch (2x2 tiles)
+                      part of pulsating ball in level 12 (5x1 tiles)
+                0x1b: ship reactor down 1 (2x2 tiles)
+                      vertical running engine (2x2 tiles)
+                      vertical red force field (1x3 tiles)
+                0x1c: ship reactor down 2 (2x2 tiles)
+                0x1d: ship reactor down 3 (2x2 tiles)
+                      vertical wall flashing light (1 tile)
+                0x1e: horizontal red force field (4x1 tiles)
+                0x1f: ventilation (2x2 tiles)
+                0x20: not used in the game
+                0x21: not used in the game
+                0x22: not used in the game
+                0x23: not used in the game
+                0x26: one way (deadly)
+
+                     left >> right
+
+                0x27: climb (players slower when coming from left)
+
+                     left floor << right floor
+
+                0x28: respawning location of big aliens
+                0x29: respawning location of small aliens
+                0x2a: power dome 1
+                0x2b: power dome 2
+                0x2c: power dome 3
+                0x2d: power dome 4
+                0x2e: one way (deadly)
+
+                     left << right
+
+                0x2f: climb (players slower when coming from right)
+
+                     left floor >> right floor
+
+                0x30: not used in the game
+                0x31: not used in the game
+                0x32: not used in the game
+                0x33: trigger vertical force fields sequence when fighting reactor boss.
+                0x34: hole with aliens coming out
+                0x35: players starting position
+                0x36: used in level 12 for the last boss,
+                      the game throws a random number and the tile have 37,5% chance of making the boss to stop.
+                      Otherwise, no effect.
+                0x37: climb (players slower when coming from below)
+
+                        up floor
+                           /\
+                           /\
+                       down floor
+
+                0x38: one way (players loose health when reaching this tile from below / left)
+
+                           up
+                           /\
+                      left >> right
+                           /\
+                          down
+
+                0x39: one way (players loose health when reaching this tile from above / left)
+
+                            up
+                            \/
+                       left >> right
+                            \/
+                           down
+
+                 0x3a: one way (players loose health when reaching this tile from above / right)
+
+                            up
+                            \/
+                       left << right
+                            \/
+                           down
+
+                0x3b: one way (players loose health when reaching this tile from below / right)
+
+                            up
+                            /\
+                       left << right
+                            /\
+                           down
+
+                0x3c: not used in the game
+                0x3d: boss trigger
+                0x3e: not used in the game
+                0x3f: climb (players slower when coming from above)
+
+                        down floor
+                            \/
+                            \/
+                         up floor
+          
+     Bits 6-15: Index of the tile gfx (*16 to obtain gfx offset in the background picture).
