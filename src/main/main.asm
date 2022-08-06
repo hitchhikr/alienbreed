@@ -1,8 +1,7 @@
 ; -----------------------------------------------------
 ; Alien Breed Special Edition 92 CD32 by Team 17
-; Source code version 1.13
 ; -----------------------------------------------------
-; Disassembled by Franck Charlet.
+; Disassembled by Franck 'hitchhikr' Charlet.
 ; -----------------------------------------------------
 ; LxMA are the maps.
 ; LxAN are the animated tiles (320x144x5).

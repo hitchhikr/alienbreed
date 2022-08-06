@@ -1,11 +1,19 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
 WAIT_BLIT           MACRO
 wait\@:             btst     #14,$dff002
                     bne.s    wait\@
                     ENDM
 
                     section  menu,code_c
-start:
-                    move.l   d5,number_players
+
+start:              move.l   d5,number_players
                     move.l   d7,share_credits
                     move.l   a1,reg_vbr
                     bsr      lbC00133C

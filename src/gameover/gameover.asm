@@ -1,6 +1,14 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
                     section  gameover,code_c
-start:
-                    lea      screen_buffer_1,a0
+
+start:              lea      screen_buffer_1,a0
                     lea      screen_buffer_2,a1
                     lea      iff_animation,a2
                     lea      anim_struct(pc),a3

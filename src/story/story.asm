@@ -1,36 +1,34 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
 WAIT_BLIT           MACRO
 wait\@:             btst     #14,$dff002
                     bne.s    wait\@
                     ENDM
 
                     section  story,code_c
-start:
-                    bsr      lbC000060
+
+start:              bsr      lbC000060
                     bsr      lbC0006C6
-lbC000008:          bsr      lbC0000DE
+main_loop:          bsr      wait_frame_joystick
                     bsr      lbC00030E
                     tst.w    lbW0012F2
-                    beq      lbC000008
+                    beq      main_loop
                     bsr      lbC00069C
-                    tst.w    lbW0012EE
-                    bne      lbC00003A
-                    bsr      lbC000116
+                    tst.w    exit_flag
+                    bne      exit
+                    bsr      display_title_screen
                     bsr      lbC000186
-lbC000030:          tst.w    lbW0012EE
-                    bne      lbC00003A
-lbC00003A:          move.l   #copperlist_blank,$dff080
-                    move.l   lbW0012EE,d0
-                    tst.w    lbW0012F4
-                    bne      lbC00005E
-                    move.w   #$C000,$dff09a
+exit:               move.l   #copperlist_blank,$dff080
+                    move.l   exit_flag,d0
                     rts
 
-lbC00005E:          rts
-
-lbC000060:          tst.w    lbW0012F4
-                    bne.s    lbC000070
-                    move.w   #$4000,$dff09a
-lbC000070:          lea      planet_bps,a0
+lbC000060:          lea      planet_bps,a0
                     move.l   #planet_pic,d0
                     move.l   #4,d1
                     move.l   #(256*40),d2
@@ -45,49 +43,51 @@ lbC000070:          lea      planet_bps,a0
 
 lbC0000B4:          btst     #7,$bfe001
                     beq      lbC0000CA
-                    bsr      lbC0000DE
+                    bsr      wait_frame_joystick
                     subq.w   #1,d0
                     bne.s    lbC0000B4
                     rts
 
 lbC0000CA:          move.w   #1,lbW0012F2
-                    move.l   #-1,lbW0012EE
+                    move.l   #-1,exit_flag
                     rts
 
-lbC0000DE:          btst     #7,$bfe001
+wait_frame_joystick:
+                    btst     #7,$bfe001
                     beq      lbC0000CA
                     cmp.b    #255,$dff006
-                    bne.s    lbC0000DE
-lbC0000F4:          cmp.b    #0,$dff006
-                    bne.s    lbC0000F4
+                    bne.s    wait_frame_joystick
+.wait:              cmp.b    #0,$dff006
+                    bne.s    .wait
                     rts
 
-wait_sync:          cmp.b    #255,$dff006
-                    bne.s    wait_sync
-lbC00010A:          cmp.b    #0,$dff006
-                    bne.s    lbC00010A
+wait_frame:         cmp.b    #255,$dff006
+                    bne.s    wait_frame
+.wait:              cmp.b    #0,$dff006
+                    bne.s    .wait
                     rts
 
-lbC000116:          lea      title_bps,a0
+display_title_screen:
+                    lea      title_bps,a0
                     move.l   #title_pic,d0
                     move.l   #5,d1
                     move.l   #(256*40),d2
                     bsr      set_bps
                     lea      color_palette_down,a0
                     lea      colors_down,a1
-                    move.l   #$20,d0
+                    move.l   #32,d0
                     bsr      lbC00089E
-                    bsr      lbC0000DE
+                    bsr      wait_frame_joystick
                     move.l   #copperlist_title,$dff080
                     move.w   #4,lbW000BEC
-                    move.l   #$34,d0
-lbC000164:          bsr      wait_sync
+                    move.l   #52,d0
+.move:              bsr      wait_frame
                     move.l   d0,-(sp)
                     bsr      lbC00091A
                     move.l   (sp)+,d0
-                    sub.b    #4,diwstrt
+                    subq.b   #4,diwstrt
                     subq.w   #1,d0
-                    bne.s    lbC000164
+                    bne.s    .move
                     move.b   #$2C,diwstrt
                     rts
 
@@ -102,7 +102,7 @@ lbC000186:          move.w   #$8020,$dff096
                     bsr      set_palette
                     clr.l    d0
                     clr.l    d1
-                    move.l   #$2D01FF00,lbW0010FA
+                    move.l   #$2D01FF00,pos_copper_dark_pal
                     lea      lbW000EFA,a0
 lbC0001CC:          movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW000EFA,a0
@@ -118,27 +118,27 @@ lbC0001EE:          move.w   d0,2(a0)
                     bsr      lbC000E14
                     movem.l  (sp)+,d0-d7/a0-a6
                     addq.w   #1,d1
-                    cmp.w    #$20,d1
+                    cmp.w    #32,d1
                     bne.s    lbC000204
                     clr.w    d1
-lbC000204:          bsr      lbC0000DE
-                    add.l    #$1000000,lbW001076
-                    add.l    #$1000000,lbW0010FA
-                    cmp.l    #$1FF00,lbW001076
+lbC000204:          bsr      wait_frame_joystick
+                    add.l    #$1000000,pos_copper_beam_line
+                    add.l    #$1000000,pos_copper_dark_pal
+                    cmp.l    #$1FF00,pos_copper_beam_line
                     bne.s    lbC000232
                     move.l   #$FFE1FFFE,lbW001072
 lbC000232:          addq.w   #1,d0
                     cmp.w    #$FF,d0
                     bne.s    lbC0001CC
                     lea      lbW000EFA,a0
-                    move.w   #$150,(a0)
+                    move.w   #336,(a0)
                     bsr      lbC000E14
                     move.l   #300,d0
                     bsr      lbC0000B4
-                    tst.l    lbW0012EE
+                    tst.l    exit_flag
                     beq.s    lbC000260
                     addq.l   #4,sp
-                    bra      lbC000030
+                    bra      exit
 
 lbC000260:          move.w   #2,lbW000BEC
                     lea      lbW001336,a0
@@ -159,14 +159,14 @@ lbC0002AA:          btst     #7,$bfe001
                     beq.s    lbC0002D0
                     btst     #6,$bfe001
                     beq.s    lbC0002D0
-                    bsr      lbC0000DE
+                    bsr      wait_frame_joystick
                     bsr      lbC0007B8
                     tst.w    lbW000BF0
                     beq.s    lbC0002AA
                     rts
 
 lbC0002D0:          move.w   #1,lbW0012F2
-                    move.l   #-1,lbW0012EE
+                    move.l   #-1,exit_flag
                     move.w   #1,lbW000BF0
                     rts
 
@@ -212,7 +212,7 @@ lbC000392:          addq.w   #1,lbW00045C
                     cmp.w    #6,lbW00045C
                     beq      lbC000446
                     cmp.w    #12,lbW00045C
-                    bmi      lbC00005E
+                    bmi      return
                     clr.w    lbW00045C
                     addq.w   #1,lbW000458
                     cmp.w    #18,lbW000458
@@ -236,30 +236,30 @@ lbC000406:          move.b   (a0)+,(a1)+
                     add.l    #35,text_ptr
                     move.l   text_ptr,a0
                     tst.b    (a0)
-                    bpl      lbC000434
+                    bpl      reset_text
                     move.l   #text_story,text_ptr
                     move.w   #1,lbW0012F2
-lbC000434:          lea      lbL01D36E,a0
-                    lea      lbL000648,a1
-                    bsr      lbC00045E
+reset_text:         lea      lbL01D36E,a0
+                    lea      font_struct,a1
+                    bsr      display_text
                     rts
 
 lbC000446:          lea      lbL01D386,a0
-                    lea      lbL000648,a1
-                    bsr      lbC00045E
+                    lea      font_struct,a1
+                    bsr      display_text
                     rts
 
 lbW000458:          dc.w     0
 lbW00045A:          dc.w     0
 lbW00045C:          dc.w     0
 
-lbC00045E:          lea      $dff000,a6
+display_text:       lea      $dff000,a6
                     clr.l    d0
                     clr.l    d1
                     move.w   (a0)+,d0
                     move.w   (a0)+,d1
                     move.l   d0,d7
-lbC00046E:          move.l   0(a1),a2
+next_letter:        move.l   0(a1),a2
                     move.l   d0,d2
                     move.l   d2,d3
                     and.w    #15,d3
@@ -275,24 +275,24 @@ lbC00046E:          move.l   0(a1),a2
                     clr.l    d4
                     move.b   (a0)+,d2
                     move.l   36(a1),a3
-lbC000498:          cmp.b    (a3)+,d2
-                    beq.s    lbC0004A6
+search_letter:      cmp.b    (a3)+,d2
+                    beq.s    display_letter
                     addq.l   #2,d4
                     tst.b    (a3)
-                    bne.s    lbC000498
-                    bra      lbC0005C6
+                    bne.s    search_letter
+                    bra      return
 
-lbC0004A6:          move.l   32(a1),a3
+display_letter:     move.l   32(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
                     move.l   #$1000000,$40(a6)
-                    move.l   #lbL0005C8,$54(a6)
+                    move.l   #letter_buffer,$54(a6)
                     move.w   #2,$66(a6)
                     move.w   #(16*64)+1,$58(a6)
                     WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   28(a1),d5
-                    move.l   #lbL0005C8,d4
+                    move.l   #letter_buffer,d4
                     move.l   #-1,$44(a6)
                     move.l   #$dfc0000,$40(a6)
                     move.l   24(a1),d6
@@ -301,7 +301,7 @@ lbC0004A6:          move.l   32(a1),a3
                     move.w   #2,$66(a6)
                     move.w   #2,$62(a6)
                     move.l   a3,d6
-lbC000512:          
+blit_letter_mask:          
                     WAIT_BLIT
                     move.l   d6,$50(a6)
                     move.l   d4,$4C(a6)
@@ -309,11 +309,11 @@ lbC000512:
                     move.w   #(16*64)+1,$58(a6)
                     add.l    d5,d6
                     subq.w   #1,d2
-                    bne.s    lbC000512
+                    bne.s    blit_letter_mask
                     WAIT_BLIT
-                    move.l   #$FFFF0000,$44(a6)
+                    move.l   #$ffff0000,$44(a6)
                     move.w   d3,$dff042
-                    or.w     #$FE2,d3
+                    or.w     #$fe2,d3
                     move.w   d3,$40(a6)
                     clr.w    $62(a6)
                     move.w   26(a1),$64(a6)
@@ -322,11 +322,11 @@ lbC000512:
                     move.l   8(a1),d5
                     move.l   4(a1),d2
                     move.l   28(a1),d3
-                    move.l   #lbL0005C8,d4
+                    move.l   #letter_buffer,d4
                     move.w   22(a1),d6
                     lsl.w    #6,d6
                     add.w    #2,d6
-lbC000586:          
+blit_letter_on_screen:          
                     WAIT_BLIT
                     move.l   d4,$4C(a6)
                     move.l   a3,$50(a6)
@@ -336,20 +336,20 @@ lbC000586:
                     add.l    d2,a2
                     add.l    d3,a3
                     subq.b   #1,d5
-                    bne.s    lbC000586
+                    bne.s    blit_letter_on_screen
                     add.l    16(a1),d0
                     tst.b    (a0)
-                    bmi      lbC0005C6
-                    bne      lbC00046E
+                    bmi      return
+                    bne      next_letter
                     addq.l   #1,a0
                     move.l   d7,d0
                     add.l    20(a1),d1
-                    bra      lbC00046E
+                    bra      next_letter
 
-lbC0005C6:          rts
+return:             rts
 
-lbL0005C8:          dcb.l    $20,0
-lbL000648:          dc.l     text_bitplane1,10240,2,36,9,11,80,924
+letter_buffer:      dcb.l    32,0
+font_struct:        dc.l     text_bitplane1,10240,2,36,9,11,80,924
                     dc.l     font_pic
                     dc.l     ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0
@@ -359,7 +359,7 @@ lbC00069C:          lea      color_palette_planet,a0
                     lea      colors_planet,a1
                     move.l   #32,d0
                     bsr      lbC000A2C
-lbC0006B2:          bsr      lbC0000DE
+lbC0006B2:          bsr      wait_frame_joystick
                     bsr      lbC000AF8
                     tst.w    lbW000BF0
                     beq      lbC0006B2
@@ -369,7 +369,7 @@ lbC0006C6:          lea      color_palette_planet,a0
                     lea      colors_planet,a1
                     move.l   #32,d0
                     bsr      lbC00089E
-lbC0006DC:          bsr      lbC0000DE
+lbC0006DC:          bsr      wait_frame_joystick
                     bsr      lbC00091A
                     tst.w    lbW000BF0
                     beq      lbC0006DC
@@ -873,12 +873,14 @@ color_palette_up:   dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
                     dc.w    $138,0,$13A,0,$170,0,$172,0
 lbW001062:          dc.w    $13C,0,$13E,0,$178,0,$17A,0
 lbW001072:          dc.w    $2C01,$FF00
-lbW001076:          dc.w    $2C01,$FF00
+pos_copper_beam_line:
+                    dc.w    $2C01,$FF00
                     dc.w    $182,$FFF,$182,$FFF,$184,$FFF,$186,$FFF,$188,$FFF,$18A,$FFF,$18C,$FFF,$18E,$FFF
                     dc.w    $190,$FFF,$192,$FFF,$194,$FFF,$196,$FFF,$198,$FFF,$19A,$FFF,$19C,$FFF,$19E,$FFF
                     dc.w    $1A0,$FFF,$1A2,$FFF,$1A4,$FFF,$1A6,$FFF,$1A8,$FFF,$1AA,$FFF,$1AC,$FFF,$1AE,$FFF
                     dc.w    $1B0,$FFF,$1B2,$FFF,$1B4,$FFF,$1B6,$FFF,$1B8,$FFF,$1BA,$FFF,$1BC,$FFF,$1BE,$FFF
-lbW0010FA:          dc.w    $2C01,$FF00
+pos_copper_dark_pal:
+                    dc.w    $2C01,$FF00
 color_palette_down: dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
                     dc.w    $18E,0,$190,0,$192,0,$194,0,$196,0,$198,0,$19A,0
                     dc.w    $19C,0,$19E,0,$1A0,0,$1A2,0,$1A4,0,$1A6,0,$1A8,0
@@ -909,9 +911,8 @@ text_bps:           dc.w    $F0,0,$F2,0
                     dc.w    $F4,0,$F6,0
                     dc.w    $FFFF,$FFFE
 
-lbW0012EE:          dcb.w    2,0
+exit_flag:          dc.l     0
 lbW0012F2:          dc.w     0
-lbW0012F4:          dc.w     1
 
 colors_planet:      dc.w     $000,$FFF,$222,$222,$222,$222,$222,$222,$322,$422
                     dc.w     $522,$622,$722,$822,$922,$B32,$FFF,$FFF,$FFF,$FFF
@@ -944,10 +945,10 @@ text_bitplane2:     dcb.b    10240,0
 planet_pic:         incbin   "planet_320x256x4.raw"
 title_pic:          incbin   "title_320x256x5.raw"
 
-lbL01D36E:          dc.w     $3,$F4
-lbL01D372:          dcb.l    5,$FFFFFFFF
-lbL01D386:          dc.w     $9C,$EE
-lbL01D38A:          dcb.l    5,$FFFFFFFF
+lbL01D36E:          dc.w     3,244
+lbL01D372:          dcb.l    5,-1
+lbL01D386:          dc.w     156,238
+lbL01D38A:          dcb.l    5,-1
 
 text_ptr:           dc.l     text_story
 text_story:         dc.b     'THE YEAR IS 2191 AND THE GALAXY    '

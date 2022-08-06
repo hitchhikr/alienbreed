@@ -1,3 +1,11 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
 ; note: all prices are multiplied by 50
 
 WAIT_BLIT           MACRO
@@ -6,8 +14,8 @@ wait\@:             btst     #14,$dff002
                     ENDM
 
                     section  intex,code_c
-start:
-                    move.l   d0,lbL00715E
+
+start:              move.l   d0,lbL00715E
                     move.l   d1,lbL007162
                     move.l   d2,owned_weapons
                     move.l   a0,lbL00717E
@@ -26,7 +34,7 @@ start:
                     jsr      (a5)
 lbC0000AC:          bsr      lbC0019CC
                     lea      lbW002730,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     bsr      lbC0015DA
 lbC0000C4:          move.l   lbL007172,a0
@@ -83,7 +91,7 @@ lbC0001E0:          bra      lbC0000AC
 
 lbC0001E4:          bsr      lbC0019CC
                     lea      lbW00268E,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     move.l   #1,d0
                     bsr      lbC001364
@@ -125,7 +133,7 @@ lbC0003CC:          btst     #6,$bfe001
 lbC000416:          bsr      lbC0019CC
                     move.l   lbL0004C4,a0
                     move.l   (a0),a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     move.w   #1,lbW0012B8
                     clr.w    lbW0012B6
                     bsr      lbC002214
@@ -271,7 +279,7 @@ lbC000692:          move.b   (a0)+,(a1)+
                     subq.w   #1,d0
                     bne.s    lbC000692
                     lea      lbW00077E,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     move.l   #$960020,lbW006FD4
                     jsr      lbC001190
@@ -286,7 +294,7 @@ lbL0006DC:          dc.l     1
                     dc.l     PLASMAGUN_MSG,5
                     dc.l     FLAMETHROWER_MSG,6
                     dc.l     SIDEWINDERS_MSG,7
-                    dc.l     LAZER_MSG,$FFFFFFFF
+                    dc.l     LAZER_MSG,-1
                     dc.l     MACHINEGUN_MSG
 MACHINEGUN_MSG:     dc.b     'MACHINE GUN   '
 TWINFIRE_MSG:       dc.b     'TWIN FIRE     '
@@ -323,7 +331,8 @@ NO_MSG:             dc.b     ' NO         ',0
                     dc.b     '       FLAME THROWER...      NO         ',0
                     dc.b     '       SIDEWINDERS.....      NO         ',0
                     dc.b     '       LAZER...........      NO         '
-                    dc.b     $FF,$79
+                    dc.b     -1
+                    even
 
 lbC000A8E:          move.l   #6,d0
                     tst.b    (a0)
@@ -340,14 +349,14 @@ lbC000AA8:          move.b   #' ',(a1)+
                     bpl.s    lbC000AA8
                     rts
 
-lbW000AB2:          dc.w     $80,$78
+lbW000AB2:          dc.w     128,120
 cur_holocode:       dc.b     '00000'
                     dc.b     $FF
 lbW000ABC:          dc.w     0
 
 enter_holocode:     bsr      lbC0019CC
                     lea      lbW0028EC,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     bsr      lbC000BB4
 lbC000AD8:          move.l   lbL007172,a0
@@ -405,7 +414,7 @@ lbC000B8A:          btst     d0,$bfe001
 
 lbC000B98:          bsr      lbC001960
                     lea      lbW000AB2,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     bsr      lbC000BB4
                     rts
@@ -438,7 +447,7 @@ lbC000BF2:          movem.l  d0-d7/a0-a6,-(sp)
 scr_tools_supplies: bsr      lbC0019CC
                     bsr      lbC001112
                     lea      text_tool_supplies,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     clr.l    lbL000DC4
 lbC000C4E:          move.l   lbL007172,a0
@@ -485,7 +494,7 @@ lbC000CBC:          btst     d0,$bfe001
                     cmp.l    d1,d2
                     bge.s    enough_money
                     lea      text_insufficient_funds,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     move.l   #1,d0
                     bsr      lbC001364
@@ -565,7 +574,7 @@ lbC000E34:          cmp.w    #4,d0
 
 lbC000E42:          rts
 
-text_tool_supplies: dc.w     0,$24
+text_tool_supplies: dc.w     0,36
                     dc.b     '          INTEX TOOL SUPPLIES           ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -583,7 +592,7 @@ REMOTELOCATIO_MSG:  dc.b     '    REMOTE LOCATION SCANNER  10000 CR   ',0
                     dc.b     '                                       ',0
                     dc.b     '             CREDIT LIMIT: '
 lbB0010C9:          dcb.b    33,0
-                    dcb.b    4,$FF
+                    dcb.b    4,-1
 
 lbC0010EE:          lea      lbW0020CC,a0
                     move.l   lbL000DC4,d0
@@ -613,7 +622,7 @@ lbC001112:          move.l   cur_credits,a0
 
 lbC001146:          bsr      lbC0019CC
                     move.l   lbL007166,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     jsr      lbC001190
                     rts
@@ -664,7 +673,7 @@ lbC0011BA:          move.b   $bfd800,d1
                     bne.s    lbC00129E
 lbC00122A:          move.w   #1,lbW0012B8
                     lea      lbW002558,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     tst.w    lbW0012B6
                     bne.s    lbC00129E
@@ -674,7 +683,7 @@ lbC00122A:          move.w   #1,lbW0012B8
                     move.l   #1,d0
                     bsr      lbC001342
                     lea      lbW0025A4,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     tst.w    lbW0012B6
                     bne.s    lbC00129E
@@ -684,7 +693,7 @@ lbC00122A:          move.w   #1,lbW0012B8
                     move.l   #2,d0
                     bsr      lbC001342
                     lea      lbW002640,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
 lbC00129E:          clr.w    lbW0012B8
                     clr.w    lbW0012B6
@@ -755,7 +764,7 @@ lbC001388:          move.w   #1,lbW0012B6
 lbC001392:          bsr      lbC0019CC
                     bsr      lbC00141A
                     lea      lbW0024E2,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     move.l   lbL00715E,d0
                     move.l   lbL007162,d1
@@ -895,7 +904,7 @@ lbC001596:          clr.b    (a0)+
 lbC00159E:          bsr      lbC0019CC
                     bsr      lbC001BE0
                     lea      lbW005E52,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     bsr      lbC001F6C
 lbC0015BA:          bsr      lbC001F96
@@ -994,7 +1003,7 @@ lbC001670:          move.l   owned_weapons,d1
                     move.b   #'.',(a0)+
                     bsr      lbC0019CC
                     lea      lbW0026B0,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     jsr      lbC002214
                     move.l   #1,d0
                     bsr      lbC001364
@@ -1010,7 +1019,7 @@ lbL00174A:          dc.l    10000
                     dc.l    0
 
 lbC001766:          lea      lbW0026E4,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     move.l   #2,d0
                     bsr      lbC001364
@@ -1018,7 +1027,7 @@ lbC001766:          lea      lbW0026E4,a0
                     bra      lbC00159E
 
 lbC001786:          lea      lbW00270A,a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     move.l   #2,d0
                     bsr      lbC001364
@@ -1355,7 +1364,7 @@ lbC001F4C:          move.l   lbL00716E,d0
                     add.l    d0,d0
                     lea      lbL006178,a0
                     move.l   0(a0,d0.l),a0
-                    lea      lbL00248E,a1
+                    lea      font_struct,a1
                     bsr      lbC002214
                     rts
 
@@ -1602,7 +1611,7 @@ lbC0023FA:          lea      lbW0020CC,a0
 lbW00240A:          dc.w     0
 lbW00240C:          dc.w     0
 lbL00240E:          dcb.l    $20,0
-lbL00248E:          dc.l     bitplanes,$2800,4,$24,8,12,$50,$3F0
+font_struct:        dc.l     bitplanes,10240,4,$24,8,12,80,1008
                     dc.l     font_pic
                     dc.l     ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
@@ -1628,39 +1637,42 @@ lbW0024E2:          dc.w     0,12
                     dc.b     ' ',0
                     dc.b     ' ',0
                     dc.b     '  YOU ARE LOCATED AT CURSORS POSITION!'
-                    dc.b     $FF
-lbW002558:          dc.w     0,$30
+                    dc.b     -1
+lbW002558:          dc.w     0,48
                     dc.b     'INTEX NETWORK CONNECT: CODE ABF01DCC61',0
                     dc.b     'CONNECTING.....................'
-                    dc.b     $FF,$41
-lbW0025A4:          dc.w     0,$54
+                    dc.b     -1
+                    even
+lbW0025A4:          dc.w     0,84
                     dc.b     'INTEX NETWORK SYSTEM V10.1',0
                     dc.b     '2.5G RAM:         OK',0
                     dc.b     'EXTERNAL DEVICE:  OK',0
                     dc.b     'SYSTEM V1.32 CS:  OK',0
                     dc.b     'VIDEODISPLAY:     CCC2.A2',0
                     dc.b     'TEXTUPDATE ACCCELERATOR INSTALLED.'
-                    dc.b     $FF,$61
-lbW002640:          dc.w     0,$A8
+                    dc.b     -1
+                    even
+lbW002640:          dc.w     0,168
                     dc.b     'EXECUTING DOS 6.0',0
                     dc.b     'SYSTEM DOWNLOADING NETWORKDATA..... OK',0
                     dc.b     'INTEX EXECUTED!'
-                    dc.b     $FF,0
-lbW00268E:          dc.w     0,$40
+                    dc.b     -1
+                    even
+lbW00268E:          dc.w     0,64
                     dc.b     '  DISCONNECTING..............'
-                    dc.b     $FF
-lbW0026B0:          dc.w     0,$3E
+                    dc.b     -1
+lbW0026B0:          dc.w     0,62
                     dc.b     '     CREDITS DEBITED.',$ff,0,0
                     dc.b     0
                     dc.b     '@     CREDITS DEBITED.'
-                    dc.b     $FF
-lbW0026E4:          dc.w     0,$D3
+                    dc.b     -1
+lbW0026E4:          dc.w     0,211
                     dc.b     '     YOU ALREADY OWN THAT WEAPON.'
-                    dc.b     $FF
-lbW00270A:          dc.w     0,$D3
+                    dc.b     -1
+lbW00270A:          dc.w     0,211
                     dc.b     '              INSUFFUCIENT FUNDS.'
-                    dc.b     $FF
-lbW002730:          dc.w     0,$20
+                    dc.b     -1
+lbW002730:          dc.w     0,32
                     dc.b     '            INTEX MAIN MENU             ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1672,8 +1684,8 @@ lbW002730:          dc.w     0,$20
                     dc.b     '            GAME STATISTICS             ',0
                     dc.b     '               INFO BASE                ',0
                     dc.b     '          ABORT INTEX NETWORK'
-                    dc.b     $FF
-lbW0028EC:          dc.w     0,$60
+                    dc.b     -1
+lbW0028EC:          dc.w     0,96
                     dc.b     '            ENTER HOLOCODE              ',0
                     dc.b     '                                        ',0
                     dc.b     '                00000                   ',0
@@ -1682,8 +1694,8 @@ lbW0028EC:          dc.w     0,$60
                     dc.b     ' UP AND DOWN INCREASES/DECREASES DIGIT  ',0
                     dc.b     '      LEFT AND RIGHT MOVES CURSOR       ',0
                     dc.b     '        PRESS BUTTON WHEN READY         '
-                    dc.b     $FF
-lbW002A38:          dc.w     0,$18
+                    dc.b     -1
+lbW002A38:          dc.w     0,24
                     dc.b     '      I N T E X  I N F O  B A S E       ',0
                     dc.b     '                                        ',0
                     dc.b     ' ON LINE HELP AND INFORMATION DATABASE. ',0
@@ -1701,8 +1713,9 @@ lbW002A38:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  FIRST PAGE...          ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$BB
-lbW002CF6:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW002CF6:          dc.w     0,24
                     dc.b     ' INTEX SPACE RESEARCH STATION ISRC 4.   ',0
                     dc.b     '                                        ',0
                     dc.b     ' THIS STATION IS A BASE FOR PREPATORY   ',0
@@ -1720,8 +1733,9 @@ lbW002CF6:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$BB
-lbW002FB4:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW002FB4:          dc.w     0,24
                     dc.b     ' INTEX TRANSPORTATION HOLO CODES..      ',0
                     dc.b     '                                        ',0
                     dc.b     ' AT LEAST FIVE HOLO CODES EXIST THAT    ',0
@@ -1739,8 +1753,9 @@ lbW002FB4:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$20
-lbW003272:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW003272:          dc.w     0,24
                     dc.b     ' STATION FACILITIES INVENTORY..         ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1758,8 +1773,9 @@ lbW003272:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$20
-lbW003530:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW003530:          dc.w     0,24
                     dc.b     ' SLIDE DOOR.                            ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... REQUIRES PASS KEY      ',0
@@ -1777,8 +1793,9 @@ lbW003530:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$73
-lbW0037EE:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW0037EE:          dc.w     0,24
                     dc.b     ' FIRE DOOR.                             ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... ONCE SHUT, STAYS SHUT. ',0
@@ -1796,8 +1813,9 @@ lbW0037EE:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$6D
-lbW003AAC:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW003AAC:          dc.w     0,24
                     dc.b     ' LASER DOOR.                            ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... ALLOWS PASSAGE IN ONE  ',0
@@ -1815,8 +1833,9 @@ lbW003AAC:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$69
-lbW003D6A:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW003D6A:          dc.w     0,24
                     dc.b     ' AIR SHAFTS, DUCTS AND VENTS.           ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... VERY LOW               ',0
@@ -1834,8 +1853,9 @@ lbW003D6A:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$64
-lbW004028:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW004028:          dc.w     0,24
                     dc.b     ' REFUGE IRIS.                           ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY........ VERY LOW              ',0
@@ -1852,8 +1872,10 @@ lbW004028:          dc.w     0,$18
                     dc.b     '                                        ',0
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
-                    dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      ÿm'
-lbW0042E6:          dc.w     0,$18
+                    dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
+                    dc.b     -1
+                    even
+lbW0042E6:          dc.w     0,24
                     dc.b     ' ACID VAT.                              ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY........ NOMINAL               ',0
@@ -1871,8 +1893,9 @@ lbW0042E6:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$20
-lbW0045A4:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW0045A4:          dc.w     0,24
                     dc.b     ' REMOTE LOCATION SCANNER.               ',0
                     dc.b     '                                        ',0
                     dc.b     ' THIS HANDY TOOL CAN BE BOUGHT VIA THE  ',0
@@ -1890,8 +1913,9 @@ lbW0045A4:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$20
-lbW004862:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW004862:          dc.w     0,24
                     dc.b     ' ESCAPE SHUTTLE BAY.                    ',0
                     dc.b     '                                        ',0
                     dc.b     ' LOCATION....... U N K N O W N          ',0
@@ -1909,8 +1933,9 @@ lbW004862:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$65
-lbW004B20:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW004B20:          dc.w     0,24
                     dc.b     ' CENTRAL CORE REACTOR.                  ',0
                     dc.b     '                                        ',0
                     dc.b     ' THE KEY TO THE BURNING POWER OF THE    ',0
@@ -1928,8 +1953,9 @@ lbW004B20:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$20
-lbW004DDE:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW004DDE:          dc.w     0,24
                     dc.b     ' CORE ENERGY REACTORS.                  ',0
                     dc.b     '                                        ',0
                     dc.b     ' THE POWER DECK SUPPLIES AUXILLARY      ',0
@@ -1947,8 +1973,9 @@ lbW004DDE:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$52
-lbW00509C:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW00509C:          dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1966,8 +1993,9 @@ lbW00509C:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$30
-lbW00535A:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW00535A:          dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1985,8 +2013,9 @@ lbW00535A:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$BB
-lbW005618:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW005618:          dc.w     0,24
                     dc.b     '         SYSTEM SOFTWARE CREDITS        ',0
                     dc.b     '                                        ',0
                     dc.b     ' CODE........  ANDREAS TADIC            ',0
@@ -2004,8 +2033,9 @@ lbW005618:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$BB
-lbW0058D6:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW0058D6:          dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -2023,8 +2053,9 @@ lbW0058D6:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      MOVE JOYSTICK RIGHT.   ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$BB
-lbW005B94:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW005B94:          dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '         C O M I N G   S O O N          ',0
@@ -2042,8 +2073,9 @@ lbW005B94:          dc.w     0,$18
                     dc.b     ' NEXT PAGE:      LAST PAGE...           ',0
                     dc.b     ' PREVIOUS PAGE:  MOVE JOYSTICK LEFT.    ',0
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
-                    dc.b     $FF,$64
-lbW005E52:          dc.w     0,$18
+                    dc.b     -1
+                    even
+lbW005E52:          dc.w     0,24
                     dc.b     '         INTEX WEAPON SUPPLIES          ',0
                     dc.b     '                                        ',0
                     dc.b     '   WEAPON SUPPLIES REQUEST:             ',0
@@ -2071,7 +2103,7 @@ lbL006178:          dc.l     lbW006190
                     dc.l     lbW006856
                     dc.l     lbW006A98
                     dc.l     lbW006CDA
-lbW006190:          dc.w     0,$54
+lbW006190:          dc.w     0,84
                     dc.b     '        BROADHURST DJ TWINFIRE 3LG      ',0
                     dc.b     '               RAPID FIRE               ',0
                     dc.b     '                                        ',0
@@ -2086,8 +2118,8 @@ lbW006190:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
-lbW0063D2:          dc.w     0,$54
+                    dc.b     -1
+lbW0063D2:          dc.w     0,84
                     dc.b     '             DALTON ARC FLAME           ',0
                     dc.b     '                RAPID FIRE              ',0
                     dc.b     '                                        ',0
@@ -2102,8 +2134,8 @@ lbW0063D2:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
-lbW006614:          dc.w     0,$54
+                    dc.b     -1
+lbW006614:          dc.w     0,84
                     dc.b     '           ROBINSON PLASMA GUN          ',0
                     dc.b     '               PUMP ACTION              ',0
                     dc.b     '                                        ',0
@@ -2118,8 +2150,8 @@ lbW006614:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
-lbW006856:          dc.w     0,$54
+                    dc.b     -1
+lbW006856:          dc.w     0,84
                     dc.b     '           RYXX FIREBOLT MK22           ',0
                     dc.b     '              FLAMETHROWER              ',0
                     dc.b     '                                        ',0
@@ -2134,8 +2166,8 @@ lbW006856:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
-lbW006A98:          dc.w     0,$54
+                    dc.b     -1
+lbW006A98:          dc.w     0,84
                     dc.b     '            STIRLING MULTIMATIC         ',0
                     dc.b     '               TRIPLE BARREL            ',0
                     dc.b     '                                        ',0
@@ -2150,8 +2182,8 @@ lbW006A98:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
-lbW006CDA:          dc.w     0,$54
+                    dc.b     -1
+lbW006CDA:          dc.w     0,84
                     dc.b     '          HIGH IMPACT ASTRO LAZER       ',0
                     dc.b     '                  LAZER                 ',0
                     dc.b     '                                        ',0
@@ -2166,7 +2198,7 @@ lbW006CDA:          dc.w     0,$54
                     dc.b     '                                        ',0
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
-                    dc.b     $FF
+                    dc.b     -1
 
 copperlist_blank:   dc.w    $100,$200
                     dc.w    $180,0

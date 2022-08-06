@@ -1,11 +1,19 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
 WAIT_BLIT           MACRO
 wait\@:             btst     #14,$dff002
                     bne.s    wait\@
                     ENDM
 
                     section  briefingcore,code_c
-start:
-                    move.l   #copperlist_blank,$dff080
+
+start:              move.l   #copperlist_blank,$dff080
                     move.l   a1,sound_routine
                     move.l   a0,cur_text
                     cmp.l    #2,d0
@@ -370,11 +378,11 @@ next_letter:        move.l   0(a1),a2
                     cmp.b    #' ',d2
                     beq      space_letter
                     move.l   36(a1),a3
-.loop:              cmp.b    (a3)+,d2
+search_letter:      cmp.b    (a3)+,d2
                     beq.s    display_letter
                     addq.l   #2,d4
                     tst.b    (a3)
-                    bne.s    .loop
+                    bne.s    search_letter
                     bra      return
 
 display_letter:     move.l   32(a1),a3

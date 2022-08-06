@@ -1,6 +1,14 @@
+; -----------------------------------------------------
+; Alien Breed Special Edition 92 CD32 by Team 17
+; -----------------------------------------------------
+; Disassembled by Franck 'hitchhikr' Charlet.
+; -----------------------------------------------------
+
+                    mc68000
+
                     section  end,code_c
-start:
-                    lea      pic_bp,a0
+
+start:              lea      pic_bp,a0
                     move.l   #background_pic,d0
                     move.l   #4,d1
 set_bkgnd_bps:      move.w   d0,6(a0)
@@ -19,7 +27,7 @@ set_bkgnd_bps:      move.w   d0,6(a0)
                     add.l    #40,d0
                     move.l   #copperlist_main,$dff080
                     move.l   #$1A,d0
-scroll_background:  bsr      wait_sync
+scroll_background:  bsr      wait_frame
                     sub.b    #8,diwstrt
                     subq.w   #1,d0
                     bne.s    scroll_background
@@ -29,7 +37,7 @@ scroll_background:  bsr      wait_sync
                     clr.l    d7
 scroll_text:        btst     #7,$bfe001
                     beq.s    exit
-                    bsr      wait_sync
+                    bsr      wait_frame
                     lea      scroll_bp,a0
                     move.w   d0,6(a0)
                     swap     d0
@@ -43,7 +51,7 @@ scroll_text:        btst     #7,$bfe001
                     subq.w   #1,d1
                     bne.s    scroll_text
 exit:               move.l   #26,d0
-remove_background:  bsr      wait_sync
+remove_background:  bsr      wait_frame
                     add.b    #8,diwstrt
                     subq.w   #1,d0
                     bne.s    remove_background
@@ -51,8 +59,8 @@ remove_background:  bsr      wait_sync
                     clr.l    d0
                     rts
 
-wait_sync:          cmp.b    #255,$dff006
-                    bne.s    wait_sync
+wait_frame:         cmp.b    #255,$dff006
+                    bne.s    wait_frame
 .wait:              cmp.b    #0,$dff006
                     bne.s    .wait
                     rts
