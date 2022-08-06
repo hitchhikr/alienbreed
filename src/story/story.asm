@@ -14,16 +14,16 @@ wait\@:             btst     #14,$dff002
                     section  story,code_c
 
 start:              bsr      lbC000060
-                    bsr      lbC0006C6
+                    bsr      fade_in_planet
 main_loop:          bsr      wait_frame_joystick
-                    bsr      lbC00030E
-                    tst.w    lbW0012F2
+                    bsr      scroll_blit_text
+                    tst.w    end_text_flag
                     beq      main_loop
-                    bsr      lbC00069C
+                    bsr      fade_out_planet
                     tst.w    exit_flag
                     bne      exit
                     bsr      display_title_screen
-                    bsr      lbC000186
+                    bsr      display_beam_title
 exit:               move.l   #copperlist_blank,$dff080
                     move.l   exit_flag,d0
                     rts
@@ -41,14 +41,14 @@ lbC000060:          lea      planet_bps,a0
                     move.l   #copperlist_planet,$dff080
                     rts
 
-lbC0000B4:          btst     #7,$bfe001
+pause:              btst     #7,$bfe001
                     beq      lbC0000CA
                     bsr      wait_frame_joystick
                     subq.w   #1,d0
-                    bne.s    lbC0000B4
+                    bne.s    pause
                     rts
 
-lbC0000CA:          move.w   #1,lbW0012F2
+lbC0000CA:          move.w   #1,end_text_flag
                     move.l   #-1,exit_flag
                     rts
 
@@ -73,7 +73,7 @@ display_title_screen:
                     move.l   #5,d1
                     move.l   #(256*40),d2
                     bsr      set_bps
-                    lea      color_palette_down,a0
+                    lea      color_palette_dark,a0
                     lea      colors_down,a1
                     move.l   #32,d0
                     bsr      lbC00089E
@@ -91,13 +91,13 @@ display_title_screen:
                     move.b   #$2C,diwstrt
                     rts
 
-lbC000186:          move.w   #$8020,$dff096
+display_beam_title: move.w   #$8020,$dff096
                     lea      lbW000EFA,a0
                     bsr      lbC000DDE
                     lea      lbW000EFA,a0
                     bsr      lbC000E14
                     lea      lbW001336,a0
-                    lea      color_palette_up,a1
+                    lea      color_palette_light,a1
                     move.l   #32,d0
                     bsr      set_palette
                     clr.l    d0
@@ -126,7 +126,7 @@ lbC000204:          bsr      wait_frame_joystick
                     add.l    #$1000000,pos_copper_dark_pal
                     cmp.l    #$1FF00,pos_copper_beam_line
                     bne.s    lbC000232
-                    move.l   #$FFE1FFFE,lbW001072
+                    move.l   #$FFE1FFFE,copper_pal_line
 lbC000232:          addq.w   #1,d0
                     cmp.w    #$FF,d0
                     bne.s    lbC0001CC
@@ -134,7 +134,7 @@ lbC000232:          addq.w   #1,d0
                     move.w   #336,(a0)
                     bsr      lbC000E14
                     move.l   #300,d0
-                    bsr      lbC0000B4
+                    bsr      pause
                     tst.l    exit_flag
                     beq.s    lbC000260
                     addq.l   #4,sp
@@ -143,13 +143,13 @@ lbC000232:          addq.w   #1,d0
 lbC000260:          move.w   #2,lbW000BEC
                     lea      lbW001336,a0
                     lea      colors_up,a1
-                    lea      color_palette_up,a2
+                    lea      color_palette_light,a2
                     move.l   #32,d0
                     bsr      lbC000706
                     bsr      lbC0002AA
                     lea      colors_up,a0
                     lea      lbL0013F6,a1
-                    lea      color_palette_up,a2
+                    lea      color_palette_light,a2
                     move.l   #32,d0
                     bsr      lbC000706
                     bsr      lbC0002AA
@@ -165,7 +165,7 @@ lbC0002AA:          btst     #7,$bfe001
                     beq.s    lbC0002AA
                     rts
 
-lbC0002D0:          move.w   #1,lbW0012F2
+lbC0002D0:          move.w   #1,end_text_flag
                     move.l   #-1,exit_flag
                     move.w   #1,lbW000BF0
                     rts
@@ -186,8 +186,8 @@ set_bps:            move.w   d0,6(a0)
                     bne.s    set_bps
                     rts
 
-lbC00030E:          not.w    lbW00045A
-                    beq.s    lbC000392
+scroll_blit_text:   not.w    scroll_slown_down
+                    beq.s    scroll_text
                     bsr      wait_blitter
                     move.w   #$8400,$dff096
                     clr.l    $dff064
@@ -208,18 +208,18 @@ wait_blitter:
                     WAIT_BLIT
                     rts
 
-lbC000392:          addq.w   #1,lbW00045C
+scroll_text:        addq.w   #1,lbW00045C
                     cmp.w    #6,lbW00045C
                     beq      lbC000446
                     cmp.w    #12,lbW00045C
                     bmi      return
                     clr.w    lbW00045C
-                    addq.w   #1,lbW000458
-                    cmp.w    #18,lbW000458
+                    addq.w   #1,pause_scroll
+                    cmp.w    #18,pause_scroll
                     bmi.s    lbC0003D6
-                    clr.w    lbW000458
+                    clr.w    pause_scroll
                     move.l   #500,d0
-                    bsr      lbC0000B4
+                    bsr      pause
 lbC0003D6:          move.l   text_ptr,a0
                     move.l   #17,d0
                     lea      lbL01D372,a1
@@ -238,7 +238,7 @@ lbC000406:          move.b   (a0)+,(a1)+
                     tst.b    (a0)
                     bpl      reset_text
                     move.l   #text_story,text_ptr
-                    move.w   #1,lbW0012F2
+                    move.w   #1,end_text_flag
 reset_text:         lea      lbL01D36E,a0
                     lea      font_struct,a1
                     bsr      display_text
@@ -249,8 +249,8 @@ lbC000446:          lea      lbL01D386,a0
                     bsr      display_text
                     rts
 
-lbW000458:          dc.w     0
-lbW00045A:          dc.w     0
+pause_scroll:       dc.w     0
+scroll_slown_down:  dc.w     0
 lbW00045C:          dc.w     0
 
 display_text:       lea      $dff000,a6
@@ -355,7 +355,7 @@ font_struct:        dc.l     text_bitplane1,10240,2,36,9,11,80,924
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0
                     even
 
-lbC00069C:          lea      color_palette_planet,a0
+fade_out_planet:    lea      color_palette_planet,a0
                     lea      colors_planet,a1
                     move.l   #32,d0
                     bsr      lbC000A2C
@@ -365,7 +365,7 @@ lbC0006B2:          bsr      wait_frame_joystick
                     beq      lbC0006B2
                     rts
 
-lbC0006C6:          lea      color_palette_planet,a0
+fade_in_planet:     lea      color_palette_planet,a0
                     lea      colors_planet,a1
                     move.l   #32,d0
                     bsr      lbC00089E
@@ -761,12 +761,12 @@ lbW000BF0:          dc.w     0
 lbW000BF2:          dc.w     0
 lbL000BF4:          dc.l     0
 lbL000BF8:          dc.l     0
-lbL000BFC:          dcb.l    $18,0
+lbL000BFC:          dcb.l    24,0
 
 lbC000C5C:          rts
 
-lbL000C5E:          dcb.l    $30,0
-lbL000D1E:          dcb.l    $30,0
+lbL000C5E:          dcb.l    48,0
+lbL000D1E:          dcb.l    48,0
 
 lbC000DDE:          tst.l    $10(a0)
                     bne.s    lbC000E00
@@ -779,14 +779,14 @@ lbC000DE8:          move.l   8(a0),a1
                     move.w   d0,2(a1)
                     rts
 
-lbC000E00:          move.l   $10(a0),a1
-                    move.l   a1,$14(a0)
-                    move.w   6(a1),$18(a0)
+lbC000E00:          move.l   16(a0),a1
+                    move.l   a1,20(a0)
+                    move.w   6(a1),24(a0)
                     move.l   (a1),d0
                     bra      lbC000DE8
 
 lbC000E14:          move.l   8(a0),a1
-                    tst.l    $10(a0)
+                    tst.l    16(a0)
                     bne      lbC000EAC
 lbC000E20:          and.w    #$80,14(a1)
                     move.w   0(a0),d0
@@ -812,8 +812,8 @@ lbC000E5E:          move.b   d1,14(a1)
 lbC000E72:          move.b   d0,10(a1)
                     tst.w    6(a0)
                     beq.s    lbC000EAA
-                    move.w   10(a1),$1A(a1)
-                    move.w   14(a1),$1E(a1)
+                    move.w   10(a1),26(a1)
+                    move.w   14(a1),30(a1)
                     move.w   2(a1),d0
                     swap     d0
                     move.w   6(a1),d0
@@ -823,28 +823,28 @@ lbC000E72:          move.b   d0,10(a1)
                     add.l    d1,d1
                     addq.l   #4,d1
                     add.l    d1,d0
-                    move.w   d0,$16(a1)
+                    move.w   d0,22(a1)
                     swap     d0
-                    move.w   d0,$12(a1)
+                    move.w   d0,18(a1)
 lbC000EAA:          rts
 
-lbC000EAC:          subq.w   #1,$18(a0)
+lbC000EAC:          subq.w   #1,24(a0)
                     bpl      lbC000E20
-                    addq.l   #8,$14(a0)
-lbC000EB8:          move.l   $14(a0),a2
+                    addq.l   #8,20(a0)
+lbC000EB8:          move.l   20(a0),a2
                     move.l   (a2),d0
                     tst.l    d0
                     bmi.s    lbC000ED6
-                    move.w   6(a2),$18(a0)
+                    move.w   6(a2),24(a0)
                     move.w   d0,6(a1)
                     swap     d0
                     move.w   d0,2(a1)
                     bra      lbC000E20
 
-lbC000ED6:          move.l   $10(a0),$14(a0)
+lbC000ED6:          move.l   16(a0),20(a0)
                     bra.s    lbC000EB8
 
-lbW000EFA:          dc.w     $150,$96,1,0
+lbW000EFA:          dc.w     336,150,1,0
                     dc.l     lbW001062
                     dc.l     lbL000F16
                     dcb.w    6,0
@@ -861,7 +861,8 @@ title_bps:          dc.w    $E0,0,$E2,0
                     dc.w    $E8,0,$EA,0
                     dc.w    $EC,0,$EE,0
                     dc.w    $F0,0,$F2,0
-color_palette_up:   dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
+color_palette_light:
+                    dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
                     dc.w    $18E,0,$190,0,$192,0,$194,0,$196,0,$198,0,$19A,0
                     dc.w    $19C,0,$19E,0,$1A0,0,$1A2,0,$1A4,0,$1A6,0,$1A8,0
                     dc.w    $1AA,0,$1AC,0,$1AE,0,$1B0,0,$1B2,0,$1B4,0,$1B6,0
@@ -872,7 +873,7 @@ color_palette_up:   dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
                     dc.w    $130,0,$132,0,$160,0,$162,0,$134,0,$136,0,$168,0,$16A,0
                     dc.w    $138,0,$13A,0,$170,0,$172,0
 lbW001062:          dc.w    $13C,0,$13E,0,$178,0,$17A,0
-lbW001072:          dc.w    $2C01,$FF00
+copper_pal_line:    dc.w    $2C01,$FF00
 pos_copper_beam_line:
                     dc.w    $2C01,$FF00
                     dc.w    $182,$FFF,$182,$FFF,$184,$FFF,$186,$FFF,$188,$FFF,$18A,$FFF,$18C,$FFF,$18E,$FFF
@@ -881,7 +882,7 @@ pos_copper_beam_line:
                     dc.w    $1B0,$FFF,$1B2,$FFF,$1B4,$FFF,$1B6,$FFF,$1B8,$FFF,$1BA,$FFF,$1BC,$FFF,$1BE,$FFF
 pos_copper_dark_pal:
                     dc.w    $2C01,$FF00
-color_palette_down: dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
+color_palette_dark: dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0
                     dc.w    $18E,0,$190,0,$192,0,$194,0,$196,0,$198,0,$19A,0
                     dc.w    $19C,0,$19E,0,$1A0,0,$1A2,0,$1A4,0,$1A6,0,$1A8,0
                     dc.w    $1AA,0,$1AC,0,$1AE,0,$1B0,0,$1B2,0,$1B4,0,$1B6,0
@@ -911,96 +912,96 @@ text_bps:           dc.w    $F0,0,$F2,0
                     dc.w    $F4,0,$F6,0
                     dc.w    $FFFF,$FFFE
 
-exit_flag:          dc.l     0
-lbW0012F2:          dc.w     0
+exit_flag:          dc.l    0
+end_text_flag:      dc.w    0
 
-colors_planet:      dc.w     $000,$FFF,$222,$222,$222,$222,$222,$222,$322,$422
-                    dc.w     $522,$622,$722,$822,$922,$B32,$FFF,$FFF,$FFF,$FFF
-                    dc.w     $FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF
-                    dc.w     $FFF,$FFF
+colors_planet:      dc.w    $000,$FFF,$222,$222,$222,$222,$222,$222,$322,$422
+                    dc.w    $522,$622,$722,$822,$922,$B32,$FFF,$FFF,$FFF,$FFF
+                    dc.w    $FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF
+                    dc.w    $FFF,$FFF
 
-lbW001336:          dc.w     $000,$990,$221,$332,$443,$554,$665,$776,$887,$998
-                    dc.w     $AA9,$BBA,$CCB,$DDD,$EEE,$FFF,$000,$111,$222,$333
-                    dc.w     $444,$555,$666,$777,$888,$999,$AAA,$BBB,$CCC,$DDD
-                    dc.w     $EEE,$FFF
+lbW001336:          dc.w    $000,$990,$221,$332,$443,$554,$665,$776,$887,$998
+                    dc.w    $AA9,$BBA,$CCB,$DDD,$EEE,$FFF,$000,$111,$222,$333
+                    dc.w    $444,$555,$666,$777,$888,$999,$AAA,$BBB,$CCC,$DDD
+                    dc.w    $EEE,$FFF
 
-colors_down:        dc.w     $000,$770,$000,$110,$221,$332,$443,$554,$665,$776,$887
-                    dc.w     $998,$AA9,$BBB,$CCC,$DDD,$000,$000,$000,$111,$222,$333
-                    dc.w     $444,$555,$666,$777,$888,$999,$AAA,$BBB,$CCC,$DDD
+colors_down:        dc.w    $000,$770,$000,$110,$221,$332,$443,$554,$665,$776,$887
+                    dc.w    $998,$AA9,$BBB,$CCC,$DDD,$000,$000,$000,$111,$222,$333
+                    dc.w    $444,$555,$666,$777,$888,$999,$AAA,$BBB,$CCC,$DDD
 
-colors_up:          dc.w     $D00,$F90,$F21,$F32,$F43,$F54,$F65,$F76,$F87,$F98
-                    dc.w     $FA9,$FBA,$FCB,$FDD,$FEE,$FFF,$D00,$E11,$F22,$F33
-                    dc.w     $F44,$F55,$F66,$F77,$F88,$F99,$FAA,$FBB,$FCC,$FDD
-                    dc.w     $FEE,$FFF
+colors_up:          dc.w    $D00,$F90,$F21,$F32,$F43,$F54,$F65,$F76,$F87,$F98
+                    dc.w    $FA9,$FBA,$FCB,$FDD,$FEE,$FFF,$D00,$E11,$F22,$F33
+                    dc.w    $F44,$F55,$F66,$F77,$F88,$F99,$FAA,$FBB,$FCC,$FDD
+                    dc.w    $FEE,$FFF
 
-lbL0013F6:          dcb.l    $10,0
+lbL0013F6:          dcb.w   32,0
 
-                    incdir   "src/story/gfx/"
-font_pic:           incbin   "font_16x462x2.raw"
+                    incdir  "src/story/gfx/"
+font_pic:           incbin  "font_16x462x2.raw"
 
-text_bitplane1:     dcb.b    10240,0
+text_bitplane1:     dcb.b   10240,0
 
-text_bitplane2:     dcb.b    10240,0
+text_bitplane2:     dcb.b   10240,0
 
-planet_pic:         incbin   "planet_320x256x4.raw"
-title_pic:          incbin   "title_320x256x5.raw"
+planet_pic:         incbin  "planet_320x256x4.raw"
+title_pic:          incbin  "title_320x256x5.raw"
 
-lbL01D36E:          dc.w     3,244
-lbL01D372:          dcb.l    5,-1
-lbL01D386:          dc.w     156,238
-lbL01D38A:          dcb.l    5,-1
+lbL01D36E:          dc.w    3,244
+lbL01D372:          dcb.l   5,-1
+lbL01D386:          dc.w    156,238
+lbL01D38A:          dcb.l   5,-1
 
-text_ptr:           dc.l     text_story
-text_story:         dc.b     'THE YEAR IS 2191 AND THE GALAXY    '
-                    dc.b     'STANDS ON THE BRINK OF WAR, ONLY   '
-                    dc.b     'THE INTER PLANETARY CORPS MAINTAIN '
-                    dc.b     'THE UNEASY PEACE. IPC MEMBERS      '
-                    dc.b     'JOHNSON AND STONE WERE HEADING FOR '
-                    dc.b     'FEDERATION HQ AFTER SIX MONTHS ON  '
-                    dc.b     'ROUTINE PATROL AROUND THE INTEX    '
-                    dc.b     'NETWORK. NOTHING HAD HAPPENED AND  '
-                    dc.b     'NOTHING EVER DID IN THIS GOD       '
-                    dc.B     'FORSAKEN PLACE.. THEY WERE GLAD TO '
-                    dc.b     'BE GOING HOME.                     '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     'THEN CAME THE ORDERS TO CHECK OUT A'
-                    dc.b     'DISTANT SPACE RESEARCH CENTRE WHICH'
-                    dc.b     'HAD FAILED TO TRANSMIT ON ANY OF   '
-                    dc.b     'THE FEDERATION WAVEBANDS. ISRC4 WAS'
-                    dc.b     'SITUATED NEAR THE RED GIANT GIANOR '
-                    dc.b     'AND WAS THE LAST PLACE THEY WANTED '
-                    dc.b     'TO GO... LITTLE DID THEY KNOW WHAT '
-                    dc.b     'LAY AHEAD... THEY WERE HEADING     '
-                    dc.b     'STRAIGHT INTO THE MIDST OF AN ALIEN'
-                    dc.b     'BREED.                             '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     '                                   '
-                    dc.b     -1
+text_ptr:           dc.l    text_story
+text_story:         dc.b    'THE YEAR IS 2191 AND THE GALAXY    '
+                    dc.b    'STANDS ON THE BRINK OF WAR, ONLY   '
+                    dc.b    'THE INTER PLANETARY CORPS MAINTAIN '
+                    dc.b    'THE UNEASY PEACE. IPC MEMBERS      '
+                    dc.b    'JOHNSON AND STONE WERE HEADING FOR '
+                    dc.b    'FEDERATION HQ AFTER SIX MONTHS ON  '
+                    dc.b    'ROUTINE PATROL AROUND THE INTEX    '
+                    dc.b    'NETWORK. NOTHING HAD HAPPENED AND  '
+                    dc.b    'NOTHING EVER DID IN THIS GOD       '
+                    dc.B    'FORSAKEN PLACE.. THEY WERE GLAD TO '
+                    dc.b    'BE GOING HOME.                     '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    'THEN CAME THE ORDERS TO CHECK OUT A'
+                    dc.b    'DISTANT SPACE RESEARCH CENTRE WHICH'
+                    dc.b    'HAD FAILED TO TRANSMIT ON ANY OF   '
+                    dc.b    'THE FEDERATION WAVEBANDS. ISRC4 WAS'
+                    dc.b    'SITUATED NEAR THE RED GIANT GIANOR '
+                    dc.b    'AND WAS THE LAST PLACE THEY WANTED '
+                    dc.b    'TO GO... LITTLE DID THEY KNOW WHAT '
+                    dc.b    'LAY AHEAD... THEY WERE HEADING     '
+                    dc.b    'STRAIGHT INTO THE MIDST OF AN ALIEN'
+                    dc.b    'BREED.                             '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    '                                   '
+                    dc.b    -1
                     even
 
                     end
