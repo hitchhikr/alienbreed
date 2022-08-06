@@ -511,15 +511,15 @@ copperlist_blank:   dc.w    $100,$200
 sound_routine:      dc.l     0
 cur_text:           dc.l     0
 
-sprite_1_pic:       incbin  "briefingcore/gfx/sprite1.raw"
-sprite_2_pic:       incbin  "briefingcore/gfx/sprite2.raw"
-sprite_3_pic:       incbin  "briefingcore/gfx/sprite3.raw"
-sprite_4_pic:       incbin  "briefingcore/gfx/sprite4.raw"
-sprite_5_pic:       incbin  "briefingcore/gfx/sprite5.raw"
-sprite_6_pic:       incbin  "briefingcore/gfx/sprite6.raw"
-sprite_7_pic:       incbin  "briefingcore/gfx/sprite7.raw"
-sprites_pic:        incbin  "briefingcore/gfx/sprites.raw"
-background_pic:     incbin  "briefingcore/gfx/bkgnd_320x256x5.raw"
-font_pic:           incbin  "briefingcore/gfx/font_16x504x6.raw"
+sprite_1_pic:       incbin   "briefingcore/gfx/sprite1.raw"
+sprite_2_pic:       incbin   "briefingcore/gfx/sprite2.raw"
+sprite_3_pic:       incbin   "briefingcore/gfx/sprite3.raw"
+sprite_4_pic:       incbin   "briefingcore/gfx/sprite4.raw"
+sprite_5_pic:       incbin   "briefingcore/gfx/sprite5.raw"
+sprite_6_pic:       incbin   "briefingcore/gfx/sprite6.raw"
+sprite_7_pic:       incbin   "briefingcore/gfx/sprite7.raw"
+sprites_pic:        incbin   "briefingcore/gfx/sprites.raw"
+background_pic:     incbin   "briefingcore/gfx/bkgnd_320x256x5.raw"
+font_pic:           incbin   "briefingcore/gfx/font_16x504x6.raw"
 
                     end

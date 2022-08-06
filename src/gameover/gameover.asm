@@ -1,89 +1,84 @@
                     section  gameover,code_c
 start:
-                    tst.w    lbW000C06
-                    bne.s    lbC000010
-                    move.w   #$4000,$dff09a
-lbC000010:          lea      lbL000C0E,a0
-                    lea      lbL005C0E,a1
+                    lea      screen_buffer_1,a0
+                    lea      screen_buffer_2,a1
                     lea      iff_animation,a2
-                    lea      lbW000BE4(pc),a3
-                    moveq    #$28,d0
-                    move.l   #$100,d1
-                    bsr      lbC000992
-                    bsr      lbC0008C4
+                    lea      anim_struct(pc),a3
+                    moveq    #40,d0
+                    move.l   #256,d1
+                    bsr      prepare_anim
+                    bsr      set_copper_buffer_2
                     moveq    #0,d7
                     lea      copper_palette,a0
                     lea      palette,a1
                     move.l   #4,d0
                     jsr      lbC000378
-lbC000050:          addq.l   #1,lbL000C0A
-                    cmp.l    #$25,lbL000C0A
-                    beq      lbC0000D8
-                    lea      lbW000BE4(pc),a0
-                    bsr      lbC000A10
+
+anim_loop:          addq.l   #1,frames_counter
+                    cmp.l    #37,frames_counter
+                    beq      wait_exit
+                    lea      anim_struct(pc),a0
+                    bsr      decode_anim
                     tst.w    d0
-                    bne.s    lbC0000D8
-                    bsr      lbC00012E
-                    bsr      lbC0008C4
+                    bne.s    wait_exit
+                    bsr      wait_2_frames
+                    bsr      set_copper_buffer_2
                     movem.l  d0-d7/a0-a6,-(sp)
-                    tst.w    lbW0006CA
+                    tst.w    done_fade
                     bne.s    lbC000092
                     move.w   #2,lbW0006C6
                     jsr      lbC0003F4
 lbC000092:          movem.l  (sp)+,d0-d7/a0-a6
                     btst     #6,$bfe001
-                    beq      lbC000100
+                    beq      exit
                     btst     #7,$bfe001
-                    beq.s    lbC000100
-                    lea      lbW000BE4(pc),a0
-                    bsr      lbC000A10
+                    beq.s    exit
+                    lea      anim_struct(pc),a0
+                    bsr      decode_anim
                     tst.w    d0
-                    bne.s    lbC0000D8
-                    bsr      lbC00012E
-                    bsr      lbC0008BA
-                    bra      lbC000050
+                    bne.s    wait_exit
+                    bsr      wait_2_frames
+                    bsr      set_copper_buffer_1
+                    bra      anim_loop
 
-lbC0000D8:          bsr      lbC0008C4
-                    move.l   #$96,d0
-lbC0000E2:          bsr      lbC000118
+wait_exit:          bsr      set_copper_buffer_2
+                    move.l   #150,d0
+.wait:              bsr      wait_frame
                     subq.l   #1,d0
-                    beq      lbC000100
+                    beq      exit
                     btst     #7,$bfe001
-                    beq.s    lbC000100
+                    beq.s    exit
                     btst     #6,$bfe001
-                    bne.s    lbC0000E2
-lbC000100:          jsr      lbC00014E
-                    tst.w    lbW000C06
-                    bne.s    lbC000116
-                    move.w   #$C000,$dff09a
-lbC000116:          rts
-
-lbC000118:          cmp.b    #255,$dff006
-                    bne.s    lbC000118
-lbC000122:          cmp.b    #44,$dff006
-                    bne.s    lbC000122
+                    bne.s    .wait
+exit:               jsr      fade_out
                     rts
 
-lbC00012E:          cmp.b    #255,$dff006
-                    bne.s    lbC00012E
-lbC000138:          cmp.b    #254,$dff006
-                    bne.s    lbC000138
-lbC000142:          cmp.b    #44,$dff006
-                    bne.s    lbC000142
+wait_frame:         cmp.b    #255,$dff006
+                    bne.s    wait_frame
+.wait:              cmp.b    #44,$dff006
+                    bne.s    .wait
                     rts
 
-lbC00014E:          lea      copper_palette,a0
+wait_2_frames:      cmp.b    #255,$dff006
+                    bne.s    wait_2_frames
+.wait_frame_2:      cmp.b    #254,$dff006
+                    bne.s    .wait_frame_2
+.wait_rast:         cmp.b    #44,$dff006
+                    bne.s    .wait_rast
+                    rts
+
+fade_out:           lea      copper_palette,a0
                     lea      lbL000182,a1
                     move.l   #4,d0
                     move.w   #1,lbW0006C6
                     jsr      lbC000506
-lbC00016E:          bsr      lbC000118
+.loop:              bsr      wait_frame
                     jsr      fade_palette
-                    tst.w    lbW0006CA
-                    beq.s    lbC00016E
+                    tst.w    done_fade
+                    beq.s    .loop
                     rts
 
-lbL000182:          dcb.l    16,0
+lbL000182:          dcb.w    32,0
 palette:            dc.w     0,$A99,$766,$333
 
 lbC000378:          move.w   #2,lbW0006C4
@@ -121,12 +116,12 @@ lbC0003A0:          move.w   (a2),d6
                     move.w   d0,lbW0006CC
                     move.l   a0,lbL0006D2
                     move.l   a1,lbL0006CE
-                    clr.w    lbW0006CA
+                    clr.w    done_fade
                     rts
 
 lbC0003F4:          cmp.w    #2,lbW0006C4
                     bne      return
-                    tst.w    lbW0006CA
+                    tst.w    done_fade
                     bne      return
                     add.w    #1,lbW0006C8
                     move.w   lbW0006C8,d0
@@ -196,7 +191,7 @@ lbC0004DE:          add.l    #2,a2
                     bne      lbC000452
                     cmp.l    d6,d7
                     bne      lbC000504
-                    move.w   #1,lbW0006CA
+                    move.w   #1,done_fade
                     clr.w    lbW0006C4
 lbC000504:          rts
 
@@ -255,12 +250,12 @@ lbC00057E:          move.w   (a2),d7
                     sub.l    #2,a0
                     move.w   d0,lbW0006CC
                     move.l   a0,lbL0006D2
-                    clr.w    lbW0006CA
+                    clr.w    done_fade
                     rts
 
 fade_palette:       cmp.w    #3,lbW0006C4
                     bne      return
-                    tst.w    lbW0006CA
+                    tst.w    done_fade
                     bne      return
                     add.w    #1,lbW0006C8
                     move.w   lbW0006C8,d0
@@ -320,14 +315,14 @@ lbC00069C:          add.l    #2,a2
                     bne      lbC000624
                     tst.l    d7
                     bne      lbC0006C2
-                    move.w   #1,lbW0006CA
+                    move.w   #1,done_fade
                     clr.w    lbW0006C4
 lbC0006C2:          rts
 
 lbW0006C4:          dc.w     0
 lbW0006C6:          dc.w     $19
 lbW0006C8:          dc.w     0
-lbW0006CA:          dc.w     0
+done_fade:          dc.w     0
 lbW0006CC:          dc.w     0
 lbL0006CE:          dc.l     0
 lbL0006D2:          dc.l     0
@@ -338,36 +333,37 @@ return:             rts
 lbL000738:          dcb.l    48,0
 lbL0007F8:          dcb.l    48,0
 
-lbC0008BA:          lea      lbL000C0E,a1
-                    bra      lbC0008CA
-
-lbC0008C4:          lea      lbL005C0E,a1
-lbC0008CA:          lea      copperlist_main(pc),a0
+set_copper_buffer_1:
+                    lea      screen_buffer_1,a1
+                    bra      set_copper
+set_copper_buffer_2:
+                    lea      screen_buffer_2,a1
+set_copper:         lea      copperlist_main(pc),a0
                     lea      copper_bitplanes(pc),a2
                     move.l   a1,d0
                     move.w   d0,6(a2)
                     swap     d0
                     move.w   d0,2(a2)
                     addq.l   #8,a2
-                    add.w    #10240,a1
+                    add.w    #(256*40),a1
                     move.l   a1,d0
                     move.w   d0,6(a2)
                     swap     d0
                     move.w   d0,2(a2)
                     addq.l   #8,a2
-                    add.w    #10240,a1
+                    add.w    #(256*40),a1
                     move.l   a1,d0
                     move.w   d0,6(a2)
                     swap     d0
                     move.w   d0,2(a2)
                     addq.l   #8,a2
-                    add.w    #10240,a1
+                    add.w    #(256*40),a1
                     move.l   a1,d0
                     move.w   d0,6(a2)
                     swap     d0
                     move.w   d0,2(a2)
                     addq.l   #8,a2
-                    add.w    #10240,a1
+                    add.w    #(256*40),a1
                     move.l   a1,d0
                     move.w   d0,6(a2)
                     swap     d0
@@ -389,47 +385,47 @@ copper_bitplanes:
 copper_palette:     dc.w    $180,0,$182,0,$184,0,$186,0
                     dc.w    $FFFF,$FFFE
 
-lbC000992:          movem.l  d0-d7/a0-a6,-(sp)
+prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a3,a6
                     movem.l  d0/d1/a0-a2,0(a6)
-                    clr.b    $19(a6)
-                    clr.l    $1E(a6)
+                    clr.b    25(a6)
+                    clr.l    30(a6)
                     move.l   (a2)+,d0
                     cmp.l    #'FORM',d0
-                    bne.s    lbC0009F8
+                    bne.s    .error
                     addq.l   #4,a2
                     move.l   (a2)+,d0
                     cmp.l    #'ANIM',d0
-                    bne.s    lbC0009F8
+                    bne.s    .error
                     move.l   a2,a0
                     move.l   8(a6),a1
                     move.l   0(a6),d0
                     move.l   4(a6),d1
-                    bsr      lbC000B1E
-                    move.l   a0,$1A(a6)
+                    bsr      get_first_pic
+                    move.l   a0,26(a6)
                     move.l   12(a6),a1
                     move.l   8(a6),a0
                     move.l   0(a6),d0
                     moveq    #0,d1
-                    move.b   $18(a6),d1
+                    move.b   24(a6),d1
                     mulu     d1,d0
                     move.l   4(a6),d1
                     mulu     d1,d0
                     subq.l   #1,d0
                     lsr.l    #2,d0
-lbC0009F0:          move.l   (a0)+,(a1)+
-                    dbra     d0,lbC0009F0
-                    bra.s    lbC000A0A
+.loop:              move.l   (a0)+,(a1)+
+                    dbra     d0,.loop
+                    bra.s    .end
 
-lbC0009F8:          move.w   #$F00,$dff180
+.error:             move.w   #$F00,$dff180
                     btst     #6,$bfe001
-                    bne.s    lbC0009F8
-lbC000A0A:          movem.l  (sp)+,d0-d7/a0-a6
+                    bne.s    .error
+.end:               movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbC000A10:          movem.l  d1-d7/a0-a6,-(sp)
+decode_anim:        movem.l  d1-d7/a0-a6,-(sp)
                     move.l   a0,a6
-                    move.l   $1A(a6),d0
+                    move.l   26(a6),d0
                     addq.l   #1,d0
                     and.w    #$FFFE,d0
                     move.l   d0,a5
@@ -442,35 +438,35 @@ lbC000A10:          movem.l  d1-d7/a0-a6,-(sp)
                     bne      lbC000B0E
 lbC000A3C:          move.l   (a5)+,d0
                     cmp.l    #'ANHD',d0
-                    beq.s    lbC000A54
+                    beq.s    get_ANHD_chunk
                     cmp.l    #'DLTA',d0
-                    beq.s    lbC000A6C
+                    beq.s    get_DLTA_chunk
                     move.l   (a5)+,d0
                     add.l    d0,a5
                     bra.s    lbC000A3C
 
-lbC000A54:          addq.l   #4,a5
+get_ANHD_chunk:     addq.l   #4,a5
                     move.b   (a5)+,d0
                     cmp.b    #5,d0
                     bne      lbC000B0E
                     add.w    #$13,a5
                     move.l   (a5)+,d7
-                    add.w    #$10,a5
+                    add.w    #16,a5
                     bra.s    lbC000A3C
 
-lbC000A6C:          move.l   (a5)+,d4
+get_DLTA_chunk:     move.l   (a5)+,d4
                     move.l   a5,a3
                     add.l    d4,a3
                     move.l   a5,a4
                     move.l   0(a6),d4
-                    move.b   $18(a6),d5
-                    tst.b    $19(a6)
+                    move.b   24(a6),d5
+                    tst.b    25(a6)
                     beq.s    lbC000A88
                     move.l   8(a6),a1
                     bra.s    lbC000A8C
 
 lbC000A88:          move.l   12(a6),a1
-lbC000A8C:          move.w   $14(a6),d6
+lbC000A8C:          move.w   20(a6),d6
                     move.l   a1,a2
                     move.l   (a5)+,d0
                     lea      0(a4,d0.l),a0
@@ -516,11 +512,11 @@ lbC000ACE:          addq.w   #1,a2
                     addq.l   #1,d0
                     and.l    #$FFFFFFFE,d0
                     move.l   d0,a3
-                    move.l   a3,$1A(a6)
-                    not.b    $19(a6)
-                    tst.l    $1E(a6)
+                    move.l   a3,26(a6)
+                    not.b    25(a6)
+                    tst.l    30(a6)
                     bne.s    lbC000B0A
-                    move.l   a3,$1E(a6)
+                    move.l   a3,30(a6)
 lbC000B0A:          moveq    #0,d0
                     bra.s    lbC000B10
 
@@ -528,89 +524,86 @@ lbC000B0E:          moveq    #-1,d0
 lbC000B10:          movem.l  (sp)+,d1-d7/a0-a6
                     rts
 
-lbC000B1E:          movem.l  d0-d7/a1-a6,-(sp)
+get_first_pic:      movem.l  d0-d7/a1-a6,-(sp)
                     move.l   d0,d6
                     move.l   d1,d7
                     move.l   (a0)+,d0
                     cmp.l    #'FORM',d0
-                    bne      lbC000B9A
+                    bne      .error
                     addq.l   #4,a0
                     move.l   (a0)+,d0
                     cmp.l    #'ILBM',d0
-                    bne      lbC000B9A
-lbC000B40:          move.l   (a0)+,d0
+                    bne      .error
+.loop:              move.l   (a0)+,d0
                     cmp.l    #'BMHD',d0
-                    beq.s    lbC000B58
+                    beq.s    .get_BMHD_chunk
                     cmp.l    #'BODY',d0
-                    beq.s    lbC000B78
-                    move.l   (a0)+,d0
-                    add.l    d0,a0
-                    bra.s    lbC000B40
+                    beq.s    .get_BODY_chunk
+                    move.l   (a0)+,d0               ; just take the size of this unknown chunk
+                    add.l    d0,a0                  ; and move
+                    bra.s    .loop
 
-lbC000B58:          addq.l   #4,a0
+.get_BMHD_chunk:    addq.l   #4,a0
                     move.w   (a0)+,d4
                     lsr.w    #3,d4
-                    move.w   d4,$14(a6)
+                    move.w   d4,20(a6)
                     move.w   (a0)+,d5
-                    move.w   d5,$16(a6)
+                    move.w   d5,22(a6)
                     addq.l   #4,a0
                     move.b   (a0)+,d3
-                    move.b   d3,$18(a6)
+                    move.b   d3,24(a6)
                     add.w    #11,a0
-                    bra      lbC000B40
+                    bra      .loop
 
-lbC000B78:          addq.l   #4,a0
+.get_BODY_chunk:    addq.l   #4,a0
                     move.l   a1,a5
                     move.w   d6,d2
                     mulu     d7,d2
-lbC000B80:          move.l   a5,a1
+.depack_all:        move.l   a5,a1
                     swap     d5
                     move.b   d3,d5
-lbC000B86:          bsr      lbC000BB2
+.depack_line:       bsr      rle_depack
                     add.w    d2,a1
                     subq.b   #1,d5
-                    bne.s    lbC000B86
+                    bne.s    .depack_line
                     swap     d5
                     add.w    d6,a5
                     subq.w   #1,d5
-                    bne.s    lbC000B80
-                    bra.s    lbC000BAC
+                    bne.s    .depack_all
+                    bra.s    .end
 
-lbC000B9A:          move.w   #$F00,$dff180
+.error:             move.w   #$F00,$dff180
                     btst     #6,$bfe001
-                    bne.s    lbC000B9A
-lbC000BAC:          movem.l  (sp)+,d0-d7/a1-a6
+                    bne.s    .error
+.end:               movem.l  (sp)+,d0-d7/a1-a6
                     rts
 
-lbC000BB2:          movem.l  d2/a1,-(sp)
+rle_depack:         movem.l  d2/a1,-(sp)
                     move.w   d4,d2
                     subq.w   #1,d2
-lbC000BBA:          tst.w    d2
-                    bmi.s    lbC000BDE
+.loop:              tst.w    d2
+                    bmi.s    .end
                     move.b   (a0)+,d0
-                    bmi.s    lbC000BCE
+                    bmi.s    .rep_byte
                     ext.w    d0
-lbC000BC4:          move.b   (a0)+,(a1)+
+.copy_lit_bytes:    move.b   (a0)+,(a1)+
                     subq.w   #1,d2
-                    dbra     d0,lbC000BC4
-                    bra.s    lbC000BBA
-
-lbC000BCE:          ext.w    d0
+                    dbra     d0,.copy_lit_bytes
+                    bra.s    .loop
+.rep_byte:          ext.w    d0
                     neg.w    d0
                     move.b   (a0)+,d1
-lbC000BD4:          move.b   d1,(a1)+
+.copy_rep_byte:     move.b   d1,(a1)+
                     subq.w   #1,d2
-                    dbra     d0,lbC000BD4
-                    bra.s    lbC000BBA
-
-lbC000BDE:          movem.l  (sp)+,d2/a1
+                    dbra     d0,.copy_rep_byte
+                    bra.s    .loop
+.end:               movem.l  (sp)+,d2/a1
                     rts
 
-lbW000BE4:          dcb.w    $11,0
-lbW000C06:          dcb.w    2,1
-lbL000C0A:          dc.l     0
-lbL000C0E:          dcb.b    20480,0
-lbL005C0E:          dcb.b    20480,0
-iff_animation:      incbin  "gameover/anim/gameover.anim"
+anim_struct:        dcb.w    17,0
+frames_counter:     dc.l     0
+screen_buffer_1:    dcb.b    (256*40*2),0
+screen_buffer_2:    dcb.b    (256*40*2),0
+iff_animation:      incbin   "gameover/anim/gameover.anim"
 
                     end
