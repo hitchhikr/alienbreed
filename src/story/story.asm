@@ -13,7 +13,7 @@ wait\@:             btst     #14,$dff002
 
                     section  story,code_c
 
-start:              bsr      lbC000060
+start:              bsr      set_planet_pic
                     bsr      fade_in_planet
 main_loop:          bsr      wait_frame_joystick
                     bsr      scroll_blit_text
@@ -28,7 +28,7 @@ exit:               move.l   #copperlist_blank,$dff080
                     move.l   exit_flag,d0
                     rts
 
-lbC000060:          lea      planet_bps,a0
+set_planet_pic:     lea      planet_bps,a0
                     move.l   #planet_pic,d0
                     move.l   #4,d1
                     move.l   #(256*40),d2
