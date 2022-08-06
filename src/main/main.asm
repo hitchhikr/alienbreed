@@ -1378,7 +1378,7 @@ set_destruction_timer:
                     move.b   timer_digit_lo,d1
                     move.b   d0,cur_timer_digit_hi
                     move.b   d1,cur_timer_digit_lo
-                    bra      lbC00313E
+                    bra      display_timer_digits
 
 destruction_sequence:
                     tst.w    self_destruct_initiated
@@ -1421,18 +1421,19 @@ lbC0030AA:          addq.w   #1,lbW002FE0
                     clr.w    lbW023204
 lbC0030F4:          subq.b   #1,cur_timer_digit_lo
                     cmp.b    #255,cur_timer_digit_lo
-                    bne.s    lbC00313E
+                    bne.s    display_timer_digits
                     subq.b   #1,cur_timer_digit_hi
                     move.b   #9,cur_timer_digit_lo
                     cmp.b    #255,cur_timer_digit_hi
-                    bne.s    lbC00313E
+                    bne.s    display_timer_digits
                     clr.b    cur_timer_digit_hi
                     clr.b    cur_timer_digit_lo
                     move.l   #1,flag_jump_to_gameover
                     move.l   #1,flag_destruct_level
                     rts
 
-lbC00313E:          lea      timer_digits_table,a0
+display_timer_digits:
+                    lea      timer_digits_table,a0
                     clr.w    d2
                     move.b   cur_timer_digit_hi,d2
                     add.w    d2,d2
@@ -1442,7 +1443,7 @@ lbC00313E:          lea      timer_digits_table,a0
                     add.w    d2,d2
                     add.w    d2,d2
                     move.l   0(a0,d2.w),d1
-                    jmp      lbC011370
+                    jmp      set_timer_bps
 
 timer_digits_table: dc.l     timer_digit_0
                     dc.l     timer_digit_1
@@ -1478,7 +1479,7 @@ wait_frame:         move.l   $dff004,d1
                     bne      wait_frame
                     rts
 
-calc_time:          lea      global_time,a0
+calc_elapsed_time:  lea      global_time,a0
                     clr.b    (a0)
                     clr.b    1(a0)
                     clr.b    3(a0)
@@ -1486,61 +1487,62 @@ calc_time:          lea      global_time,a0
                     clr.b    6(a0)
                     clr.b    7(a0)
                     move.l   elapsed_seconds,d0
-                    clr.b    lbB0034F2
-                    clr.b    lbB0034F3
-                    clr.b    lbB0034F4
+                    clr.b    time_hours
+                    clr.b    time_minutes
+                    clr.b    time_seconds
                     cmp.l    #356400,d0
-                    bpl      lbC0034C8
+                    bpl      max_time
                     move.l   d0,d1
                     divu     #3600,d1
                     and.w    #$FFFF,d1
                     tst.w    d1
-                    beq      lbC003424
-                    move.b   d1,lbB0034F2
+                    beq      zero_hour
+                    move.b   d1,time_hours
                     mulu     #3600,d1
                     sub.l    d1,d0
-lbC003424:          move.l   d0,d1
+zero_hour:          move.l   d0,d1
                     divu     #60,d1
                     and.w    #$FFFF,d1
                     tst.w    d1
-                    beq      lbC003440
-                    move.b   d1,lbB0034F3
+                    beq      zero_minutes
+                    move.b   d1,time_minutes
                     mulu     #60,d1
                     sub.l    d1,d0
-lbC003440:          move.b   d0,lbB0034F4
-                    
+zero_minutes:       move.b   d0,time_seconds
+
                     lea      global_time_decimal_table,a0
                     move.l   #0,d0
                     move.l   #0,d1
                     move.l   #10,d2
-lbC00345E:          move.b   d0,(a0)+
+create_time_decimal_table: 
+                    move.b   d0,(a0)+
                     move.b   d1,(a0)+
                     addq.w   #1,d1
                     cmp.b    #10,d1
-                    bne.s    lbC00345E
+                    bne.s    create_time_decimal_table
                     addq.w   #1,d0
                     clr.b    d1
                     subq.w   #1,d2
-                    bne      lbC00345E
+                    bne      create_time_decimal_table
                     
                     lea      global_time,a0
                     clr.l    d0
-                    move.b   lbB0034F2,d0
+                    move.b   time_hours,d0
                     add.w    d0,d0
                     lea      global_time_decimal_table,a1
-                    move.b   0(a1,d0.l),(a0)
+                    move.b   (a1,d0.l),(a0)
                     move.b   1(a1,d0.l),1(a0)
-                    move.b   lbB0034F3,d0
+                    move.b   time_minutes,d0
                     add.w    d0,d0
                     lea      global_time_decimal_table,a1
-                    move.b   0(a1,d0.l),3(a0)
+                    move.b   (a1,d0.l),3(a0)
                     move.b   1(a1,d0.l),4(a0)
-                    move.b   lbB0034F4,d0
+                    move.b   time_seconds,d0
                     add.w    d0,d0
                     lea      global_time_decimal_table,a1
-                    move.b   0(a1,d0.l),6(a0)
+                    move.b   (a1,d0.l),6(a0)
                     move.b   1(a1,d0.l),7(a0)
-lbC0034C8:          lea      global_time,a0
+max_time:           lea      global_time,a0
                     add.b    #'0',(a0)
                     add.b    #'0',1(a0)
                     add.b    #'0',3(a0)
@@ -1549,14 +1551,17 @@ lbC0034C8:          lea      global_time,a0
                     add.b    #'0',7(a0)
                     rts
 
-lbB0034F2:          dc.b     0
-lbB0034F3:          dc.b     0
-lbB0034F4:          dcb.b    2,0
+time_hours:         dc.b     0
+time_minutes:       dc.b     0
+time_seconds:       dc.b     0
+                    even
 global_time_decimal_table:
-                    dcb.l    50,0
+                    dcb.b    200,0
+
 text_time:          dc.w     100,212
                     dc.b     'TIME '
-global_time:        dc.b     0,0,58,0,0,58,0,0,$FF
+global_time:        dc.b     0,0,':',0,0,':',0,0
+                    dc.b     -1
 
 map_pos_y:          dc.b     0,0
 lbW0035D2:          dc.w     16
@@ -8791,7 +8796,7 @@ exit_map_overview:  bsr      wait_raster
 
 display_elapsed_time:
                     bsr      lbC00D4D4
-                    jsr      calc_time
+                    jsr      calc_elapsed_time
                     lea      text_time,a0
                     lea      lbL00FA24,a1
                     jsr      display_text
@@ -12184,7 +12189,7 @@ lbC011346:          cmp.l    $10(a5),a6
                     clr.w    $18(a5)
 lbC011358:          rts
 
-lbC011370:          lea      sprite_1_2_bps,a0
+set_timer_bps:      lea      sprite_1_2_bps,a0
                     move.w   d0,6(a0)
                     swap     d0
                     move.w   d0,2(a0)
