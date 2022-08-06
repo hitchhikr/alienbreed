@@ -604,6 +604,8 @@ anim_struct:        dcb.w    17,0
 frames_counter:     dc.l     0
 screen_buffer_1:    dcb.b    (256*40*2),0
 screen_buffer_2:    dcb.b    (256*40*2),0
-iff_animation:      incbin   "gameover/anim/gameover.anim"
+
+                    incdir   "src/gameover/anim/"
+iff_animation:      incbin   "gameover.anim"
 
                     end

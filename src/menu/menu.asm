@@ -1865,23 +1865,29 @@ rand:               addq.w   #1,d0
                     swap     d0
 .nop:               rts
 
-lbW0042D2:          dcb.w   4,0
-lbL0042DA:          dc.l    0
-share_credits:      dc.l    0
-lbL0042E4:          dcb.l   $10,0
-font_pic:           incbin  "menu/gfx/font_16x672x3.raw"
-lbL0052E4:          dcb.b   3600,0
-lbL0060F4:          dcb.b   240,0
-lbL0061E4:          dcb.b   3680,0
-lbL007044:          dcb.b   21280,0
-stars_bitplane1:    dcb.b   36864,0
-stars_bitplane2:    dcb.b   36864,0
-copyright_pic:      incbin  "menu/gfx/copyright_320x16x3.raw"
-copyright_palette:  dc.w    $000,$620,$720,$830,$940,$A40,$B50,$C60
-empty_pic:          dcb.b   1280,0
-stars_3d_coords:    dcb.w   120,0
-lbL01F0E4:          dcb.b   3760,0
-lbL01FF94:          dcb.b   17520,0
-title_pic:          incbin  "menu/gfx/title_320x90x6.raw"
+lbW0042D2:          dcb.w    4,0
+lbL0042DA:          dc.l     0
+share_credits:      dc.l     0
+lbL0042E4:          dcb.l    $10,0
+
+                    incdir   "src/menu/gfx/"
+font_pic:           incbin   "font_16x672x3.raw"
+
+lbL0052E4:          dcb.b    3600,0
+lbL0060F4:          dcb.b    240,0
+lbL0061E4:          dcb.b    3680,0
+lbL007044:          dcb.b    21280,0
+stars_bitplane1:    dcb.b    36864,0
+stars_bitplane2:    dcb.b    36864,0
+
+copyright_pic:      incbin   "copyright_320x16x3.raw"
+
+copyright_palette:  dc.w     $000,$620,$720,$830,$940,$A40,$B50,$C60
+empty_pic:          dcb.b    1280,0
+stars_3d_coords:    dcb.w    120,0
+lbL01F0E4:          dcb.b    3760,0
+lbL01FF94:          dcb.b    17520,0
+
+title_pic:          incbin   "title_320x90x6.raw"
 
                     end

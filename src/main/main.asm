@@ -1,6 +1,6 @@
 ; -----------------------------------------------------
 ; Alien Breed Special Edition 92 CD32 by Team 17
-; Source code version 1.12
+; Source code version 1.13
 ; -----------------------------------------------------
 ; Disassembled by Franck Charlet.
 ; -----------------------------------------------------
@@ -8589,7 +8589,8 @@ lbC00D092:          btst     #4,player_2_input
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
-game_paused_pic:    incbin  "main/gfx/game_paused_96x7x1.raw"
+                    incdir   "src/main/gfx/"
+game_paused_pic:    incbin   "game_paused_96x7x1.raw"
 
 lbC00D144:          move.l   a0,-(sp)
                     lea      lbW012A28,a0
@@ -18666,53 +18667,54 @@ relocated_exe:      add.l    d7,sp
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbW0256B4:          dc.w    $4F,0,$56,1,$5E,2,$65,5,$6B,7,$72,11,$78,15,$7E
-                    dc.w    $14,$84,$1A
-lbW0256D8:          dc.w    $88,$20,$8C,$26,$90,$2D,$92,$34,$94,$3B,$96,$43
-                    dc.w    $96,$4B,$96,$53,$94,$5B
-lbW0256FC:          dc.w    $92,$62,$90,$69,$8D,$6F,$88,$76,$84,$7C,$7F,$81
-                    dc.w    $79,$86,$72,$8B,$6C
-                    dc.w    $8E
-lbW025720:          dc.w    $65,$91,$5E,$94,$56,$95,$4F,$96,$47,$96,$3F,$95
-                    dc.w    $38,$94,$31,$91,$2A,$8E
-lbW025744:          dc.w    $24,$8B,$1D,$86,$18,$82,$12,$7C,14,$76,9,$6F,6
-                    dc.w    $69,4,$62,2,$5A
-lbW025768:          dc.w    0,$53,0,$4B,0,$43,2,$3C,3,$35,6,$2E,9,$27,13,$21
-                    dc.w    $11,$1B
-lbW02578C:          dc.w    $17,$15,$1D,$10,$23,12,$2A,8,$31,5,$38,2,$3F,1
-                    dc.w    $47,0
-                    dc.w    $FFFF,$FFFF
+lbW0256B4:          dc.w     $4F,0,$56,1,$5E,2,$65,5,$6B,7,$72,11,$78,15,$7E
+                    dc.w     $14,$84,$1A
+lbW0256D8:          dc.w     $88,$20,$8C,$26,$90,$2D,$92,$34,$94,$3B,$96,$43
+                    dc.w     $96,$4B,$96,$53,$94,$5B
+lbW0256FC:          dc.w     $92,$62,$90,$69,$8D,$6F,$88,$76,$84,$7C,$7F,$81
+                    dc.w     $79,$86,$72,$8B,$6C
+                    dc.w     $8E
+lbW025720:          dc.w     $65,$91,$5E,$94,$56,$95,$4F,$96,$47,$96,$3F,$95
+                    dc.w     $38,$94,$31,$91,$2A,$8E
+lbW025744:          dc.w     $24,$8B,$1D,$86,$18,$82,$12,$7C,14,$76,9,$6F,6
+                    dc.w     $69,4,$62,2,$5A
+lbW025768:          dc.w     0,$53,0,$4B,0,$43,2,$3C,3,$35,6,$2E,9,$27,13,$21
+                    dc.w     $11,$1B
+lbW02578C:          dc.w     $17,$15,$1D,$10,$23,12,$2A,8,$31,5,$38,2,$3F,1
+                    dc.w     $47,0
+                    dc.w     $FFFF,$FFFF
 
-                    dcb.w   4*124,0
-cur_map_top:        dcb.w   3*124,0
-cur_map_datas:      dcb.w   124*98,0
-end_map_datas:      dcb.w   124*4,0
+                    dcb.w    4*124,0
+cur_map_top:        dcb.w    3*124,0
+cur_map_datas:      dcb.w    124*98,0
+end_map_datas:      dcb.w    124*4,0
 
-voice_warning:      incbin  "main/voices/warning.raw"
+                    incdir   "src/main/voices/"
+voice_warning:      incbin   "warning.raw"
 voice_destruction_imminent:
-                    incbin  "main/voices/destruction_imminent.raw"
-voice_entering:     incbin  "main/voices/entering.raw"
-voice_zone:         incbin  "main/voices/zone.raw"
-voice_welcome_to:   incbin  "main/voices/welcome_to.raw"
+                    incbin   "destruction_imminent.raw"
+voice_entering:     incbin   "entering.raw"
+voice_zone:         incbin   "zone.raw"
+voice_welcome_to:   incbin   "welcome_to.raw"
 voice_intex_systems:
-                    incbin  "main/voices/intex_systems.raw"
-voice_death:        incbin  "main/voices/death.raw"
-voice_players:      incbin  "main/voices/player.raw"
-voice_requires:     incbin  "main/voices/requires.raw"
-voice_ammo:         incbin  "main/voices/ammo.raw"
-voice_first_aid:    incbin  "main/voices/first_aid.raw"
-voice_danger:       incbin  "main/voices/danger.raw"
-voice_insert_disk:  incbin  "main/voices/insert_disk.raw"
-voice_keys:         incbin  "main/voices/keys.raw"
-voice_game_over:    incbin  "main/voices/game_over.raw"
-voice_one:          incbin  "main/voices/one.raw"
-voice_two:          incbin  "main/voices/two.raw"
-voice_three:        incbin  "main/voices/three.raw"
-voice_four:         incbin  "main/voices/four.raw"
-voice_five:         incbin  "main/voices/five.raw"
-voice_six:          incbin  "main/voices/six.raw"
-voice_seven:        incbin  "main/voices/seven.raw"
-voice_eight:        incbin  "main/voices/eight.raw"
+                    incbin   "intex_systems.raw"
+voice_death:        incbin   "death.raw"
+voice_players:      incbin   "player.raw"
+voice_requires:     incbin   "requires.raw"
+voice_ammo:         incbin   "ammo.raw"
+voice_first_aid:    incbin   "first_aid.raw"
+voice_danger:       incbin   "danger.raw"
+voice_insert_disk:  incbin   "insert_disk.raw"
+voice_keys:         incbin   "keys.raw"
+voice_game_over:    incbin   "game_over.raw"
+voice_one:          incbin   "one.raw"
+voice_two:          incbin   "two.raw"
+voice_three:        incbin   "three.raw"
+voice_four:         incbin   "four.raw"
+voice_five:         incbin   "five.raw"
+voice_six:          incbin   "six.raw"
+voice_seven:        incbin   "seven.raw"
+voice_eight:        incbin   "eight.raw"
 
                     SECTION  AB08488C,BSS
 
@@ -18720,28 +18722,31 @@ bkgnd_tiles_block:  ds.b     76800
 
                     SECTION  AB09748C,DATA_c
 
-font_pic:           incbin  "main/gfx/font_16x504x5.raw"
+                    incdir   "src/main/gfx/"
+font_pic:           incbin   "font_16x504x5.raw"
 
 letter_buffer:      dcb.b    128,0
 
-timer_digit_0:      incbin  "main/sprites/timer_digit_0.raw"
-timer_digit_1:      incbin  "main/sprites/timer_digit_1.raw"
-timer_digit_2:      incbin  "main/sprites/timer_digit_2.raw"
-timer_digit_3:      incbin  "main/sprites/timer_digit_3.raw"
-timer_digit_4:      incbin  "main/sprites/timer_digit_4.raw"
-timer_digit_5:      incbin  "main/sprites/timer_digit_5.raw"
-timer_digit_6:      incbin  "main/sprites/timer_digit_6.raw"
-timer_digit_7:      incbin  "main/sprites/timer_digit_7.raw"
-timer_digit_8:      incbin  "main/sprites/timer_digit_8.raw"
-timer_digit_9:      incbin  "main/sprites/timer_digit_9.raw"
+                    incdir   "src/main/sprites/"
+timer_digit_0:      incbin   "timer_digit_0.raw"
+timer_digit_1:      incbin   "timer_digit_1.raw"
+timer_digit_2:      incbin   "timer_digit_2.raw"
+timer_digit_3:      incbin   "timer_digit_3.raw"
+timer_digit_4:      incbin   "timer_digit_4.raw"
+timer_digit_5:      incbin   "timer_digit_5.raw"
+timer_digit_6:      incbin   "timer_digit_6.raw"
+timer_digit_7:      incbin   "timer_digit_7.raw"
+timer_digit_8:      incbin   "timer_digit_8.raw"
+timer_digit_9:      incbin   "timer_digit_9.raw"
 
 lbL098E0C:          dcb.l    8,0
 lbL098E2C:          dcb.l    150,0
 
+                    incdir   "src/main/gfx/"
 player_1_status_pic:
-                    incbin  "main/gfx/player_1_status_304x8x2.raw"
+                    incbin   "player_1_status_304x8x2.raw"
 player_2_status_pic:
-                    incbin  "main/gfx/player_2_status_304x8x2.raw"
+                    incbin   "player_2_status_304x8x2.raw"
 
 player_1_status_bar:
                     dcb.b    37,0
@@ -19110,120 +19115,122 @@ overmap_bottom_bar_bps:
 ; ------------------------------------------------------
 ; ------------------------------------------------------
 
-player_spr1_pic:    incbin  "main/sprites/player_sprite1.raw"
-player_spr2_pic:    incbin  "main/sprites/player_sprite2.raw"
-player_spr3_pic:    incbin  "main/sprites/player_sprite3.raw"
-player_spr4_pic:    incbin  "main/sprites/player_sprite4.raw"
-player_spr5_pic:    incbin  "main/sprites/player_sprite5.raw"
-player_spr6_pic:    incbin  "main/sprites/player_sprite6.raw"
-player_spr7_pic:    incbin  "main/sprites/player_sprite7.raw"
-player_spr8_pic:    incbin  "main/sprites/player_sprite8.raw"
-player_spr9_pic:    incbin  "main/sprites/player_sprite9.raw"
-player_spr10_pic:   incbin  "main/sprites/player_sprite10.raw"
-player_spr11_pic:   incbin  "main/sprites/player_sprite11.raw"
-player_spr12_pic:   incbin  "main/sprites/player_sprite12.raw"
-player_spr13_pic:   incbin  "main/sprites/player_sprite13.raw"
-player_spr14_pic:   incbin  "main/sprites/player_sprite14.raw"
-player_spr15_pic:   incbin  "main/sprites/player_sprite15.raw"
-player_spr16_pic:   incbin  "main/sprites/player_sprite16.raw"
-player_spr17_pic:   incbin  "main/sprites/player_sprite17.raw"
-player_spr18_pic:   incbin  "main/sprites/player_sprite18.raw"
-player_spr19_pic:   incbin  "main/sprites/player_sprite19.raw"
-player_spr20_pic:   incbin  "main/sprites/player_sprite20.raw"
-player_spr21_pic:   incbin  "main/sprites/player_sprite21.raw"
-player_spr22_pic:   incbin  "main/sprites/player_sprite22.raw"
-player_spr23_pic:   incbin  "main/sprites/player_sprite23.raw"
-player_spr24_pic:   incbin  "main/sprites/player_sprite24.raw"
-player_spr25_pic:   incbin  "main/sprites/player_sprite25.raw"
-player_spr26_pic:   incbin  "main/sprites/player_sprite26.raw"
-player_spr27_pic:   incbin  "main/sprites/player_sprite27.raw"
-player_spr28_pic:   incbin  "main/sprites/player_sprite28.raw"
-player_spr29_pic:   incbin  "main/sprites/player_sprite29.raw"
-player_spr30_pic:   incbin  "main/sprites/player_sprite30.raw"
-player_spr31_pic:   incbin  "main/sprites/player_sprite31.raw"
-player_spr32_pic:   incbin  "main/sprites/player_sprite32.raw"
-player_spr33_pic:   incbin  "main/sprites/player_sprite33.raw"
-player_spr34_pic:   incbin  "main/sprites/player_sprite34.raw"
-player_spr35_pic:   incbin  "main/sprites/player_sprite35.raw"
-player_spr36_pic:   incbin  "main/sprites/player_sprite36.raw"
-player_spr37_pic:   incbin  "main/sprites/player_sprite37.raw"
-player_spr38_pic:   incbin  "main/sprites/player_sprite38.raw"
-player_spr39_pic:   incbin  "main/sprites/player_sprite39.raw"
-player_spr40_pic:   incbin  "main/sprites/player_sprite40.raw"
-player_spr41_pic:   incbin  "main/sprites/player_sprite41.raw"
-player_spr42_pic:   incbin  "main/sprites/player_sprite42.raw"
-player_spr43_pic:   incbin  "main/sprites/player_sprite43.raw"
-player_spr44_pic:   incbin  "main/sprites/player_sprite44.raw"
-player_spr45_pic:   incbin  "main/sprites/player_sprite45.raw"
-player_spr46_pic:   incbin  "main/sprites/player_sprite46.raw"
-player_spr47_pic:   incbin  "main/sprites/player_sprite47.raw"
-player_spr48_pic:   incbin  "main/sprites/player_sprite48.raw"
-player_spr49_pic:   incbin  "main/sprites/player_sprite49.raw"
-player_spr50_pic:   incbin  "main/sprites/player_sprite50.raw"
-player_spr51_pic:   incbin  "main/sprites/player_sprite51.raw"
-player_spr52_pic:   incbin  "main/sprites/player_sprite52.raw"
-player_spr53_pic:   incbin  "main/sprites/player_sprite53.raw"
-player_spr54_pic:   incbin  "main/sprites/player_sprite54.raw"
-player_spr55_pic:   incbin  "main/sprites/player_sprite55.raw"
-player_spr56_pic:   incbin  "main/sprites/player_sprite56.raw"
-player_spr57_pic:   incbin  "main/sprites/player_sprite57.raw"
-player_spr58_pic:   incbin  "main/sprites/player_sprite58.raw"
-player_spr59_pic:   incbin  "main/sprites/player_sprite59.raw"
-player_spr60_pic:   incbin  "main/sprites/player_sprite60.raw"
-player_spr61_pic:   incbin  "main/sprites/player_sprite61.raw"
-player_spr62_pic:   incbin  "main/sprites/player_sprite62.raw"
-player_spr63_pic:   incbin  "main/sprites/player_sprite63.raw"
-player_spr64_pic:   incbin  "main/sprites/player_sprite64.raw"
-player_spr65_pic:   incbin  "main/sprites/player_sprite65.raw"
-player_spr66_pic:   incbin  "main/sprites/player_sprite66.raw"
-player_spr67_pic:   incbin  "main/sprites/player_sprite67.raw"
-player_spr68_pic:   incbin  "main/sprites/player_sprite68.raw"
-player_spr69_pic:   incbin  "main/sprites/player_sprite69.raw"
-player_spr70_pic:   incbin  "main/sprites/player_sprite70.raw"
-player_spr71_pic:   incbin  "main/sprites/player_sprite71.raw"
-player_spr72_pic:   incbin  "main/sprites/player_sprite72.raw"
-player_spr73_pic:   incbin  "main/sprites/player_sprite73.raw"
-player_spr74_pic:   incbin  "main/sprites/player_sprite74.raw"
-player_spr75_pic:   incbin  "main/sprites/player_sprite75.raw"
-player_spr76_pic:   incbin  "main/sprites/player_sprite76.raw"
-player_spr77_pic:   incbin  "main/sprites/player_sprite77.raw"
-player_spr78_pic:   incbin  "main/sprites/player_sprite78.raw"
-player_spr79_pic:   incbin  "main/sprites/player_sprite79.raw"
-player_spr80_pic:   incbin  "main/sprites/player_sprite80.raw"
+                    incdir  "src/main/sprites/"
+player_spr1_pic:    incbin  "player_sprite1.raw"
+player_spr2_pic:    incbin  "player_sprite2.raw"
+player_spr3_pic:    incbin  "player_sprite3.raw"
+player_spr4_pic:    incbin  "player_sprite4.raw"
+player_spr5_pic:    incbin  "player_sprite5.raw"
+player_spr6_pic:    incbin  "player_sprite6.raw"
+player_spr7_pic:    incbin  "player_sprite7.raw"
+player_spr8_pic:    incbin  "player_sprite8.raw"
+player_spr9_pic:    incbin  "player_sprite9.raw"
+player_spr10_pic:   incbin  "player_sprite10.raw"
+player_spr11_pic:   incbin  "player_sprite11.raw"
+player_spr12_pic:   incbin  "player_sprite12.raw"
+player_spr13_pic:   incbin  "player_sprite13.raw"
+player_spr14_pic:   incbin  "player_sprite14.raw"
+player_spr15_pic:   incbin  "player_sprite15.raw"
+player_spr16_pic:   incbin  "player_sprite16.raw"
+player_spr17_pic:   incbin  "player_sprite17.raw"
+player_spr18_pic:   incbin  "player_sprite18.raw"
+player_spr19_pic:   incbin  "player_sprite19.raw"
+player_spr20_pic:   incbin  "player_sprite20.raw"
+player_spr21_pic:   incbin  "player_sprite21.raw"
+player_spr22_pic:   incbin  "player_sprite22.raw"
+player_spr23_pic:   incbin  "player_sprite23.raw"
+player_spr24_pic:   incbin  "player_sprite24.raw"
+player_spr25_pic:   incbin  "player_sprite25.raw"
+player_spr26_pic:   incbin  "player_sprite26.raw"
+player_spr27_pic:   incbin  "player_sprite27.raw"
+player_spr28_pic:   incbin  "player_sprite28.raw"
+player_spr29_pic:   incbin  "player_sprite29.raw"
+player_spr30_pic:   incbin  "player_sprite30.raw"
+player_spr31_pic:   incbin  "player_sprite31.raw"
+player_spr32_pic:   incbin  "player_sprite32.raw"
+player_spr33_pic:   incbin  "player_sprite33.raw"
+player_spr34_pic:   incbin  "player_sprite34.raw"
+player_spr35_pic:   incbin  "player_sprite35.raw"
+player_spr36_pic:   incbin  "player_sprite36.raw"
+player_spr37_pic:   incbin  "player_sprite37.raw"
+player_spr38_pic:   incbin  "player_sprite38.raw"
+player_spr39_pic:   incbin  "player_sprite39.raw"
+player_spr40_pic:   incbin  "player_sprite40.raw"
+player_spr41_pic:   incbin  "player_sprite41.raw"
+player_spr42_pic:   incbin  "player_sprite42.raw"
+player_spr43_pic:   incbin  "player_sprite43.raw"
+player_spr44_pic:   incbin  "player_sprite44.raw"
+player_spr45_pic:   incbin  "player_sprite45.raw"
+player_spr46_pic:   incbin  "player_sprite46.raw"
+player_spr47_pic:   incbin  "player_sprite47.raw"
+player_spr48_pic:   incbin  "player_sprite48.raw"
+player_spr49_pic:   incbin  "player_sprite49.raw"
+player_spr50_pic:   incbin  "player_sprite50.raw"
+player_spr51_pic:   incbin  "player_sprite51.raw"
+player_spr52_pic:   incbin  "player_sprite52.raw"
+player_spr53_pic:   incbin  "player_sprite53.raw"
+player_spr54_pic:   incbin  "player_sprite54.raw"
+player_spr55_pic:   incbin  "player_sprite55.raw"
+player_spr56_pic:   incbin  "player_sprite56.raw"
+player_spr57_pic:   incbin  "player_sprite57.raw"
+player_spr58_pic:   incbin  "player_sprite58.raw"
+player_spr59_pic:   incbin  "player_sprite59.raw"
+player_spr60_pic:   incbin  "player_sprite60.raw"
+player_spr61_pic:   incbin  "player_sprite61.raw"
+player_spr62_pic:   incbin  "player_sprite62.raw"
+player_spr63_pic:   incbin  "player_sprite63.raw"
+player_spr64_pic:   incbin  "player_sprite64.raw"
+player_spr65_pic:   incbin  "player_sprite65.raw"
+player_spr66_pic:   incbin  "player_sprite66.raw"
+player_spr67_pic:   incbin  "player_sprite67.raw"
+player_spr68_pic:   incbin  "player_sprite68.raw"
+player_spr69_pic:   incbin  "player_sprite69.raw"
+player_spr70_pic:   incbin  "player_sprite70.raw"
+player_spr71_pic:   incbin  "player_sprite71.raw"
+player_spr72_pic:   incbin  "player_sprite72.raw"
+player_spr73_pic:   incbin  "player_sprite73.raw"
+player_spr74_pic:   incbin  "player_sprite74.raw"
+player_spr75_pic:   incbin  "player_sprite75.raw"
+player_spr76_pic:   incbin  "player_sprite76.raw"
+player_spr77_pic:   incbin  "player_sprite77.raw"
+player_spr78_pic:   incbin  "player_sprite78.raw"
+player_spr79_pic:   incbin  "player_sprite79.raw"
+player_spr80_pic:   incbin  "player_sprite80.raw"
 
 bkgnd_anim_block:   dcb.b    28800,0
 
-sample1:            incbin  "main/samples/sample1.raw"
-sample2:            incbin  "main/samples/sample2.raw"
-sample3:            incbin  "main/samples/sample3.raw"
-sample4:            incbin  "main/samples/sample4.raw"
-sample5:            incbin  "main/samples/sample5.raw"
-sample6:            incbin  "main/samples/sample6.raw"
-sample7:            incbin  "main/samples/sample7.raw"
-sample8:            incbin  "main/samples/sample8.raw"
-sample9:            incbin  "main/samples/sample9.raw"
-sample10:           incbin  "main/samples/sample10.raw"
-sample11:           incbin  "main/samples/sample11.raw"
-sample12:           incbin  "main/samples/sample12.raw"
-sample13:           incbin  "main/samples/sample13.raw"
-sample14:           incbin  "main/samples/sample14.raw"
-sample15:           incbin  "main/samples/sample15.raw"
-sample16:           incbin  "main/samples/sample16.raw"
-sample17:           incbin  "main/samples/sample17.raw"
-sample18:           incbin  "main/samples/sample18.raw"
-sample19:           incbin  "main/samples/sample19.raw"
-sample20:           incbin  "main/samples/sample20.raw"
-sample21:           incbin  "main/samples/sample21.raw"
-sample22:           incbin  "main/samples/sample22.raw"
-sample23:           incbin  "main/samples/sample23.raw"
-sample24:           incbin  "main/samples/sample24.raw"
-sample25:           incbin  "main/samples/sample25.raw"
-sample26:           incbin  "main/samples/sample26.raw"
-sample27:           incbin  "main/samples/sample27.raw"
-sample28:           incbin  "main/samples/sample28.raw"
-sample29:           incbin  "main/samples/sample29.raw"
-sample30:           incbin  "main/samples/sample30.raw"
-sample31:           incbin  "main/samples/sample31.raw"
+                    incdir  "src/main/samples/"
+sample1:            incbin  "sample1.raw"
+sample2:            incbin  "sample2.raw"
+sample3:            incbin  "sample3.raw"
+sample4:            incbin  "sample4.raw"
+sample5:            incbin  "sample5.raw"
+sample6:            incbin  "sample6.raw"
+sample7:            incbin  "sample7.raw"
+sample8:            incbin  "sample8.raw"
+sample9:            incbin  "sample9.raw"
+sample10:           incbin  "sample10.raw"
+sample11:           incbin  "sample11.raw"
+sample12:           incbin  "sample12.raw"
+sample13:           incbin  "sample13.raw"
+sample14:           incbin  "sample14.raw"
+sample15:           incbin  "sample15.raw"
+sample16:           incbin  "sample16.raw"
+sample17:           incbin  "sample17.raw"
+sample18:           incbin  "sample18.raw"
+sample19:           incbin  "sample19.raw"
+sample20:           incbin  "sample20.raw"
+sample21:           incbin  "sample21.raw"
+sample22:           incbin  "sample22.raw"
+sample23:           incbin  "sample23.raw"
+sample24:           incbin  "sample24.raw"
+sample25:           incbin  "sample25.raw"
+sample26:           incbin  "sample26.raw"
+sample27:           incbin  "sample27.raw"
+sample28:           incbin  "sample28.raw"
+sample29:           incbin  "sample29.raw"
+sample30:           incbin  "sample30.raw"
+sample31:           incbin  "sample31.raw"
 
                     SECTION  AB0D0240,BSS_c
 bpsong:             ds.b     41*1024

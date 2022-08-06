@@ -2258,9 +2258,11 @@ lbW00720E:          dc.w     1,13,3
                     dc.l     lbW007218
 lbW007218:          dc.w     $15,$49,3,0,0
 lbL007222:          dcb.b    2560,0
-font_pic:           incbin   "intex/gfx/font_16x504x6.raw"
-background_pic:     incbin   "intex/gfx/bkgnd_320x256x4.raw"
-weapons_pic:        incbin   "intex/gfx/weapons_264x40x4.raw"
+
+                    incdir   "src/intex/gfx/"
+font_pic:           incbin   "font_16x504x6.raw"
+background_pic:     incbin   "bkgnd_320x256x4.raw"
+weapons_pic:        incbin   "weapons_264x40x4.raw"
 
 bitplanes:          dcb.b    3280,0
 lbL01DDD2:          dcb.b    1040,0

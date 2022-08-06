@@ -934,14 +934,15 @@ colors_up:          dc.w     $D00,$F90,$F21,$F32,$F43,$F54,$F65,$F76,$F87,$F98
 
 lbL0013F6:          dcb.l    $10,0
 
-font_pic:           incbin   "story/gfx/font_16x462x2.raw"
+                    incdir   "src/story/gfx/"
+font_pic:           incbin   "font_16x462x2.raw"
 
 text_bitplane1:     dcb.b    10240,0
 
 text_bitplane2:     dcb.b    10240,0
 
-planet_pic:         incbin   "story/gfx/planet_320x256x4.raw"
-title_pic:          incbin   "story/gfx/title_320x256x5.raw"
+planet_pic:         incbin   "planet_320x256x4.raw"
+title_pic:          incbin   "title_320x256x5.raw"
 
 lbL01D36E:          dc.w     $3,$F4
 lbL01D372:          dcb.l    5,$FFFFFFFF

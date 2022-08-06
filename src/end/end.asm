@@ -79,7 +79,8 @@ pic_bp:             dc.w     $E0,0,$E2,0
 scroll_bp:          dc.w     $F0,0,$F2,0
                     dc.w     $FFFF,$FFFE
 
-background_pic:     incbin   "end/gfx/bkgnd_320x256x4.raw"
-scroll_pic:         incbin   "end/gfx/scroll_320x1024x1.raw"
+                    incdir   "src/end/gfx/"
+background_pic:     incbin   "bkgnd_320x256x4.raw"
+scroll_pic:         incbin   "scroll_320x1024x1.raw"
 
                     end
