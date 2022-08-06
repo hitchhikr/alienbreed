@@ -41,20 +41,20 @@ lbC000060:          lea      planet_bps,a0
                     move.l   #copperlist_planet,$dff080
                     rts
 
-pause:              btst     #7,$bfe001
-                    beq      lbC0000CA
+wait_x_frames:      btst     #7,$bfe001
+                    beq      bail_out
                     bsr      wait_frame_joystick
                     subq.w   #1,d0
-                    bne.s    pause
+                    bne.s    wait_x_frames
                     rts
 
-lbC0000CA:          move.w   #1,end_text_flag
+bail_out:           move.w   #1,end_text_flag
                     move.l   #-1,exit_flag
                     rts
 
 wait_frame_joystick:
                     btst     #7,$bfe001
-                    beq      lbC0000CA
+                    beq      bail_out
                     cmp.b    #255,$dff006
                     bne.s    wait_frame_joystick
 .wait:              cmp.b    #0,$dff006
@@ -93,7 +93,7 @@ display_title_screen:
 
 display_beam_title: move.w   #$8020,$dff096
                     lea      lbW000EFA,a0
-                    bsr      lbC000DDE
+                    bsr      set_sprite_bp
                     lea      lbW000EFA,a0
                     bsr      lbC000E14
                     lea      lbW001336,a0
@@ -104,7 +104,7 @@ display_beam_title: move.w   #$8020,$dff096
                     clr.l    d1
                     move.l   #$2D01FF00,pos_copper_dark_pal
                     lea      lbW000EFA,a0
-lbC0001CC:          movem.l  d0-d7/a0-a6,-(sp)
+move_beam:          movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW000EFA,a0
                     add.w    #48,(a0)
                     cmp.w    #320,(a0)
@@ -125,16 +125,16 @@ lbC000204:          bsr      wait_frame_joystick
                     add.l    #$1000000,pos_copper_beam_line
                     add.l    #$1000000,pos_copper_dark_pal
                     cmp.l    #$1FF00,pos_copper_beam_line
-                    bne.s    lbC000232
+                    bne.s    reached_pal
                     move.l   #$FFE1FFFE,copper_pal_line
-lbC000232:          addq.w   #1,d0
+reached_pal:        addq.w   #1,d0
                     cmp.w    #$FF,d0
-                    bne.s    lbC0001CC
+                    bne.s    move_beam
                     lea      lbW000EFA,a0
                     move.w   #336,(a0)
                     bsr      lbC000E14
                     move.l   #300,d0
-                    bsr      pause
+                    bsr      wait_x_frames
                     tst.l    exit_flag
                     beq.s    lbC000260
                     addq.l   #4,sp
@@ -219,7 +219,7 @@ scroll_text:        addq.w   #1,lbW00045C
                     bmi.s    lbC0003D6
                     clr.w    pause_scroll
                     move.l   #500,d0
-                    bsr      pause
+                    bsr      wait_x_frames
 lbC0003D6:          move.l   text_ptr,a0
                     move.l   #17,d0
                     lea      lbL01D372,a1
@@ -768,7 +768,7 @@ lbC000C5C:          rts
 lbL000C5E:          dcb.l    48,0
 lbL000D1E:          dcb.l    48,0
 
-lbC000DDE:          tst.l    $10(a0)
+set_sprite_bp:      tst.l    16(a0)
                     bne.s    lbC000E00
                     move.l   12(a0),d0
 lbC000DE8:          move.l   8(a0),a1
@@ -845,10 +845,10 @@ lbC000ED6:          move.l   16(a0),20(a0)
                     bra.s    lbC000EB8
 
 lbW000EFA:          dc.w     336,150,1,0
-                    dc.l     lbW001062
-                    dc.l     lbL000F16
+                    dc.l     sprite_bp
+                    dc.l     sprite_data
                     dcb.w    6,0
-lbL000F16:          dc.l     -1,0,0
+sprite_data:        dc.l     -1,0,0
 
 copperlist_title:   dc.w    $100,$5200
                     dc.w    $8E
@@ -872,7 +872,7 @@ color_palette_light:
                     dc.w    $128,0,$12A,0,$150,0,$152,0,$12C,0,$12E,0,$158,0,$15A,0
                     dc.w    $130,0,$132,0,$160,0,$162,0,$134,0,$136,0,$168,0,$16A,0
                     dc.w    $138,0,$13A,0,$170,0,$172,0
-lbW001062:          dc.w    $13C,0,$13E,0,$178,0,$17A,0
+sprite_bp:          dc.w    $13C,0,$13E,0,$178,0,$17A,0
 copper_pal_line:    dc.w    $2C01,$FF00
 pos_copper_beam_line:
                     dc.w    $2C01,$FF00

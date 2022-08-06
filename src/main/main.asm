@@ -11,7 +11,7 @@
                     mc68000
 
 ; Activate the mega cheat
-DEBUG               equ     0
+DEBUG               equ     1
 
 lbW05F7A8           equ     cur_map_datas+612
 map_reactor_up      equ     cur_map_datas+2598
@@ -637,13 +637,13 @@ lbC000E0E:          tst.w    lbW0004BA
                     subq.w   #1,lbW002E04
                     bne.s    lbC000E56
                     move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
 lbC000E56:          tst.w    lbW002AC2
                     beq.s    lbC000E8C
                     cmp.w    #3,lbW002AC0
                     bmi.s    lbC000E8C
                     move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
                     move.w   #0,lbW002AC2
                     clr.l    lbL00E756
                     clr.w    lbW002AC0
@@ -953,10 +953,11 @@ lbC00152C:          tst.w    lbW0004C2
                     jsr      lbC0111FA
 lbC001596:          addq.w   #1,frames_counter
                     cmp.w    #50,frames_counter
-                    bne.s    lbC0015B2
+                    bne.s    count_elapsed_seconds
                     clr.w    frames_counter
                     addq.l   #1,elapsed_seconds
-lbC0015B2:          jsr      palette_fade
+count_elapsed_seconds:
+                    jsr      palette_fade
                     jsr      lbC01097E
                     jsr      lbC010BAC
                     jsr      lbC024142
@@ -1365,13 +1366,13 @@ timer_digit_hi:     dc.b     6
 timer_digit_lo:     dc.b     0
 cur_timer_digit_hi: dc.b     0
 cur_timer_digit_lo: dc.b     0
-self_destuct_initiated:
+self_destruct_initiated:
                     dc.w     0
 lbW002FDE:          dc.w     0
 lbW002FE0:          dc.w     0
 
 set_destruction_timer:
-                    clr.w    self_destuct_initiated
+                    clr.w    self_destruct_initiated
                     clr.w    lbW002FDE
                     move.b   timer_digit_hi,d0
                     move.b   timer_digit_lo,d1
@@ -1380,7 +1381,7 @@ set_destruction_timer:
                     bra      lbC00313E
 
 destruction_sequence:
-                    tst.w    self_destuct_initiated
+                    tst.w    self_destruct_initiated
                     beq      void
                     tst.w    lbW002FDE
                     bne      lbC0030AA
@@ -1477,7 +1478,7 @@ wait_frame:         move.l   $dff004,d1
                     bne      wait_frame
                     rts
 
-lbC0033CA:          lea      global_time,a0
+calc_time:          lea      global_time,a0
                     clr.b    (a0)
                     clr.b    1(a0)
                     clr.b    3(a0)
@@ -1530,12 +1531,12 @@ lbC00345E:          move.b   d0,(a0)+
                     move.b   0(a1,d0.l),(a0)
                     move.b   1(a1,d0.l),1(a0)
                     move.b   lbB0034F3,d0
-                    lsl.w    #1,d0
+                    add.w    d0,d0
                     lea      global_time_decimal_table,a1
                     move.b   0(a1,d0.l),3(a0)
                     move.b   1(a1,d0.l),4(a0)
                     move.b   lbB0034F4,d0
-                    lsl.w    #1,d0
+                    add.w    d0,d0
                     lea      global_time_decimal_table,a1
                     move.b   0(a1,d0.l),6(a0)
                     move.b   1(a1,d0.l),7(a0)
@@ -1558,7 +1559,7 @@ text_time:          dc.w     100,212
 global_time:        dc.b     0,0,58,0,0,58,0,0,$FF
 
 map_pos_y:          dc.b     0,0
-lbW0035D2:          dc.w     $10
+lbW0035D2:          dc.w     16
 map_pos_x:          dc.b     0,0
 lbW0035D6:          dc.w     0
 lbL0035D8:          dc.l     0
@@ -1672,7 +1673,7 @@ lbC00378E:          move.w   d2,d4
                     cmp.w    #2,d4
                     bmi      lbC00379C
                     move.w   #2,d4
-lbC00379C:          move.w   d4,lbW0039B6
+lbC00379C:          move.w   d4,lbW0039B4+2
                     tst.w    d1
                     bmi      lbC0037D0
                     beq      void
@@ -1725,9 +1726,9 @@ lbC003832:          clr.w    lbW0039A4
                     clr.l    (a0)+
                     rts
 
-lbC003878:          jsr     lbC003832
-                    jsr     lbC00412C
-                    bsr.w   lbC003954
+lbC003878:          jsr      lbC003832
+                    jsr      lbC00412C
+                    bsr.w    lbC003954
                     lea      player_1_dats,a0
                     jsr      lbC006E96
                     lea      player_2_dats,a0
@@ -1770,9 +1771,10 @@ lbW0039A4:          dc.w     0
 lbL0039A6:          dc.l     0
 lbL0039AA:          dc.l     0
 lbL0039AE:          dc.l     0
-lbB0039B2:          dcb.b    2,0
+lbB0039B2:          dc.b     0
+                    even
 lbW0039B4:          dc.w     0
-lbW0039B6:          dc.w     0
+                    dc.w     0
 
 lbC0039B8:          not.b    lbW0039A4
                     bne      lbC0039DA
@@ -1883,7 +1885,7 @@ lbC003BA0:          move.l   #-1,lbL0035D8
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003BDA:          move.l   #$10,lbL0035D8
+lbC003BDA:          move.l   #16,lbL0035D8
                     move.l   #0,lbL0039AA
                     move.l   #6,lbL0039A6
                     bsr      display_tiles
@@ -1891,7 +1893,7 @@ lbC003BDA:          move.l   #$10,lbL0035D8
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003C14:          move.l   #$10,lbL0035D8
+lbC003C14:          move.l   #16,lbL0035D8
                     move.l   #5,lbL0039AA
                     move.l   #6,lbL0039A6
                     bsr      display_tiles
@@ -1899,7 +1901,7 @@ lbC003C14:          move.l   #$10,lbL0035D8
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003C4E:          move.l   #$10,lbL0035D8
+lbC003C4E:          move.l   #16,lbL0035D8
                     move.l   #10,lbL0039AA
                     move.l   #6,lbL0039A6
                     bsr      display_tiles
@@ -1915,7 +1917,7 @@ lbC003C88:          move.l   #15,lbL0039AA
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003CC2:          move.l   #$14,lbL0035DC
+lbC003CC2:          move.l   #20,lbL0035DC
                     move.l   #0,lbL0039AE
                     move.l   #6,lbL0039A6
                     bsr      lbC005620
@@ -1923,7 +1925,7 @@ lbC003CC2:          move.l   #$14,lbL0035DC
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003CFC:          move.l   #$14,lbL0035DC
+lbC003CFC:          move.l   #20,lbL0035DC
                     move.l   #5,lbL0039AE
                     move.l   #6,lbL0039A6
                     bsr      lbC005620
@@ -1931,7 +1933,7 @@ lbC003CFC:          move.l   #$14,lbL0035DC
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003D36:          move.l   #$14,lbL0035DC
+lbC003D36:          move.l   #20,lbL0035DC
                     move.l   #10,lbL0039AE
                     move.l   #6,lbL0039A6
                     bsr      lbC005620
@@ -1939,7 +1941,7 @@ lbC003D36:          move.l   #$14,lbL0035DC
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003D70:          move.l   #$14,lbL0035DC
+lbC003D70:          move.l   #20,lbL0035DC
                     move.l   #12,lbL0039AE
                     move.l   #6,lbL0039A6
                     bsr      lbC005620
@@ -3383,7 +3385,7 @@ lbC005620:          move.l   map_pos_x,d0
                     lea      lbL0023D4,a4
                     add.l    d1,a4
                     move.l   d0,d0
-                    move.l   #$F8,d1
+                    move.l   #248,d1
                     move.l   #12348,d2
                     move.l   lbL0039A6,d3
                     move.l   (a4),a1
@@ -5581,7 +5583,7 @@ tile_deadly_hole:   tst.w    $112(a0)
                     clr.w    PLAYER_HEALTH(a0)
                     rts
 
-lbC0083DE:          move.w   #1,self_destuct_initiated
+lbC0083DE:          move.w   #1,self_destruct_initiated
                     move.w   #1,lbW0004D8
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL0201EE,a2
@@ -5597,7 +5599,7 @@ tile_start_destruction:
                     tst.w    lbW0004EA
                     bne      void
 lbC008424:          move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
                     move.l   #$7D00,lbL01FDAA
                     and.w    #$FFC0,lbW062366
                     and.w    #$FFC0,lbW062368
@@ -6875,7 +6877,7 @@ lbC009CF2:          tst.w    $38(a0)
                     beq.s    lbC009D0A
                     cmp.w    #1,boss_nbr                        ; trigger self destruct
                     bne.s    lbC009D0A                          ; after having killed boss #1
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
 lbC009D0A:          tst.w    8(a0)
                     bmi      return
                     move.l   $1A(a0),a1
@@ -6914,18 +6916,18 @@ lbC009D98:          move.w   #1,lbL009C64
 lbC009DA0:          cmp.l    #$400,lbL000572
                     bne.s    lbC009DCE
                     move.l   cur_palette_ptr,a5
-                    move.w   $20(a5),lbW099FBA
-                    tst.w    $32(a0)
+                    move.w   32(a5),lbW099FBA
+                    tst.w    50(a0)
                     beq.s    lbC009E1A
-                    clr.w    $32(a0)
+                    clr.w    50(a0)
                     move.w   #$FFF,lbW099FBA
                     bra.s    lbC009DEE
 
 lbC009DCE:          move.l   cur_palette_ptr,a5
                     move.w   2(a5),lbW09A212
-                    tst.w    $32(a0)
+                    tst.w    50(a0)
                     beq.s    lbC009E1A
-                    clr.w    $32(a0)
+                    clr.w    50(a0)
                     move.w   #$FFF,lbW09A212
 lbC009DEE:          addq.w   #1,lbW009CDE
                     cmp.w    #6,lbW009CDE
@@ -7109,7 +7111,7 @@ lbC00A0EE:          lea      lbL02087E,a2
                     lea      lbW060644,a3
                     bsr      patch_tiles
                     move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
                     movem.l  (sp)+,d0-d7/a0-a6
                     bra      lbC00A5CC
 
@@ -7126,7 +7128,7 @@ lbC00A1BA:          lea      lbL020B52,a2
                     lea      lbL063DC6,a3
                     bsr      patch_tiles
                     move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
                     movem.l  (sp)+,d0-d7/a0-a6
                     bra      lbC00A5CC
 
@@ -8725,7 +8727,7 @@ display_map_overview:
                     lea      lbL0FE76C,a0
                     move.l   #$2800,d0
                     jsr      clear_array_long
-                    bsr      lbC00D7F6
+                    bsr      set_map_overview_bps
                     bsr      load_map_overview
                     bsr      wait_raster
                     move.l   #copperlist_overmap,$dff080
@@ -8737,28 +8739,30 @@ display_map_overview:
                     lea      text_scanning,a0
                     lea      lbL00FA24,a1
                     jsr      display_text
-                    move.b   $BFD800,d1
+                    move.b   $bfd800,d1
                     cmp.b    #$7F,d1
                     bpl      lbC00D3CA
-                    bsr      lbC00D5AE
+                    bsr      get_map_overview_player_pos
 lbC00D3CA:          jsr      wait
-                    tst.w    self_destuct_initiated
-                    bne      lbC00D444
-                    cmp.l    #$400,lbL000572
-                    beq      lbC00D444
+                    tst.w    self_destruct_initiated
+                    bne      exit_map_overview
+                    cmp.l    #1024,lbL000572
+                    beq      exit_map_overview
                     lea      lbL0FCD7C,a0
-                    move.l   #$500,d0
+                    move.l   #1280,d0
                     jsr      clear_array_long
-                    bsr      lbC00D502
-lbC00D3FE:          jsr      wait_raster
-                    bsr      lbC00D4B6
+                    bsr      plot_map_overview_data
+
+.loop:              jsr      wait_raster
+                    bsr      display_elapsed_time
                     
                     btst     #6,player_2_input
                     bne.s    lbC00D430
                     btst     #6,player_1_input
                     bne.s    lbC00D430
                     cmp.b    #KEY_M,key_pressed
-                    bne.s    lbC00D3FE
+                    bne.s    .loop
+
 lbC00D426:          cmp.b    #KEY_M,key_pressed
                     beq.s    lbC00D426
 
@@ -8766,7 +8770,8 @@ lbC00D430:          btst     #6,player_2_input
                     bne.s    lbC00D430
                     btst     #6,player_1_input
                     bne.s    lbC00D430
-lbC00D444:          bsr      wait_raster
+
+exit_map_overview:  bsr      wait_raster
                     lea      overmap_palette,a0
                     lea      lbL02266A,a1
                     move.l   #32,d0
@@ -8777,15 +8782,16 @@ lbC00D444:          bsr      wait_raster
                     move.l   #copperlist_main,$dff080
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
-                    move.l   #$20,d0
+                    move.l   #32,d0
                     jsr      lbC010906
                     jsr      lbC00D67A
                     clr.w    lbW0004D0
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
-lbC00D4B6:          bsr      lbC00D4D4
-                    jsr      lbC0033CA
+display_elapsed_time:
+                    bsr      lbC00D4D4
+                    jsr      calc_time
                     lea      text_time,a0
                     lea      lbL00FA24,a1
                     jsr      display_text
@@ -8799,24 +8805,25 @@ lbC00D4D4:          jsr      wait_blitter
                     bsr      wait_blitter
                     rts
 
-lbC00D502:          lea      lbB0FC039,a5
+plot_map_overview_data:
+                    lea      map_overview_planes,a5
                     lea      end_map_datas,a0
-                    move.l   #$F8,d0
-                    move.l   #$CA,d1
+                    move.l   #248,d0
+                    move.l   #202,d1
                     move.l   d0,d7
-lbC00D51C:          clr.l    d6
+.loop:              clr.l    d6
                     move.w   -(a0),d2
                     and.w    #$3F,d2
                     cmp.w    #3,d2
-                    bne.s    lbC00D530
-                    move.l   #$2800,d6
-lbC00D530:          tst.w    d2
-                    beq.s    lbC00D58A
+                    bne.s    .door
+                    move.l   #(256*40),d6   ; different plane for doors
+.door:              tst.w    d2
+                    beq.s    .no_block
                     cmp.w    #3,d2
-                    beq.s    lbC00D540
+                    beq.s    .wall
                     cmp.w    #1,d2
-                    bne.s    lbC00D58A
-lbC00D540:          move.l   d0,d4
+                    bne.s    .no_block
+.wall:              move.l   d0,d4          ; four dots per tile
                     move.l   d1,d5
                     move.l   a5,a4
                     mulu     #40,d5
@@ -8843,20 +8850,22 @@ lbC00D540:          move.l   d0,d4
                     add.l    d6,a4
                     bset     d2,0(a4,d5.w)
                     bset     d2,40(a4,d5.w)
-lbC00D58A:          subq.w   #2,d0
-                    bne.s    lbC00D51C
+.no_block:          subq.w   #2,d0
+                    bne.s    .loop
                     move.l   d7,d0
                     subq.w   #2,d1
-                    bne.s    lbC00D51C
-                    bsr      lbC00D67C
+                    bne.s    .loop
+                    bsr      print_players_pos_on_map
                     rts
 
 text_scanning:      dc.w     100
                     dc.w     100
                     dc.b     'SCANNING...'
-                    dc.b     $FF
+                    dc.b     -1
+                    even
 
-lbC00D5AE:          lea      player_1_dats,a0
+get_map_overview_player_pos:
+                    lea      player_1_dats,a0
                     tst.w    PLAYER_ALIVE(a0)
                     bpl.s    lbC00D5C0
                     lea      player_2_dats,a0
@@ -8884,22 +8893,23 @@ lbC00D5F8:          tst.l    d3
                     beq      return
                     move.l   d3,d0
                     move.l   d0,lbL000520
-                    bsr      lbC00D60C
+                    bsr      display_map_overview_interference
                     rts
 
-lbC00D60C:          move.l   d0,-(sp)
+display_map_overview_interference:
+                    move.l   d0,-(sp)
                     move.l   #74,d0
                     move.l   #0,d2
                     jsr      trigger_sample_select_channel
                     move.l   (sp)+,d0
-lbC00D622:          bsr      lbC00D664
+.loop:              bsr      wait_line_44
                     move.b   $bfd800,d1
                     ext.w    d1
                     move.b   d1,diwstop_overmap
                     neg.w    d1
                     move.b   d1,diwstrt_overmap
                     subq.l   #1,d0
-                    bne.s    lbC00D622
+                    bne.s    .loop
                     move.w   #$2B8E,diwstrt_overmap
                     move.w   #$2DB3,diwstop_overmap
                     move.l   #75,d0
@@ -8907,46 +8917,46 @@ lbC00D622:          bsr      lbC00D664
                     jsr      trigger_sample_select_channel
                     rts
 
-lbC00D664:          cmp.b    #255,$dff006
-                    bne.s    lbC00D664
-lbC00D66E:          cmp.b    #44,$dff006
-                    bne.s    lbC00D66E
+wait_line_44:       cmp.b    #255,$dff006
+                    bne.s    wait_line_44
+.wait:              cmp.b    #44,$dff006
+                    bne.s    .wait
                     rts
 
 lbC00D67A:          rts
 
-lbC00D67C:          bsr      lbC00D71E
-                    lea      lbW00D6E4,a0
-                    move.w   lbW00D7EA,d0
-                    move.w   lbW00D7EC,d1
-                    bsr      lbC00D6C4
-                    lea      lbW00D6EA,a0
-                    move.w   lbW00D7EE,d0
-                    move.w   lbW00D7F0,d1
-                    bsr      lbC00D6C4
-                    lea      lbW00D6F0,a0
-                    move.w   lbW00D7F2,d0
-                    move.w   lbW00D7F4,d1
-                    bsr      lbC00D6C4
+print_players_pos_on_map:
+                    bsr      get_players_position
+                    lea      text_player_1,a0
+                    move.w   player_1_pos_x_map,d0
+                    move.w   player_1_pos_y_map,d1
+                    bsr      print_player_pos_on_map
+                    lea      text_player_2,a0
+                    move.w   player_2_pos_x_map,d0
+                    move.w   player_2_pos_y_map,d1
+                    bsr      print_player_pos_on_map
                     rts
 
-lbC00D6C4:          tst.w    d0
+print_player_pos_on_map:
+                    tst.w    d0
                     beq      return
-                    add.w    #$12,d0
-                    sub.w    #$10,d1
+                    add.w    #18,d0
+                    sub.w    #16,d1
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
-                    lea      lbL00D6F6,a1
+                    lea      on_map_font_struct,a1
                     jmp      display_text
 
-lbW00D6E4:          dcb.w    2,0
-                    dc.w     $31FF
-lbW00D6EA:          dcb.w    2,0
-                    dc.w     $32FF
-lbW00D6F0:          dcb.w    2,0
-                    dc.w     $58FF
+text_player_1:      dc.w     0,0
+                    dc.b     '1'
+                    dc.b     -1
+                    even
+text_player_2:      dc.w     0,0
+                    dc.b     '2'
+                    dc.b     -1
+                    even
 
-lbL00D6F6:          dc.l    lbL0FE744
+on_map_font_struct: dc.l    lbL0FE744
                     dc.l    10240
                     dc.l    1
                     dc.l    36
@@ -8957,72 +8967,52 @@ lbL00D6F6:          dc.l    lbL0FE744
                     dc.l    font_pic
                     dc.l    ascii_letters
 
-lbC00D71E:          lea      player_1_dats,a0
+get_players_position:
+                    lea      player_1_dats,a0
                     clr.l    d0
                     clr.l    d1
                     cmp.w    #-1,PLAYER_ALIVE(a0)
-                    beq.s    lbC00D744
+                    beq.s    .p1_not_alive
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     lsr.w    #3,d0
                     lsr.w    #3,d1
-                    add.w    #$18,d0
-                    add.w    #$14,d1
-lbC00D744:          move.w   d0,lbW00D7EA
-                    move.w   d1,lbW00D7EC
+                    add.w    #24,d0
+                    add.w    #20,d1
+.p1_not_alive:      move.w   d0,player_1_pos_x_map
+                    move.w   d1,player_1_pos_y_map
                     lea      player_2_dats,a0
                     clr.l    d0
                     clr.l    d1
-                    cmp.w    #-1,$13C(a0)
-                    beq.s    lbC00D776
+                    cmp.w    #-1,PLAYER_ALIVE(a0)
+                    beq.s    .p2_not_alive
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     lsr.w    #3,d0
                     lsr.w    #3,d1
-                    add.w    #$18,d0
-                    add.w    #$14,d1
-lbC00D776:          move.w   d0,lbW00D7EE
-                    move.w   d1,lbW00D7F0
-                    clr.l    lbW00D7F2
-                    cmp.l    #$FFFFFF00,lbL000572
-                    beq      return
-                    bra      return
-
-lbC00D7B8:          subq.l   #2,a0
-                    lea      cur_map_top,a1
-                    move.l   a0,d1
-                    sub.l    a1,d1
-                    divu     #248,d1
-                    move.l   d1,d0
-                    swap     d0
-                    lsl.w    #3,d0
-                    lsl.w    #4,d1
-                    lsr.w    #3,d0
-                    lsr.w    #3,d1
-                    add.w    #$17,d0
-                    add.w    #$18,d1
-                    move.w   d0,lbW00D7F2
-                    move.w   d1,lbW00D7F4
+                    add.w    #24,d0
+                    add.w    #20,d1
+.p2_not_alive:      move.w   d0,player_2_pos_x_map
+                    move.w   d1,player_2_pos_y_map
                     rts
 
-lbW00D7EA:          dc.w     0
-lbW00D7EC:          dc.w     0
-lbW00D7EE:          dc.w     0
-lbW00D7F0:          dc.w     0
-lbW00D7F2:          dc.w     0
-lbW00D7F4:          dc.w     0
+player_1_pos_x_map: dc.w     0
+player_1_pos_y_map: dc.w     0
+player_2_pos_x_map: dc.w     0
+player_2_pos_y_map: dc.w     0
 
-lbC00D7F6:          move.l   #$2800,d0
+set_map_overview_bps:
+                    move.l   #(256*40),d0
                     move.l   #6,d1
                     lea      map_overview_background_pic,a0
                     lea      overmap_bps,a1
                     bsr      set_bps
-                    move.l   #$130,d0
+                    move.l   #304,d0
                     move.l   #2,d1
                     lea      top_bar_gfx,a0
                     lea      overmap_top_bar_bps,a1
                     bsr      set_bps
-                    move.l   #$130,d0
+                    move.l   #304,d0
                     move.l   #2,d1
                     lea      bottom_bar_gfx,a0
                     lea      overmap_bottom_bar_bps,a1
@@ -9065,7 +9055,7 @@ map_overview_overlay_palette:
 lbC00D8E2:          clr.l    run_intex_ptr
                     rts
 
-run_intex:          tst.w    self_destuct_initiated
+run_intex:          tst.w    self_destruct_initiated
                     bne      lbC00D8E2
                     jsr      lbC023210
                     clr.w    lbW0004C2
@@ -9750,7 +9740,7 @@ check_reactors:     tst.w    reactor_up_done
                     tst.w    reactor_right_done
                     beq.s    patch_reactor
                     move.w   #1,lbW0004D8
-                    move.w   #1,self_destuct_initiated
+                    move.w   #1,self_destruct_initiated
 
 patch_reactor:      movem.l  d0-d7/a0-a6,-(sp)
                     move.l   reactor_to_patch,a3
@@ -19040,7 +19030,7 @@ overmap_palette:    dc.w    $180,0
                     dc.w    $190,0,$192,0,$194,0,$196,0,$198,0,$19A,0,$19C,0,$19E,0
                     dc.w    $1A0,0,$1A2,0,$1A4,0,$1A6,0,$1A8,0,$1AA,0,$1AC,0,$1AE,0
                     dc.w    $1B0,0,$1B2,0,$1B4,0,$1B6,0,$1B8,0,$1BA,0,$1BC,0,$1BE,0
-                    
+
                     dc.w    $138,0,$13A,0,$170,0,$172,0,$134,0,$136,0,$168,0,$16A,0
                     dc.w    $13C,0,$13E,0,$178,0,$17A,0,$120,0,$122,0,$140,0,$142,0
                     dc.w    $124,0,$126,0,$148,0,$14A,0,$128,0,$12A,0,$150,0,$152,0
@@ -19245,7 +19235,8 @@ map_overview_background_pic:
                     ds.l     4096
 temp_map_buffer:    ds.b     24576
 lbL0FBF6C:          ds.b     205
-lbB0FC039:          ds.b     3395
+map_overview_planes:
+                    ds.b     3395
 lbL0FCD7C:          ds.l     1220
 lbL0FE08C:          ds.l     430
 lbL0FE744:          ds.l     10
