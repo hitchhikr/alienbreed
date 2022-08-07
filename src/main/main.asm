@@ -5403,7 +5403,9 @@ open_door:          clr.w    flag_opened_door
                     bne.s    door_on_right
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
+                    ifeq DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
+                    endif
                     move.l   #lbL020CFE,a2
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
@@ -5414,7 +5416,9 @@ door_on_right:      move.w   -2(a3),d0
                     bne.s    door_on_left
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
+                    ifeq DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
+                    endif
                     move.l   #lbL020CFE,a2
                     subq.l   #2,a3
                     and.w    #$FFC0,(a3)
@@ -5426,7 +5430,9 @@ door_on_left:       move.w   248(a3),d0
                     bne.s    door_below
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
+                    ifeq DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
+                    endif
                     move.l   #lbL020D32,a2
                     and.w    #$FFC0,(a3)
                     jmp      patch_tiles
@@ -5437,7 +5443,9 @@ door_below:         move.w   -248(a3),d0
                     bne      void
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
+                    ifeq DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
+                    endif
                     sub.l    #248,a3
                     move.l   #lbL020D32,a2
                     and.w    #$FFC0,(a3)
@@ -8772,7 +8780,7 @@ display_map_overview:
                     move.l   #32,d0
                     jsr      lbC010906
                     lea      text_scanning,a0
-                    lea      lbL00FA24,a1
+                    lea      font_struct,a1
                     jsr      display_text
                     move.b   $bfd800,d1
                     cmp.b    #$7F,d1
@@ -8828,7 +8836,7 @@ display_elapsed_time:
                     bsr      lbC00D4D4
                     jsr      calc_elapsed_time
                     lea      text_time,a0
-                    lea      lbL00FA24,a1
+                    lea      font_struct,a1
                     jsr      display_text
                     rts
 
@@ -10657,34 +10665,41 @@ lbC00F70A:          clr.b    0(a1)
                     clr.b    1(a1)
                     clr.b    2(a1)
                     clr.b    3(a1)
-                    clr.b    $26(a1)
-                    clr.b    $27(a1)
-                    clr.b    $28(a1)
-                    clr.b    $29(a1)
-                    clr.b    $4C(a1)
-                    clr.b    $4D(a1)
-                    clr.b    $4E(a1)
-                    clr.b    $4F(a1)
-                    clr.b    $72(a1)
-                    clr.b    $73(a1)
-                    clr.b    $74(a1)
-                    clr.b    $75(a1)
-                    clr.b    $98(a1)
-                    clr.b    $99(a1)
-                    clr.b    $9A(a1)
-                    clr.b    $9B(a1)
-                    clr.b    $BE(a1)
-                    clr.b    $BF(a1)
-                    clr.b    $C0(a1)
-                    clr.b    $C1(a1)
-                    clr.b    $E4(a1)
-                    clr.b    $E5(a1)
-                    clr.b    $E6(a1)
-                    clr.b    $E7(a1)
-                    clr.b    $10A(a1)
-                    clr.b    $10B(a1)
-                    clr.b    $10C(a1)
-                    clr.b    $10D(a1)
+                    
+                    clr.b    38(a1)
+                    clr.b    39(a1)
+                    clr.b    40(a1)
+                    clr.b    41(a1)
+                    
+                    clr.b    76(a1)
+                    clr.b    77(a1)
+                    clr.b    78(a1)
+                    clr.b    79(a1)
+                    
+                    clr.b    114(a1)
+                    clr.b    115(a1)
+                    clr.b    116(a1)
+                    clr.b    117(a1)
+                    
+                    clr.b    152(a1)
+                    clr.b    153(a1)
+                    clr.b    154(a1)
+                    clr.b    155(a1)
+                    
+                    clr.b    190(a1)
+                    clr.b    191(a1)
+                    clr.b    192(a1)
+                    clr.b    193(a1)
+                    
+                    clr.b    228(a1)
+                    clr.b    229(a1)
+                    clr.b    230(a1)
+                    clr.b    231(a1)
+                    
+                    clr.b    266(a1)
+                    clr.b    267(a1)
+                    clr.b    268(a1)
+                    clr.b    269(a1)
                     rts
 
 load_level_tunes:   move.w   #$4000,$dff09a
@@ -10796,7 +10811,7 @@ return_text:        rts
 
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
                     even
-lbL00FA24:          dc.l    lbL0FBF6C
+font_struct:        dc.l    lbL0FBF6C
                     dc.l    10240
                     dc.l    1               ; 1 bitplane
                     dc.l    36
@@ -10841,7 +10856,8 @@ lbC00FB3E:          move.w   PLAYER_AMMOPACKS(a0),lbW00FE1E
                     cmp.w    #6,lbW00FE26
                     bmi.s    lbC00FB68
                     move.w   #6,lbW00FE26
-lbC00FB68:          lea      player_2_dats,a0
+lbC00FB68:          
+                    lea      player_2_dats,a0
                     move.w   PLAYER_HEALTH(a0),lbW00FE52
                     move.w   PLAYER_LIVES(a0),lbW00FE56
                     cmp.w    #4,lbW00FE56
@@ -10853,7 +10869,8 @@ lbC00FB90:          move.w   PLAYER_AMMOPACKS(a0),lbW00FE5A
                     cmp.w    #6,lbW00FE62
                     bmi.s    lbC00FBBA
                     move.w   #6,lbW00FE62
-lbC00FBBA:          clr.w    lbW00FEA8
+lbC00FBBA:          
+                    clr.w    lbW00FEA8
                     clr.w    lbW00FEAA
 lbC00FBC6:          move.l   lbL00FC0E,a0
                     tst.l    (a0)
@@ -10864,7 +10881,7 @@ lbC00FBDE:          addq.l   #8,lbL00FC0E
                     move.l   4(a0),lbL00FEAC
                     move.l   (a0),a0
                     jsr      (a0)
-                    add.w    #1,lbW00FEAA
+                    addq.w   #1,lbW00FEAA
                     cmp.w    #5,lbW00FEAA
                     beq      return
                     tst.w    lbW00FEA8
@@ -11994,7 +12011,7 @@ lbC010F22:          lea      player_1_status_pic,a0
                     move.l   #bottom_bar_gfx,d1
                     move.l   #lbB0997C9,d2
                     move.l   #lbB099C89,d3
-                    move.l   #$13,d7
+                    move.l   #19,d7
 lbC010F96:          move.l   #2,number_frames_to_wait
                     jsr      sleep_frames
                     move.b   0(a0),0(a1)
@@ -12465,7 +12482,7 @@ lbC011860:          clr.l    d1
                     clr.w    lbW0113B2
                     move.l   #temp_buffer,d0
                     move.l   #map_overview_background_pic,d1
-                    move.l   #$303C,d3
+                    move.l   #12348,d3
                     bsr      lbC011936
                     clr.w    lbW0113AA
                     move.w   (sp)+,lbW0113AC
@@ -12822,7 +12839,7 @@ lbC011DFE:          move.l   d0,a1
                     move.l   #lbL00051C,$3E(a4)
                     move.l   #lbW013890,8(a4)
                     clr.w    lbW00ACE2
-lbC011E3E:          cmp.w    #$FFFE,6(a3)
+lbC011E3E:          cmp.w    #-2,6(a3)
                     bne.s    lbC011E56
                     clr.w    $1A(a4)
                     move.l   #lbL101098,a1
@@ -13046,14 +13063,14 @@ lbC01208A:          clr.w    lbW0113B8
                     bsr      clear_array_long
 
                     lea      lbL101098,a0
-                    move.l   #$F12C,d0
+                    move.l   #61740,d0
                     bsr      clear_array_long
                     
                     lea      aliens_sprites_block,a0
                     lea      lbL1101C4,a1
                     move.l   #5,d0
-                    move.l   #$140,d1
-                    move.l   #$180,d2
+                    move.l   #320,d1
+                    move.l   #384,d2
                     bsr      lbC01176E
                     
                     lea      lbW0122F0,a0
@@ -16653,7 +16670,6 @@ text_briefing_level_2:
                     dc.b     'ENTER CODE 55955 TO RESTART HERE'
                     dc.b     -1
                     even
-
 text_briefing_level_3:
                     dc.w     8,40
                     dc.b     'SECURITY ZONE, DECK THREE.      ',0
@@ -16671,7 +16687,7 @@ text_briefing_level_3:
                     dc.b     'RADAR MALFUNCTIONING.. ERRATIC  ',0
                     dc.b     'READINGS.. ADVISE CAUTION...    '
                     dc.b     -1
-
+                    even
 text_briefing_level_4:
                     dc.w     8,40
                     dc.b     'OVAL ZONE. DECK FOUR.           ',0
@@ -17735,8 +17751,8 @@ lbC024402:          cmp.b    #1,arpcount
                     bne.s    not1
                     move.b   11(a0),d3
                     move.b   13(a0),d4
-                    and.w    #15,d3
-                    and.w    #15,d4
+                    and.w    #$F,d3
+                    and.w    #$F,d4
                     add.w    d3,d4
                     add.b    10(a0),d4
                     bsr      bpplayarp
@@ -18741,11 +18757,11 @@ voice_six:          incbin   "six.raw"
 voice_seven:        incbin   "seven.raw"
 voice_eight:        incbin   "eight.raw"
 
-                    SECTION  AB08488C,BSS
+                    section  pub_bss,bss
 
 bkgnd_tiles_block:  ds.b     76800
 
-                    SECTION  AB09748C,DATA_c
+                    section  data_chip,data_c
 
                     incdir   "src/main/gfx/"
 font_pic:           incbin   "font_16x504x5.raw"
@@ -18783,17 +18799,20 @@ top_bar_gfx:        dcb.b    37,0
 lbB099A29:          dcb.b    267,0
 lbL099B34:          dcb.l    3,0
 lbB099B40:          dcb.b    21,0
-ascii_MSG15:        dcb.b    2,0
-                    dc.b     0
+
+ascii_MSG15:        dcb.b    3,0
 top_owned_keys_gfx: dcb.b    268,0
+
 bottom_bar_gfx:     dcb.b    37,0
 lbB099C89:          dcb.b    267,0
 lbL099D94:          dcb.l    3,0
 lbL099DA0:          dcb.l    5,0
                     dc.b     0
+
 lbB099DB5:          dcb.b    3,0
 bottom_owned_keys_gfx:
                     dcb.b    268,0
+
 empty_sample:       dcb.b    16,0
 
 ; ------------------------------------------------------
@@ -19257,7 +19276,8 @@ sample29:           incbin  "sample29.raw"
 sample30:           incbin  "sample30.raw"
 sample31:           incbin  "sample31.raw"
 
-                    SECTION  AB0D0240,BSS_c
+                    section  uni_chip,bss_c
+
 bpsong:             ds.b     41*1024
 bosstune:           ds.b     15*1024
 leveltune:          ds.b     15*1024

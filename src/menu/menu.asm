@@ -30,10 +30,10 @@ start:              move.l   d5,number_players
                     move.w   #1,lbW00198A
                     clr.w    lbW001844
                     move.l   #134,d0
-lbC0000C6:          move.l   d0,-(sp)
+.pause:             move.l   d0,-(sp)
                     move.l   (sp)+,d0
                     subq.l   #1,d0
-                    bne.s    lbC0000C6
+                    bne.s    .pause
                     bsr      lbC001284
                     move.l   share_credits,d1
                     clr.l    d4
@@ -74,7 +74,7 @@ lbC000A5C:          move.w   #1,lbW00195E
                     clr.w    d0
                     clr.l    lbL000A0C
 lbC000A74:          addq.l   #1,lbL000A0C
-                    cmp.l    #$3E8,lbL000A0C
+                    cmp.l    #1000,lbL000A0C
                     bpl      lbC000BB2
                     move.w   $dff00c,d1
                     and.w    #$303,d1
@@ -96,7 +96,7 @@ lbC000A9C:          move.w   lbW000C42,d1
                     beq.s    lbC000B04
                     move.w   #10,lbW000C44
                     move.w   d1,d0
-                    cmp.w    #$100,d0
+                    cmp.w    #256,d0
                     bne.s    lbC000AEE
                     tst.w    lbW000C42
                     beq.s    lbC000AEE
@@ -182,10 +182,10 @@ lbC000ED6:          move.w   #1,flag_quit
                     lea      text_menu,a0
                     cmp.l    #1,share_credits
                     bne.s    lbC000F22
-                    add.l    #$7C,a0
+                    add.l    #124,a0
 lbC000F22:          cmp.l    #2,number_players
                     bne.s    lbC000F34
-                    add.l    #$3E,a0
+                    add.l    #62,a0
 lbC000F34:          lea      lbL003DAE,a1
                     cmp.l    #1,lbL000A08
                     beq.s    lbC000F4C
@@ -195,26 +195,26 @@ lbC000F4C:          jsr      display_text
                     beq      lbC001006
                     bsr      wait_sync2
                     lea      lbL0052E4,a1
-                    move.l   #3760,d0
+                    move.l   #(94*40),d0
                     add.l    d0,a1
                     lea      lbL01FF94,a0
                     bsr      wait_blitter
                     move.w   #$8400,$dff096
-                    move.l   #$9F00000,$dff040
+                    move.l   #$9f00000,$dff040
                     move.l   #-1,$dff044
                     clr.l    $dff064
                     move.l   a0,$dff050
                     move.l   a1,$dff054
                     move.w   #(146*64)+20,$dff058
                     bsr      wait_blitter
-                    add.l    #5840,a0
-                    add.l    #9600,a1
+                    add.l    #(146*40),a0
+                    add.l    #(240*40),a1
                     move.l   a0,$dff050
                     move.l   a1,$dff054
                     move.w   #(146*64)+20,$dff058
                     bsr      wait_blitter
-                    add.l    #5840,a0
-                    add.l    #9600,a1
+                    add.l    #(146*40),a0
+                    add.l    #(240*40),a1
                     move.l   a0,$dff050
                     move.l   a1,$dff054
                     move.w   #(146*64)+20,$dff058
@@ -247,7 +247,7 @@ text_menu:          dc.w     16,112
                     dc.b     ' TWO PLAYER GAME  ',0
                     dc.b     'SHARE CREDITS  ON ',0
                     dc.b     '    START GAME    '
-                    dc.b     -1
+                    dc.b     -1,-1
                     even
 
 lbC001124:          clr.b    (a0)+
@@ -1765,7 +1765,7 @@ lbC003F74:          lea      lbL0061E4,a0
 lbC003F94:          move.l   a0,$dff054
                     move.w   #(144*64)+20,$dff058
                     bsr      wait_blitter
-                    add.l    #9600,a0
+                    add.l    #(240*40),a0
                     subq.l   #1,d0
                     bne.s    lbC003F94
                     rts
@@ -1799,49 +1799,58 @@ text_credits1:      dc.w     4,136
                     dc.b     '   PROGRAMMED BY:   ',0
                     dc.b     '   ANDREAS TADIC    ',0
                     dc.b     '    PETER TULEBY    '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 text_credits2:      dc.w     4,136
                     dc.b     'GRAPHICS AND CONCEPT',0
                     dc.b     '         BY:        ',0
                     dc.b     '     RICO HOLMES    '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 text_credits3:      dc.w     4,136
                     dc.b     ' SOUND AND MUSIC BY:',0
                     dc.b     '  ALLISTER BRIMBLE  '
-                    dc.b     $FF
+                    dc.b     -1
+                    even
 text_credits4:      dc.w     4,136
                     dc.b     'ADDITIONAL CODE AND ',0
                     dc.b     'CD32 PROGRAMMING BY:',0
                     dc.b     '   STEFAN BOBERG    '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 text_credits5:      dc.w     2,136
                     dc.b     'SPECIAL EDITION CODING:',0
                     dc.b     '     ANDREAS TADIC     '
-                    dc.b     $FF
+                    dc.b     -1
+                    even
 text_credits6:      dc.w     4,136
                     dc.b     'SPEECH COURTESY OF: ',0
                     dc.b     '   LYNETTE READE    '
-                    dc.b     $FF
+                    dc.b     -1
+                    even
 text_credits7:      dc.w     4,136
                     dc.b     '  GAME DESIGNED BY: ',0
                     dc.b     '     RICO HOLMES    ',0
                     dc.b     '     MARTYN BROWN   '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 text_credits8:      dc.w     4,136
                     dc.b     ' PROJECT MANAGEMENT ',0
                     dc.b     '         BY:        ',0
                     dc.b     '    MARTYN BROWN    '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 text_credits9:      dc.w     4,136
                     dc.b     ' A TEAM 17 SOFTWARE ',0
                     dc.b     '     PRODUCTION     ',0
                     dc.b     '        1992        '
-                    dc.b     $FF,0
+                    dc.b     -1
+                    even
 
 set_random_seed:    add.l    d0,d1
-                    movem.l  d0/d1,lbW0042D2
+                    movem.l  d0/d1,seed
 get_rnd_number:     movem.l  d2/d3,-(sp)
-                    movem.l  (lbW0042D2),d0/d1
+                    movem.l  seed,d0/d1
                     and.b    #14,d0
                     or.b     #$20,d0
                     move.l   d0,d2
@@ -1856,7 +1865,7 @@ get_rnd_number:     movem.l  d2/d3,-(sp)
                     clr.w    d2
                     add.l    d2,d0
                     addx.l   d3,d1
-                    movem.l  d0/d1,lbW0042D2
+                    movem.l  d0/d1,seed
                     move.l   d1,d0
                     movem.l  (sp)+,d2/d3
                     rts
@@ -1872,7 +1881,7 @@ rand:               addq.w   #1,d0
                     swap     d0
 .nop:               rts
 
-lbW0042D2:          dcb.w    4,0
+seed:               dcb.l    2,0
 lbL0042DA:          dc.l     0
 share_credits:      dc.l     0
 lbL0042E4:          dcb.l    $10,0
