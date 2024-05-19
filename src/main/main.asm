@@ -8,7 +8,16 @@
 ; LxBO are the bobs (320x384x5).
 ; LxBM are the background tiles (16x16x5x480 (480 tiles, that is)).
 
+; ------------------------------------------------------
+
+                    include  "custom.i"
+                    include  "cia.i"
+                    include  "dmabits.i"
+                    include  "intbits.i"
+
                     mc68000
+
+; ------------------------------------------------------
 
 ; 1 to activate the debug mode
 DEBUG               equ     0
@@ -42,6 +51,7 @@ lbW064204           equ     cur_map_datas+19648
 map_reactor_down    equ     cur_map_datas+20698
 
 ; exec
+_LVOSupervisor      equ     -30
 _LVOSuperState      equ     -150
 _LVOUserState       equ     -156
 _LVOAddIntServer    equ     -168
@@ -52,10 +62,15 @@ _LVOOpenLibrary     equ     -552
 _LVOCacheClearU     equ     -636
 _LVOCacheControl    equ     -648
 
+AttnFlags           equ     $128
+LIB_VERSION         equ     20
+
 ; dos
 _LVOOpen            equ     -30
 _LVOClose           equ     -36
 _LVORead            equ     -42
+
+MODE_OLDFILE        equ     1005
 
 ; gfx
 _LVOLoadView        equ     -222
@@ -73,31 +88,31 @@ KEY_LEFT            equ     $4f
 KEY_LEFT_ALT        equ     $64
 KEY_RIGHT_ALT       equ     $65
 
-PLAYER_CUR_WEAPON   equ     $100
-PLAYER_POS_X        equ     $12c
-PLAYER_POS_Y        equ     $12e
-PLAYER_ALIVE        equ     $13c
-PLAYER_CUR_SPRITE   equ     $140
-PLAYER_HEALTH       equ     $150
-PLAYER_LIVES        equ     $154
-PLAYER_AMMOPACKS    equ     $158
-PLAYER_AMMUNITIONS  equ     $15C
-PLAYER_KEYS         equ     $160
-PLAYER_CREDITS      equ     $164
-PLAYER_EXTRA_SPD_X  equ     $178
-PLAYER_EXTRA_SPD_Y  equ     $17a
-PLAYER_OWNEDWEAPONS equ     $192
-PLAYER_OLD_POS_X    equ     $1ac
-PLAYER_OLD_POS_Y    equ     $1b0
-PLAYER_SHOTS        equ     $1b4
-PLAYER_SCORE        equ     $1b8
+PLAYER_CUR_WEAPON   equ     256
+PLAYER_POS_X        equ     300
+PLAYER_POS_Y        equ     302
+PLAYER_ALIVE        equ     316
+PLAYER_CUR_SPRITE   equ     320
+PLAYER_HEALTH       equ     336
+PLAYER_LIVES        equ     340
+PLAYER_AMMOPACKS    equ     344
+PLAYER_AMMUNITIONS  equ     348
+PLAYER_KEYS         equ     352
+PLAYER_CREDITS      equ     356
+PLAYER_EXTRA_SPD_X  equ     376
+PLAYER_EXTRA_SPD_Y  equ     378
+PLAYER_OWNEDWEAPONS equ     402
+PLAYER_OLD_POS_X    equ     428
+PLAYER_OLD_POS_Y    equ     432
+PLAYER_SHOTS        equ     436
+PLAYER_SCORE        equ     440
 
 PLAYER_FACE_UP      equ     1
 PLAYER_FACE_UP_LEFT equ     8
-PLAYER_FACE_UP_RIGHT equ     2
+PLAYER_FACE_UP_RIGHT equ    2
 PLAYER_FACE_DOWN    equ     5
-PLAYER_FACE_DOWN_LEFT equ     6
-PLAYER_FACE_DOWN_RIGHT equ     4
+PLAYER_FACE_DOWN_LEFT equ   6
+PLAYER_FACE_DOWN_RIGHT equ  4
 PLAYER_FACE_LEFT    equ     7
 PLAYER_FACE_RIGHT   equ     3
 
@@ -122,21 +137,25 @@ SAMPLE_1UP          equ     27
 SAMPLE_1STAID_CREDS equ     30
 SAMPLE_ACID_POOL    equ     34
 
-ALIEN_SPEED         equ     $0a
-ALIEN_POS_X         equ     $1e
-ALIEN_POS_Y         equ     $20
-ALIEN_STRENGTH      equ     $3c
+ALIEN_SPEED         equ     10
+ALIEN_POS_X         equ     30
+ALIEN_POS_Y         equ     32
+ALIEN_STRENGTH      equ     60
 
 TILE_DOOR           equ     3
 
+; ------------------------------------------------------
+
 WAIT_BLIT           MACRO
-wait\@:             btst     #14,$dff002
-                    bne.s    wait\@
+wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
+                    bne.b    wait\@
                     ENDM
 WAIT_BLIT2          MACRO
-wait\@:             btst     #14,2(a6)
-                    bne.s    wait\@
+wait\@:             btst     #DMAB_BLITTER,DMACONR(a6)
+                    bne.b    wait\@
                     ENDM
+
+; ------------------------------------------------------
 
                     section  start,code
 
@@ -144,46 +163,46 @@ start:              bra      begin
 
 user_input:         movem.l  d1-d6,-(sp)
                     tst.w    d0
-                    bne.s    .port2
-                    moveq    #6,d3
+                    bne.b    .port2
+                    moveq    #CIAB_GAMEPORT0,d3
                     moveq    #10,d4
                     move.w   #$F600,d5
-                    bra.s    .port1
-.port2:             moveq    #7,d3
+                    bra.b    .port1
+.port2:             moveq    #CIAB_GAMEPORT1,d3
                     moveq    #14,d4
                     move.w   #$6F00,d5
 .port1:             moveq    #0,d0
                     moveq    #0,d6
-                    btst     d3,$bfe001
-                    bne.s    .fire1
+                    btst     d3,CIAA
+                    bne.b    .fire1
                     bset     #6,d6
-.fire1:             btst     d4,$dff016
-                    bne.s    .fire2
+.fire1:             btst     d4,CUSTOM+POTINP
+                    bne.b    .fire2
                     bset     #7,d6
-.fire2:             bset     d3,$bfe201
-                    bclr     d3,$bfe001
-                    move.w   d5,$dff034
+.fire2:             bset     d3,CIAA+CIADDRA
+                    bclr     d3,CIAA
+                    move.w   d5,CUSTOM+POTGO
                     moveq    #7,d1
-                    bra.s    .in
-.loop:              tst.b    $bfe001
-                    tst.b    $bfe001
-                    tst.b    $bfe001
-.in:                tst.b    $bfe001
-                    tst.b    $bfe001
-                    tst.b    $bfe001
-                    tst.b    $bfe001
-                    tst.b    $bfe001
-                    move.w   $dff016,d2
-                    bset     d3,$bfe001
-                    bclr     d3,$bfe001
+                    bra.b    .in
+.loop:              tst.b    CIAA
+                    tst.b    CIAA
+                    tst.b    CIAA
+.in:                tst.b    CIAA
+                    tst.b    CIAA
+                    tst.b    CIAA
+                    tst.b    CIAA
+                    tst.b    CIAA
+                    move.w   CUSTOM+POTINP,d2
+                    bset     d3,CIAA
+                    bclr     d3,CIAA
                     btst     d4,d2
-                    bne.s    .next
+                    bne.b    .next
                     bset     d1,d0
 .next:              dbra     d1,.loop
-                    bclr     d3,$bfe201
-                    move.w   #-1,$dff034
+                    bclr     d3,CIAA+CIADDRA
+                    move.w   #-1,CUSTOM+POTGO
                     cmp.b    #$FF,d0
-                    bne.s    .none
+                    bne.b    .none
                     moveq    #0,d0
 .none:              and.w    #$FF3F,d0
                     or.w     d6,d0
@@ -199,22 +218,46 @@ lbW0001E2:          dc.w     5
 some_variable:      dc.w     0
 
 wait:               tst.w    some_variable
-                    beq.s    wait
+                    beq.b    wait
                     rts
 
-error_flash:        move.w   d0,$dff180
-                    bra.s    error_flash
+error_flash:        move.w   d0,CUSTOM+COLOR00
+                    bra.b    error_flash
 
-disable_cache:      movem.l  d0/d1/a0/a1/a6,-(sp)
+; ------------------------------------------------------
+
+                    mc68020
+
+disable_cache:      movem.l  d0/d1/d2/d6/d7/a0/a1/a5/a6,-(sp)
                     move.l   4.w,a6
-                    move.w   296(a6),d0
+                    move.w   AttnFlags(a6),d0
                     btst     #3,d0
-                    beq.s    .proc_68020
-                    move.l   #0,d0
+                    beq.b    .proc_68020
+                    moveq    #0,d0
                     move.l   #$100,d1
+                    cmp.w    #36,LIB_VERSION(a6)
+                    bge.b    .new_kickstart
+                    move.l   d0,d6
+                    move.l   d1,d7
+                    lea      supervisor_cache(pc),a5
+                    jsr      _LVOSupervisor(a6)
+                    bra.b    .proc_68020
+.new_kickstart:
                     jsr      _LVOCacheControl(a6)
-.proc_68020:        movem.l  (sp)+,d0/d1/a0/a1/a6
+.proc_68020:        
+                    movem.l  (sp)+,d0/d1/d2/d6/d7/a0/a1/a5/a6
                     rts
+supervisor_cache:   
+                    move.l   d6,d0
+                    movec    cacr,d1
+                    move.l   d1,d2
+                    and.l    d7,d2
+                    and.l    d0,d2
+                    not.l    d7
+                    and.l    d7,d1
+                    or.l     d2,d1
+                    movec    d1,cacr
+                    rte
 
 obtain_vbr_register:
                     bsr      get_vbr
@@ -223,14 +266,16 @@ obtain_vbr_register:
 
 get_vbr:            move.l   4.w,a6
                     moveq    #0,d0
-                    move.w   296(a6),d0
-                    beq.s    .proc_with_vbr
+                    move.w   AttnFlags(a6),d0
+                    beq.b    .proc_68010
                     jsr      _LVOSuperState(a6)
-                    dc.w     $4E7A
-                    dc.w     $1801
+                    movec    vbr,d1
                     jsr      _LVOUserState(a6)
                     move.l   d1,d0
-.proc_with_vbr:     rts
+.proc_68010:     
+                    rts
+
+                    mc68000
 
 reg_vbr:            dc.l     0
 
@@ -245,8 +290,7 @@ load_graphics_lib:  lea      graphicsname(pc),a1
                     jsr      _LVOWaitTOF(a6)
                     jsr      _LVOWaitTOF(a6)
                     jsr      _LVOWaitTOF(a6)
-                    jsr      _LVOWaitTOF(a6)
-                    rts
+                    jmp      _LVOWaitTOF(a6)
 
 GFXBase:            dc.l     0
 graphicsname:       dc.b     'graphics.library',0
@@ -256,23 +300,22 @@ open_library:       moveq    #0,d0
                     move.l   4.w,a6
                     jsr      _LVOOpenLibrary(a6)
                     move.l   d0,(a2)
-                    beq.s    err_open_library
+                    beq.b    err_open_library
                     rts
 
-err_open_library:   move.l   #$f,$dff180
-                    bra.s    err_open_library
+err_open_library:   move.l   #$f,CUSTOM+COLOR00
+                    bra.b    err_open_library
 
 install_sound_interrupt:
                     move.l   4.w,a6
-                    lea      lev5_interrupt,a1
+                    lea      lev5_interrupt(pc),a1
                     moveq    #5,d0
-                    jsr      _LVOAddIntServer(a6)
-                    rts
+                    jmp      _LVOAddIntServer(a6)
 
-lev5_interrupt:     dcb.l    2,0
+lev5_interrupt:     dc.l     0,0
                     dc.w     708
                     dc.l     interruptname
-                    dcb.w    2,0
+                    dc.w     0,0
                     dc.l     lev5irq
 interruptname:      dc.b     'VBInterrupt',0
                     even
@@ -285,12 +328,14 @@ lev5irq:            movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #0,d0
                     rts
 
+; ------------------------------------------------------
+
 lbW0003A2:          dc.w     1
 music_enabled:      dc.w     0
 lbW0004B2:          dc.w     0
 lbW0004B4:          dc.w     0
 frame_flipflop:     dc.w     0
-old_intreq:         dc.w     0
+old_intena:         dc.w     0
 lbW0004BA:          dc.w     0
 lbW0004BC:          dc.w     0
 old_lev3irq:        dc.l     0
@@ -352,6 +397,8 @@ rnd_number:         dc.w     0
 global_aliens_extra_strength:
                     dc.w     0
 
+; ------------------------------------------------------
+
 begin:              bsr      obtain_vbr_register
                     bsr      disable_cache
                     bsr      load_graphics_lib
@@ -371,7 +418,7 @@ loop_from_gameover: jsr      run_menu
 
                     ; level 1
                     clr.l    cur_level
-                    jsr      lbC0026A4
+                    bsr      lbC0026A4
                     clr.w    global_aliens_extra_strength
                     jsr      set_players_startup_weapons
                     jsr      reset_game_variables
@@ -384,10 +431,10 @@ loop_from_gameover: jsr      run_menu
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 2
@@ -404,10 +451,10 @@ level_2:            move.l   #level_2,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 3
@@ -423,10 +470,10 @@ level_2:            move.l   #level_2,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     clr.w    lbW002AC0
                     clr.l    lbL00E756
                     move.w   #0,lbW002AC2
@@ -446,10 +493,10 @@ level_4:            move.l   #level_4,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 5
@@ -465,10 +512,10 @@ level_4:            move.l   #level_4,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 6
@@ -485,10 +532,10 @@ level_6:            move.l   #level_6,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 7
@@ -504,10 +551,10 @@ level_7:            jsr      lbC00DC62
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     clr.w    boss_nbr
                     jsr      jump_to_level
 
@@ -525,10 +572,10 @@ level_8:            move.l   #level_8,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     clr.w    boss_nbr
                     jsr      jump_to_level
 
@@ -545,10 +592,10 @@ level_8:            move.l   #level_8,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 10
@@ -565,10 +612,10 @@ level_10:           move.l   #level_10,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 11
@@ -584,10 +631,10 @@ level_10:           move.l   #level_10,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 12
@@ -603,10 +650,10 @@ level_10:           move.l   #level_10,cur_level
                     jsr      set_destruction_timer
                     jsr      lbC0100C0
                     jsr      init_level_variables
-                    jsr      lbC006B94
+                    bsr      lbC006B94
                     jsr      lbC00A61C
-                    jsr      lbC003878
-                    jsr      game_level_loop
+                    bsr      lbC003878
+                    bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; won the game
@@ -614,8 +661,8 @@ level_10:           move.l   #level_10,cur_level
                     jsr      lbC00EEDC
                     jsr      lbC00F58E
                     jsr      lbC00F51C
-                    jsr      run_end
-                    jmp      loop_wongame
+                    bsr.b    run_end
+                    bra      loop_wongame
 
 void:               rts
 
@@ -624,49 +671,49 @@ run_end:            jsr      stop_sound
                     jsr      lbC023D72
                     jsr      wait_raster
                     jsr      wait_raster
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     jsr      start_main_tune
                     lea      exe_end,a0
                     lea      temp_buffer,a1
                     jsr      load_exe
                     jsr      temp_buffer
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     rts
 
 game_level_loop:    jsr      destruction_sequence
                     move.w   #1,lbW0004C2
                     clr.w    lbW0004BA
 lbC000E0E:          tst.w    lbW0004BA
-                    beq.s    lbC000E0E
-                    jsr      lbC003EFC
+                    beq.b    lbC000E0E
+                    bsr      lbC003EFC
                     jsr      lbC00ACE4
                     jsr      lbC00A6C2
                     jsr      lbC0097D4
                     jsr      lbC0097F6
                     cmp.b    #7,timer_digit_lo
-                    bne.s    lbC000E56
+                    bne.b    lbC000E56
                     subq.w   #1,lbW002E04
-                    bne.s    lbC000E56
+                    bne.b    lbC000E56
                     move.w   #1,lbW0004D8
                     move.w   #1,self_destruct_initiated
 lbC000E56:          tst.w    lbW002AC2
-                    beq.s    lbC000E8C
+                    beq.b    lbC000E8C
                     cmp.w    #3,lbW002AC0
-                    bmi.s    lbC000E8C
+                    bmi.b    lbC000E8C
                     move.w   #1,lbW0004D8
                     move.w   #1,self_destruct_initiated
-                    move.w   #0,lbW002AC2
+                    clr.w    lbW002AC2
                     clr.l    lbL00E756
                     clr.w    lbW002AC0
 lbC000E8C:          jsr      lbC00AB0C
                     jsr      lbC00AA44
                     jsr      lbC00E8F0
                     jsr      lbC011860
-                    jsr      lbC002FC0
+                    bsr      lbC002FC0
                     jsr      check_players_invincibility
                     jsr      lbC00D17E
                     jsr      print_more_6_keys_sign
-                    jsr      lbC006C7A
+                    bsr      lbC006C7A
                     move.w   #1,lbW0004B2
                     tst.w    flag_jump_to_gameover+2
                     bne      trigger_game_over
@@ -674,51 +721,51 @@ lbC000E8C:          jsr      lbC00AB0C
                     tst.w    flag_end_level
                     bne      lbC0010B2
                     tst.w    map_overview_on
-                    beq.s    lbC000F12
+                    beq.b    lbC000F12
                     btst     #7,player_2_input
-                    bne.s    map_overview_trigger
+                    bne.b    map_overview_trigger
                     btst     #7,player_1_input
-                    bne.s    map_overview_trigger
+                    bne.b    map_overview_trigger
                     cmp.b    #KEY_M,key_pressed
                     bne      lbC000F12
 map_overview_trigger:          
                     jmp      display_map_overview
 
 lbC000F12:          cmp.b    #KEY_P,key_pressed
-                    beq.s    key_pause
+                    beq.b    key_pause
                     btst     #4,player_2_input
-                    bne.s    lbC000F30
+                    bne.b    lbC000F30
                     btst     #4,player_1_input
-                    beq.s    lbC000F3E
+                    beq.b    lbC000F3E
 lbC000F30:          subq.w   #1,lbW0001E2
-                    bne.s    lbC000F46
+                    bne.b    lbC000F46
 
 key_pause:          jmp      display_pause
 
 lbC000F3E:          move.w   #10,lbW0001E2
 lbC000F46:          
                     tst.w    music_enabled
-                    beq.s    lbC000F7A
-                    btst     #7,$bfe001
+                    beq.b    lbC000F7A
+                    btst     #CIAB_GAMEPORT1,CIAA
                     beq      trigger_game_over
-                    btst     #6,$bfe001
+                    btst     #CIAB_GAMEPORT0,CIAA
                     beq      trigger_game_over
 lbC000F7A:          cmp.b    #KEY_ESC,key_pressed
                     beq      trigger_game_over
                     cmp.b    #KEY_LEFT_ALT,key_pressed
                     beq      player_1_next_weapon
-                    move.b   player_1_old_input,d0
-                    move.b   player_1_input,player_1_old_input
+                    move.b   player_1_old_input(pc),d0
+                    move.b   player_1_input(pc),player_1_old_input
                     btst     #5,d0
-                    bne.s    lbC001036
+                    bne.b    lbC001036
                     btst     #5,player_1_input
                     bne      player_1_next_weapon
 lbC001036:          cmp.b    #KEY_RIGHT_ALT,key_pressed
                     beq      player_2_next_weapon
-                    move.b   player_2_old_input,d0
-                    move.b   player_2_input,player_2_old_input
+                    move.b   player_2_old_input(pc),d0
+                    move.b   player_2_input(pc),player_2_old_input
                     btst     #5,d0
-                    bne.s    lbC001064
+                    bne.b    lbC001064
                     btst     #5,player_2_input
                     bne      player_2_next_weapon
 
@@ -732,105 +779,104 @@ lbC0010B2:          clr.w    lbW0004C2
                     rts
 
 set_player_cur_weapon:
-                    clr.l    d1
+                    moveq    #0,d1
                     move.l   PLAYER_CUR_WEAPON(a0),d0
 lbC001162:          cmp.w    #WEAPON_MAX,d0
-                    bpl.s    lbC00117E
+                    bpl.b    lbC00117E
                     addq.w   #1,d0
                     move.w   PLAYER_OWNEDWEAPONS(a0),d1
                     btst     d0,d1
                     bne      void
                     add.l    #14,(a1)
-                    bra      lbC001162
+                    bra.b    lbC001162
 lbC00117E:          clr.l    (a1)
                     rts
 
 set_players_startup_weapons:
                     lea      weapons_attr_table(pc),a1
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     bsr      lbC00126A
                     lea      weapons_attr_table(pc),a1
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     bsr      lbC00126A
                     move.l   #14,player_1_tbl_weapon_pos
                     move.l   #14,player_2_tbl_weapon_pos
                     rts
 
 player_1_next_weapon:
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      game_level_loop
-                    lea      player_1_tbl_weapon_pos,a1
+                    lea      player_1_tbl_weapon_pos(pc),a1
                     bsr      set_player_cur_weapon
                     lea      weapons_attr_table(pc),a1
-                    add.l    player_1_tbl_weapon_pos,a1
+                    add.l    player_1_tbl_weapon_pos(pc),a1
                     add.l    #14,player_1_tbl_weapon_pos
                     tst.w    (a1)
-                    bpl.s    lbC00123C
-                    lea      weapons_attr_table,a1
+                    bpl.b    lbC00123C
+                    lea      weapons_attr_table(pc),a1
                     move.l   #14,player_1_tbl_weapon_pos
-                    bra.s    lbC00123C
+                    bra.b    lbC00123C
 
 player_2_next_weapon:
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      game_level_loop
-                    lea      player_2_tbl_weapon_pos,a1
+                    lea      player_2_tbl_weapon_pos(pc),a1
                     bsr      set_player_cur_weapon
-                    lea      weapons_attr_table,a1
-                    add.l    player_2_tbl_weapon_pos,a1
+                    lea      weapons_attr_table(pc),a1
+                    add.l    player_2_tbl_weapon_pos(pc),a1
                     add.l    #14,player_2_tbl_weapon_pos
                     tst.w    (a1)
-                    bpl.s    lbC00123C
-                    lea      weapons_attr_table,a1
+                    bpl.b    lbC00123C
+                    lea      weapons_attr_table(pc),a1
                     move.l   #14,player_2_tbl_weapon_pos
-                    ;bra      lbC00123C
 
-lbC00123C:          move.w   0(a1),$102(a0)
-                    move.w   2(a1),$FE(a0)
-                    move.w   4(a1),$106(a0)
-                    move.w   6(a1),$10A(a0)
-                    move.w   8(a1),$10E(a0)
-                    move.w   10(a1),$180(a0)
-                    move.w   12(a1),$18E(a0)
+lbC00123C:          move.w   0(a1),258(a0)
+                    move.w   2(a1),254(a0)
+                    move.w   4(a1),262(a0)
+                    move.w   6(a1),266(a0)
+                    move.w   8(a1),270(a0)
+                    move.w   10(a1),384(a0)
+                    move.w   12(a1),398(a0)
                     bra      game_level_loop
 
-lbC00126A:          move.w   0(a1),$102(a0)
-                    move.w   2(a1),$FE(a0)
-                    move.w   4(a1),$106(a0)
-                    move.w   6(a1),$10A(a0)
-                    move.w   8(a1),$10E(a0)
-                    move.w   10(a1),$180(a0)
-                    move.w   12(a1),$18E(a0)
+lbC00126A:          move.w   0(a1),258(a0)
+                    move.w   2(a1),254(a0)
+                    move.w   4(a1),262(a0)
+                    move.w   6(a1),266(a0)
+                    move.w   8(a1),270(a0)
+                    move.w   10(a1),384(a0)
+                    move.w   12(a1),398(a0)
                     rts
 
 player_1_select_weapon:
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      void
-                    lea      player_1_tbl_weapon_pos,a1
+                    lea      player_1_tbl_weapon_pos(pc),a1
                     bsr      set_player_cur_weapon
                     lea      weapons_attr_table(pc),a1
-                    add.l    player_1_tbl_weapon_pos,a1
+                    add.l    player_1_tbl_weapon_pos(pc),a1
                     add.l    #14,player_1_tbl_weapon_pos
                     tst.w    (a1)
-                    bpl.s    lbC00126A
-                    lea      weapons_attr_table,a1
+                    bpl.b    lbC00126A
+                    lea      weapons_attr_table(pc),a1
                     move.l   #14,player_1_tbl_weapon_pos
-                    bra.s    lbC00126A
+                    bra.b    lbC00126A
 
 player_2_select_weapon:
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      void
-                    lea      player_2_tbl_weapon_pos,a1
+                    lea      player_2_tbl_weapon_pos(pc),a1
                     bsr      set_player_cur_weapon
-                    lea      weapons_attr_table,a1
-                    add.l    player_2_tbl_weapon_pos,a1
+                    lea      weapons_attr_table(pc),a1
+                    add.l    player_2_tbl_weapon_pos(pc),a1
                     add.l    #14,player_2_tbl_weapon_pos
                     tst.w    (a1)
                     bpl      lbC00126A
-                    lea      weapons_attr_table,a1
+                    lea      weapons_attr_table(pc),a1
                     move.l   #14,player_2_tbl_weapon_pos
                     bra      lbC00126A
 
@@ -863,7 +909,7 @@ reset_game_variables:
                     clr.w    reactor_left_done
                     clr.w    reactor_down_done
                     clr.w    reactor_right_done
-                    move.w   #0,exit_unlocked
+                    clr.w    exit_unlocked
                     clr.w    boss_nbr
                     lea      lbL00D29A,a0
                     clr.l    (a0)+
@@ -876,7 +922,7 @@ reset_game_variables:
                     clr.l    (a0)+
                     clr.l    (a0)+
                     clr.w    lbW002AC0
-                    move.w   #0,lbW002AC2
+                    clr.w    lbW002AC2
                     clr.l    lbL00E756
                     clr.l    cur_credits
                     clr.l    aliens_killed
@@ -888,16 +934,16 @@ reset_game_variables:
                     rts
 
 print_more_6_keys_sign:
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     lea      top_owned_keys_gfx,a1
                     cmp.w    #6,PLAYER_KEYS(a0)
-                    bhi.s    .more_player_1
-                    move.b   #0,38(a1)
-                    move.b   #0,76(a1)
-                    move.b   #0,114(a1)
-                    move.b   #0,152(a1)
-                    move.b   #0,190(a1)
-                    bra.s    .player_2
+                    bhi.b    .more_player_1
+                    move.b   #%00000000,38(a1)
+                    move.b   #%00000000,76(a1)
+                    move.b   #%00000000,114(a1)
+                    move.b   #%00000000,152(a1)
+                    move.b   #%00000000,190(a1)
+                    bra.b    .player_2
 
 .more_player_1:     move.b   #%00100000,38(a1)
                     move.b   #%00100000,76(a1)
@@ -905,16 +951,16 @@ print_more_6_keys_sign:
                     move.b   #%00100000,152(a1)
                     move.b   #%00100000,190(a1)
 
-.player_2:          lea      player_2_dats,a0
+.player_2:          lea      player_2_dats(pc),a0
                     lea      bottom_owned_keys_gfx,a1
                     cmp.w    #6,PLAYER_KEYS(a0)
-                    bhi.s    .more_player_2
-                    move.b   #0,38(a1)
-                    move.b   #0,76(a1)
-                    move.b   #0,114(a1)
-                    move.b   #0,152(a1)
-                    move.b   #0,190(a1)
-                    bra.s    .done
+                    bhi.b    .more_player_2
+                    move.b   #%00000000,38(a1)
+                    move.b   #%00000000,76(a1)
+                    move.b   #%00000000,114(a1)
+                    move.b   #%00000000,152(a1)
+                    move.b   #%00000000,190(a1)
+                    bra.b    .done
 
 .more_player_2:     move.b   #%00100000,38(a1)
                     move.b   #%00100000,76(a1)
@@ -924,13 +970,13 @@ print_more_6_keys_sign:
 .done:              rts
 
 lev3irq:            movem.l  d0-d7/a0-a6,-(sp)
-                    btst     #4,$dff01f
+                    btst     #4,CUSTOM+INTREQR+1
                     bne      copper_int
-                    btst     #5,$dff01f
+                    btst     #5,CUSTOM+INTREQR+1
                     beq      vblank_int
                     st       lbB022C32
                     not.w    frame_flipflop
-                    beq.s    lbC0014E8
+                    beq.b    lbC0014E8
                     move.w   #-1,lbW0004B4
 lbC0014E8:          moveq    #1,d0
                     jsr      user_input
@@ -941,31 +987,31 @@ lbC0014E8:          moveq    #1,d0
                     tst.w    lbW0004D0
                     bne      lbC001518
                     cmp.w    #1,lbW0004BC
-                    bne.s    lbC00152C
+                    bne.b    lbC00152C
 lbC001518:          jsr      keyboard_handler
                     jsr      lbC00B6D4
 
 lbC00152C:          tst.w    lbW0004C2
                     beq      lbC001596
-                    lea      player_1_dats,a0
-                    jsr      lbC007B4C
-                    lea      player_2_dats,a0
-                    jsr      lbC007B4C
-                    lea      player_1_dats,a0
-                    jsr      lbC006E96
-                    lea      player_2_dats,a0
-                    jsr      lbC006E96
-                    jsr      lbC007A12
+                    lea      player_1_dats(pc),a0
+                    bsr      lbC007B4C
+                    lea      player_2_dats(pc),a0
+                    bsr      lbC007B4C
+                    lea      player_1_dats(pc),a0
+                    bsr      lbC006E96
+                    lea      player_2_dats(pc),a0
+                    bsr      lbC006E96
+                    bsr      lbC007A20
                     clr.w    lbW003644
-                    jsr      lbC003646
-                    jsr      lbC0039B8
+                    bsr      lbC003646
+                    bsr      lbC0039B8
                     lea      lbW01227C,a0
                     jsr      lbC0111FA
                     lea      lbW0122B8,a0
                     jsr      lbC0111FA
 lbC001596:          addq.w   #1,frames_counter
                     cmp.w    #50,frames_counter
-                    bne.s    count_elapsed_seconds
+                    bne.b    count_elapsed_seconds
                     clr.w    frames_counter
                     addq.l   #1,elapsed_seconds
 count_elapsed_seconds:
@@ -974,37 +1020,36 @@ count_elapsed_seconds:
                     jsr      lbC010BAC
                     jsr      lbC024142
                     jsr      bpmusic
-                   
                     jsr      lbC022C34
                     tst.w    lbW023E9C
-                    beq.s    lbC0015F2
+                    beq.b    lbC0015F2
                     subq.w   #1,lbW023E9C
 lbC0015F2:          tst.w    lbW0003A2
-                    bne.s    lbC00160A
+                    bne.b    lbC00160A
                     tst.w    frame_flipflop
                     beq.b    lbC00160A
                     jsr      lbC00EE2E
 lbC00160A:          addq.w   #1,lbW0004BC
                     cmp.w    #2,lbW0004BC
-                    bmi.s    lbC001640
+                    bmi.b    lbC001640
                     clr.w    lbW0004BC
                     move.w   #1,lbW0004BA
                     tst.w    music_enabled
-                    bne.s    lbC00163E
+                    bne.b    lbC00163E
                     jsr      lbC023D20
-lbC00163E:          bra.s    lbC001650
+lbC00163E:          bra.b    lbC001650
 
 lbC001640:          move.w   #256,d0
                     jsr      rand
                     move.w   d0,rnd_number
-lbC001650:          move.w   #$20,$dff09c
+lbC001650:          move.w   #INTF_VERTB,CUSTOM+INTREQ
 vblank_int:         movem.l  (sp)+,d0-d7/a0-a6
                     rte
 
 copper_int:         bsr      lbC00167C
                     jsr      scroll_map
                     jsr      lbC005990
-                    move.w   #$10,$dff09c
+                    move.w   #INTF_COPER,CUSTOM+INTREQ
                     movem.l  (sp)+,d0-d7/a0-a6
                     rte
 
@@ -1019,36 +1064,35 @@ lbC00167C:          tst.w    frame_flipflop
 init_tables:        bsr      construct_bkgnd_tiles_block_table
                     bsr      construct_map_lines_table
                     bsr      lbC00239E
-                    bsr      lbC0025B0
-                    rts
+                    bra      lbC0025B0
 
 construct_bkgnd_tiles_block_table:
-                    lea      bkgnd_tiles_block_table,a0
+                    lea      bkgnd_tiles_block_table(pc),a0
                     move.l   #700,d1
                     move.l   #bkgnd_tiles_block,d0
 .loop:              move.l   d0,(a0)+
                     add.l    #160,d0
                     subq.w   #1,d1
-                    bne      .loop
+                    bne.b    .loop
                     rts
 
 bkgnd_tiles_block_table:
                     dcb.l    700,0
 
 construct_map_lines_table:
-                    lea      map_lines_table,a0
+                    lea      map_lines_table(pc),a0
                     move.l   #cur_map_top,d0
                     sub.l    #248,d0
 .loop:              tst.l    (a0)
                     bmi      void
                     move.l   d0,(a0)+
                     add.l    #248,d0
-                    bra      .loop
+                    bra.b    .loop
 
 map_lines_table:    dcb.l    103,0
                     dc.l     -1
 
-lbC00239E:          lea      lbL0023D4,a0
+lbC00239E:          lea      lbL0023D4(pc),a0
                     move.l   #temp_buffer,d0
 .loop:              tst.l    (a0)
                     bmi      void
@@ -1057,29 +1101,29 @@ lbC00239E:          lea      lbL0023D4,a0
                     move.l   #temp_buffer,d1
                     add.l    #12096,d1
                     cmp.l    d1,d0
-                    bne.s    .loop
+                    bne.b    .loop
                     move.l   #temp_buffer,d0
-                    bra.s    .loop
+                    bra.b    .loop
 
                     dc.l     lbL0E5AE0
-
 lbL0023D4:          dcb.l    102,0
                     dc.l     -1
+
 lbL002570:          dc.l     0,42,84,126,168,210,252,294,336,378,420
                     dc.l     462,504,546,588,630
 
-lbC0025B0:          lea      lbL0025D2,a0
-                    clr.l    d0
+lbC0025B0:          lea      lbL0025D2(pc),a0
+                    moveq    #0,d0
 .loop:              tst.w    (a0)
                     bmi      void
                     move.w   d0,(a0)+
                     add.w    #16,d0
                     cmp.w    #288,d0
-                    bne.s    .loop
+                    bne.b    .loop
                     clr.w    d0
-                    bra.s    .loop
+                    bra.b    .loop
 
-                    btst     d0,d0
+                    btst     d0,d0                          ; !!!!
                     btst     d0,(a0)
 lbL0025D2:          dcb.w    103,0
                     dc.w     -1
@@ -1092,17 +1136,16 @@ lbC0026A4:          clr.l    flag_jump_to_gameover
                     bsr      lbC005A9A
                     lea      lbW09A2C4,a0
                     bsr      lbC005A9A
-                    bsr      lbC0026D6
-                    rts
-
+                    ; no rts
+ 
 lbC0026D6:          move.l   #lbL00E9C2,lbL005D40
                     move.l   #lbL00E9C2,lbL005D44
                     move.l   #lbL00E9D2,lbL0064E0
                     move.l   #lbL00E9D2,lbL0064E4
                     jsr      lbC00FA4C
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     jsr      init_player_dats
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     jsr      init_player_dats
                     cmp.w    #2,number_players+2
                     beq      void
@@ -1115,11 +1158,11 @@ init_player_dats:   clr.l    PLAYER_SHOTS(a0)
                     else
                     move.w   #%10,PLAYER_OWNEDWEAPONS(a0)
                     endif
-                    move.w   #4,$18E(a0)
-                    clr.w    $18A(a0)
-                    move.w   #37,$180(a0)
-                    move.l   #16,$FC(a0)
-                    move.l   #3,$104(a0)
+                    move.w   #4,398(a0)
+                    clr.w    394(a0)
+                    move.w   #37,384(a0)
+                    move.l   #16,252(a0)
+                    move.l   #3,260(a0)
                     move.l   #WEAPON_MACHINEGUN,PLAYER_CUR_WEAPON(a0)
                     move.w   #1,PLAYER_ALIVE(a0)
                     move.w   #3,PLAYER_CUR_SPRITE(a0)
@@ -1127,15 +1170,15 @@ init_player_dats:   clr.l    PLAYER_SHOTS(a0)
                     move.w   #4,PLAYER_LIVES(a0)
                     move.w   #2,PLAYER_AMMOPACKS(a0)
                     move.w   #32,PLAYER_AMMUNITIONS(a0)
-                    move.w   #0,PLAYER_KEYS(a0)
-                    clr.w    $170(a0)
-                    clr.w    $116(a0)
-                    clr.w    $124(a0)
-                    clr.w    $11C(a0)
-                    clr.w    $118(a0)
-                    clr.w    $174(a0)
-                    clr.w    $1A4(a0)
-                    clr.w    $1A8(a0)
+                    clr.w    PLAYER_KEYS(a0)
+                    clr.w    368(a0)
+                    clr.w    278(a0)
+                    clr.w    292(a0)
+                    clr.w    284(a0)
+                    clr.w    280(a0)
+                    clr.w    372(a0)
+                    clr.w    420(a0)
+                    clr.w    424(a0)
                     move.w   PLAYER_POS_X(a0),PLAYER_OLD_POS_X(a0)
                     move.w   PLAYER_POS_Y(a0),PLAYER_OLD_POS_Y(a0)
                     rts
@@ -1145,43 +1188,41 @@ init_level_1:       move.w   #1,exit_unlocked
                     move.w   #20,lbW0005AA
                     move.l   #-256,lbL000572
                     move.b   #6,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW018D4A,lbL000554
                     move.l   #lbW01BECA,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_1
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
-init_level_2:       move.w   #0,exit_unlocked
+init_level_2:       clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #0,lbL000572
+                    clr.l    lbL000572
                     move.b   #6,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW01945E,lbL000554
                     move.l   #lbW01C52A,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_2
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_3:       clr.w    lbW002AC0
                     move.w   #1,lbW002AC2
                     clr.l    lbL00E756
                     clr.w    lbW0004EE
-                    move.w   #0,exit_unlocked
+                    clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
                     move.l   #512,lbL000572
                     move.b   #4,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW01A1A2,lbL000554
                     move.l   #lbW01D21A,lbL000558
@@ -1190,8 +1231,7 @@ init_level_3:       clr.w    lbW002AC0
                     jsr      lbC00EE8A
                     jsr      load_level_3
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_4:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
@@ -1199,39 +1239,37 @@ init_level_4:       move.w   #1,exit_unlocked
                     move.w   #20,lbW0005AA
                     move.l   #768,lbL000572
                     move.b   #9,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW019A8E,lbL000554
                     move.l   #lbW01D8BA,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_4
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
-init_level_5:       move.w   #0,exit_unlocked
+init_level_5:       clr.w    exit_unlocked
                     move.w   #1,boss_nbr
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
                     move.l   #768,lbL000572
                     move.b   #9,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW019A8E,lbL000554
                     move.l   #lbW01D8BA,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_5
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_6:       move.w   #1,exit_unlocked                   ; that was silly man
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
                     move.l   #512,lbL000572
-                    move.b   #0,timer_digit_hi                  ; triggered by the evil 1up
+                    sf.b     timer_digit_hi                     ; triggered by the evil 1up
                     move.b   #2,timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW01A1A2,lbL000554
@@ -1248,10 +1286,9 @@ init_level_6:       move.w   #1,exit_unlocked                   ; that was silly
                     jsr      lbC004DB4
                     jsr      load_level_6
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
-init_level_7:       move.w   #0,exit_unlocked
+init_level_7:       clr.w    exit_unlocked
                     move.w   #2,boss_nbr
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
@@ -1274,8 +1311,7 @@ init_level_7:       move.w   #0,exit_unlocked
                     jsr      lbC004DB4
                     jsr      load_level_7
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_8:       move.w   #1,exit_unlocked
                     move.w   #2,boss_nbr                           ; not used i think
@@ -1284,15 +1320,14 @@ init_level_8:       move.w   #1,exit_unlocked
                     move.w   #20,lbW0005AA
                     move.l   #256,lbL000572
                     move.b   #6,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW019A8E,lbL000554
                     move.l   #lbW01D21A,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_8
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_9:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
@@ -1308,46 +1343,43 @@ init_level_9:       move.w   #1,exit_unlocked
                     jsr      lbC00EE8A
                     jsr      load_level_9
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
-init_level_10:      move.w   #0,exit_unlocked
+init_level_10:      clr.w    exit_unlocked
                     move.w   #4,boss_nbr
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
                     clr.w    lbW0004EE
-                    move.l   #0,lbL000572
+                    clr.l    lbL000572
                     move.b   #8,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW01945E,lbL000554
                     move.l   #lbW01C52A,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_10
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_11:      move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     move.w   #20,lbW0005AA
-                    move.l   #0,lbL000572
+                    clr.l    lbL000572
                     move.b   #6,timer_digit_hi
-                    move.b   #0,timer_digit_lo
+                    sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
                     move.l   #lbW01945E,lbL000554
                     move.l   #lbW01C52A,lbL000558
                     jsr      lbC00EE8A
                     jsr      load_level_11
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 init_level_12:      move.w   #DEBUG,map_overview_on
                     move.w   #3,boss_nbr
                     clr.w    lbW0004EE
-                    move.w   #0,exit_unlocked
+                    clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
@@ -1362,8 +1394,7 @@ init_level_12:      move.w   #DEBUG,map_overview_on
                     jsr      lbC00EE8A
                     jsr      load_level_12
                     jsr      search_starting_position
-                    jsr      set_players_starting_pos
-                    rts
+                    bra      set_players_starting_pos
 
 lbW002AC0:          dc.w     0
 lbW002AC2:          dc.w     0
@@ -1372,7 +1403,7 @@ lbW002E04:          dc.w     0
 
 lbC002FC0:          tst.l    run_intex_ptr
                     beq      void
-                    move.l   run_intex_ptr,a0
+                    move.l   run_intex_ptr(pc),a0
                     clr.l    run_intex_ptr
                     jmp      (a0)
 
@@ -1388,8 +1419,8 @@ lbW002FE0:          dc.w     0
 set_destruction_timer:
                     clr.w    self_destruct_initiated
                     clr.w    lbW002FDE
-                    move.b   timer_digit_hi,d0
-                    move.b   timer_digit_lo,d1
+                    move.b   timer_digit_hi(pc),d0
+                    move.b   timer_digit_lo(pc),d1
                     move.b   d0,cur_timer_digit_hi
                     move.b   d1,cur_timer_digit_lo
                     bra      display_timer_digits
@@ -1405,15 +1436,15 @@ destruction_sequence:
                     lea      lbW0122F0,a0
                     jsr      lbC011272
                     lea      lbW01230C,a0
-                    move.w   #$17,(a0)
+                    move.w   #23,(a0)
                     jsr      lbC0111C4
                     lea      lbW01230C,a0
                     jsr      lbC011272
-                    move.l   cur_palette_ptr,a0
+                    move.l   cur_palette_ptr(pc),a0
                     lea.l    level_palette2,a1
                     move.l   a1,cur_palette_ptr
                     lea      copper_main_palette,a2
-                    move.l   #32,d0
+                    moveq    #32,d0
                     move.w   #4,lbW010CDE
                     move.w   #1,lbW002FDE
                     jsr      compute_palette_fading_directions
@@ -1428,21 +1459,21 @@ lbC0030AA:          addq.w   #1,lbW002FE0
                     move.w   #14,sample_to_play
                     jsr      trigger_sample
                     cmp.b    #1,cur_timer_digit_hi
-                    bne.s    lbC0030F4
-                    cmp.b    #0,cur_timer_digit_lo
-                    bne.s    lbC0030F4
+                    bne.b    lbC0030F4
+                    tst.b    cur_timer_digit_lo
+                    bne.b    lbC0030F4
                     move.l   #lbW0231A6,lbL023200
                     clr.w    lbW023204
 lbC0030F4:          
-                    ifeq DEBUG
+                    ifeq     DEBUG
                     subq.b   #1,cur_timer_digit_lo
                     endif
                     cmp.b    #255,cur_timer_digit_lo
-                    bne.s    display_timer_digits
+                    bne.b    display_timer_digits
                     subq.b   #1,cur_timer_digit_hi
                     move.b   #9,cur_timer_digit_lo
                     cmp.b    #255,cur_timer_digit_hi
-                    bne.s    display_timer_digits
+                    bne.b    display_timer_digits
                     clr.b    cur_timer_digit_hi
                     clr.b    cur_timer_digit_lo
                     move.l   #1,flag_jump_to_gameover
@@ -1450,13 +1481,13 @@ lbC0030F4:
                     rts
 
 display_timer_digits:
-                    lea      timer_digits_table,a0
+                    lea      timer_digits_table(pc),a0
                     clr.w    d2
-                    move.b   cur_timer_digit_hi,d2
+                    move.b   cur_timer_digit_hi(pc),d2
                     add.w    d2,d2
                     add.w    d2,d2
                     move.l   0(a0,d2.w),d0
-                    move.b   cur_timer_digit_lo,d2
+                    move.b   cur_timer_digit_lo(pc),d2
                     add.w    d2,d2
                     add.w    d2,d2
                     move.l   0(a0,d2.w),d1
@@ -1474,20 +1505,20 @@ timer_digits_table: dc.l     timer_digit_0
                     dc.l     timer_digit_9
 
 sleep_frames:       movem.l  d0-d2,-(sp)
-                    move.l   number_frames_to_wait,d0
-                    jsr      wait_frame
+                    move.l   number_frames_to_wait(pc),d0
+                    bsr.b    wait_frame
                     movem.l  (sp)+,d0-d2
                     rts
 
 number_frames_to_wait:
                     dc.l     0
 
-wait_frame:         move.l   $dff004,d1
+wait_frame:         move.l   CUSTOM+VPOSR,d1
                     asr.l    #8,d1
                     and.l    #$1FF,d1
                     cmp.l    #300,d1
                     bne      wait_frame
-.wait:              move.l   $dff004,d1
+.wait:              move.l   CUSTOM+VPOSR,d1
                     asr.l    #8,d1
                     and.l    #$1FF,d1
                     cmp.l    #300,d1
@@ -1496,14 +1527,14 @@ wait_frame:         move.l   $dff004,d1
                     bne      wait_frame
                     rts
 
-calc_elapsed_time:  lea      global_time,a0
+calc_elapsed_time:  lea      global_time(pc),a0
                     clr.b    (a0)
                     clr.b    1(a0)
                     clr.b    3(a0)
                     clr.b    4(a0)
                     clr.b    6(a0)
                     clr.b    7(a0)
-                    move.l   elapsed_seconds,d0
+                    move.l   elapsed_seconds(pc),d0
                     clr.b    time_hours
                     clr.b    time_minutes
                     clr.b    time_seconds
@@ -1527,39 +1558,39 @@ zero_hour:          move.l   d0,d1
                     sub.l    d1,d0
 zero_minutes:       move.b   d0,time_seconds
 
-                    lea      global_time_decimal_table,a0
-                    move.l   #0,d0
-                    move.l   #0,d1
-                    move.l   #10,d2
+                    lea      global_time_decimal_table(pc),a0
+                    moveq    #0,d0
+                    moveq    #0,d1
+                    moveq    #10,d2
 create_time_decimal_table: 
                     move.b   d0,(a0)+
                     move.b   d1,(a0)+
                     addq.w   #1,d1
                     cmp.b    #10,d1
-                    bne.s    create_time_decimal_table
+                    bne.b    create_time_decimal_table
                     addq.w   #1,d0
                     clr.b    d1
                     subq.w   #1,d2
-                    bne      create_time_decimal_table
+                    bne.b    create_time_decimal_table
                     
-                    lea      global_time,a0
-                    clr.l    d0
+                    lea      global_time(pc),a0
+                    moveq    #0,d0
                     move.b   time_hours,d0
                     add.w    d0,d0
-                    lea      global_time_decimal_table,a1
+                    lea      global_time_decimal_table(pc),a1
                     move.b   (a1,d0.l),(a0)
                     move.b   1(a1,d0.l),1(a0)
-                    move.b   time_minutes,d0
+                    move.b   time_minutes(pc),d0
                     add.w    d0,d0
-                    lea      global_time_decimal_table,a1
+                    lea      global_time_decimal_table(pc),a1
                     move.b   (a1,d0.l),3(a0)
                     move.b   1(a1,d0.l),4(a0)
-                    move.b   time_seconds,d0
+                    move.b   time_seconds(pc),d0
                     add.w    d0,d0
-                    lea      global_time_decimal_table,a1
+                    lea      global_time_decimal_table(pc),a1
                     move.b   (a1,d0.l),6(a0)
                     move.b   1(a1,d0.l),7(a0)
-max_time:           lea      global_time,a0
+max_time:           lea      global_time(pc),a0
                     add.b    #'0',(a0)
                     add.b    #'0',1(a0)
                     add.b    #'0',3(a0)
@@ -1589,12 +1620,12 @@ lbL0035DC:          dc.l     0
 lbL0035E0:          dc.l     0
 
 set_players_starting_pos: 
-                    move.w   start_pos_x,d0
-                    move.w   start_pos_y,d1
+                    move.w   start_pos_x(pc),d0
+                    move.w   start_pos_y(pc),d1
                     move.w   #16,d2                     ; relative position of the 2nd player
                     move.w   #16,d3
-                    lea      player_1_dats,a0
-                    lea      player_2_dats,a1
+                    lea      player_1_dats(pc),a0
+                    lea      player_2_dats(pc),a1
                     move.l   16(a0),a2
                     move.l   16(a1),a3
                     move.w   d0,-4(a2)
@@ -1608,7 +1639,7 @@ set_players_starting_pos:
                     move.w   d2,PLAYER_POS_X(a1)
                     move.w   d3,PLAYER_POS_Y(a1)
                     move.w   #1,lbW003644
-                    jsr      lbC003646
+                    bsr.b    lbC003646
                     move.w   d0,lbW0035D6
                     move.w   d1,lbW0035D2
                     rts
@@ -1617,21 +1648,21 @@ lbW003644:          dc.w     0
 
 lbC003646:          tst.w    lbL000586
                     bne      void
-                    lea      player_1_dats,a0
-                    lea      player_2_dats,a1
+                    lea      player_1_dats(pc),a0
+                    lea      player_2_dats(pc),a1
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     move.w   PLAYER_POS_X(a1),d2
                     move.w   PLAYER_POS_Y(a1),d3
                     tst.w    PLAYER_ALIVE(a0)
-                    bpl.s    lbC0036BC
+                    bpl.b    lbC0036BC
                     move.w   d2,d0
                     move.w   d3,d1
-                    bra.s    lbC0036F4
+                    bra.b    lbC0036F4
 
 lbC0036BC:          tst.w    PLAYER_ALIVE(a1)
-                    bpl.s    lbC0036C4
-                    bra.s    lbC0036F4
+                    bpl.b    lbC0036C4
+                    bra.b    lbC0036F4
 
 lbC0036C4:          cmp.w    d0,d2
                     bpl      lbC0036D6
@@ -1655,49 +1686,49 @@ lbC0036DC:          cmp.w    d1,d3
 lbC0036EE:          sub.w    d1,d3
                     lsr.w    #1,d3
                     add.w    d3,d1
-lbC0036F4:          sub.w    #$80,d0
-                    sub.w    #$78,d1
+lbC0036F4:          sub.w    #128,d0
+                    sub.w    #120,d1
                     tst.w    lbW003644
                     bne      void
-                    move.w   lbW0035D6,d2
+                    move.w   lbW0035D6(pc),d2
                     sub.w    d2,d0
                     move.w   d0,d2
                     tst.w    d0
-                    bpl      lbC003718
+                    bpl.b    lbC003718
                     neg.w    d2
 lbC003718:          move.w   d2,d4
                     cmp.w    #2,d4
-                    bmi.s    lbC003724
+                    bmi.b    lbC003724
                     move.w   #2,d4
 lbC003724:          move.w   d4,lbW0039B4
                     tst.w    d0
-                    bmi      lbC00375A
-                    beq      lbC00377C
+                    bmi.b    lbC00375A
+                    beq.b    lbC00377C
                     bset     #1,lbB0039B2
                     bclr     #2,lbB0039B2
                     cmp.w    #$660,lbW0035D6
-                    bpl      lbC00377C
+                    bpl.b    lbC00377C
                     add.w    d4,lbW0035D6
-                    bra      lbC00377C
+                    bra.b    lbC00377C
 
 lbC00375A:          bset     #2,lbB0039B2
                     bclr     #1,lbB0039B2
                     cmp.w    #16,lbW0035D6
-                    bmi      lbC00377C
+                    bmi.b    lbC00377C
                     sub.w    d4,lbW0035D6
-lbC00377C:          move.w   lbW0035D2,d2
+lbC00377C:          move.w   lbW0035D2(pc),d2
                     sub.w    d2,d1
                     move.w   d1,d2
                     tst.w    d1
-                    bpl      lbC00378E
+                    bpl.b    lbC00378E
                     neg.w    d2
 lbC00378E:          move.w   d2,d4
                     cmp.w    #2,d4
-                    bmi      lbC00379C
+                    bmi.b    lbC00379C
                     move.w   #2,d4
 lbC00379C:          move.w   d4,lbW0039B4+2
                     tst.w    d1
-                    bmi      lbC0037D0
+                    bmi.b    lbC0037D0
                     beq      void
                     bset     #3,lbB0039B2
                     bclr     #4,lbB0039B2
@@ -1718,14 +1749,14 @@ copy_map_datas:     move.l   #(end_map_datas-cur_map_datas),d0
                     jsr      clear_array_long
                     lea      aliens_sprites_block,a0
                     lea      cur_map_datas,a1
-                    move.l   #96,d0
-.copy_column:       move.l   #120,d1
+                    moveq    #96,d0
+.copy_column:       moveq    #120,d1
 .copy_line:         move.w   (a0)+,(a1)+
                     subq.w   #1,d1
-                    bne.s    .copy_line
+                    bne.b    .copy_line
                     addq.l   #8,a1                  ; 248 bytes / line
                     subq.w   #1,d0
-                    bne.s    .copy_column
+                    bne.b    .copy_column
                     rts
 
 lbC003832:          clr.w    lbW0039A4
@@ -1734,13 +1765,13 @@ lbC003832:          clr.w    lbW0039A4
                     clr.l    lbL0039AE
                     clr.w    lbB0039B2
                     clr.l    lbW0039B4
-                    lea      lbW003E92,a0
+                    lea      lbW003E92(pc),a0
                     clr.w    (a0)+
                     clr.w    (a0)+
                     clr.w    (a0)+
                     clr.l    (a0)+
                     clr.l    (a0)+
-                    lea      lbW003EA0,a0
+                    lea      lbW003EA0(pc),a0
                     clr.w    (a0)+
                     clr.w    (a0)+
                     clr.w    (a0)+
@@ -1748,14 +1779,14 @@ lbC003832:          clr.w    lbW0039A4
                     clr.l    (a0)+
                     rts
 
-lbC003878:          jsr      lbC003832
-                    jsr      lbC00412C
+lbC003878:          bsr      lbC003832
+                    bsr      lbC00412C
                     bsr.w    lbC003954
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     jsr      lbC006E96
-                    lea      player_2_dats,a0
-                    jsr      lbC006E96
-                    jsr      lbC007A12
+                    lea      player_2_dats(pc),a0
+                    bsr      lbC006E96
+                    bsr      lbC007A20
                     lea      lbW01227C,a0
                     jsr      lbC0111FA
                     lea      lbW0122B8,a0
@@ -1763,9 +1794,9 @@ lbC003878:          jsr      lbC003832
                     jsr      lbC005990
                     jsr      scroll_map
                     lea      lbW02276A,a0
-                    move.l   cur_palette_ptr,a1
+                    move.l   cur_palette_ptr(pc),a1
                     lea      copper_main_palette,a2
-                    move.l   #32,d0
+                    moveq    #32,d0
                     move.w   #2,lbW010CDE
                     jsr      compute_palette_fading_directions
                     jsr      set_bitplanes_nbr
@@ -1784,9 +1815,9 @@ lbC003954:          move.l   #-1,lbL0035D8
                     clr.w    0(a0)
 lbC003988:          bsr      display_tiles
                     bsr      lbC003EFC
-                    add.l    #1,lbL0035D8
+                    addq.l   #1,lbL0035D8
                     subq.l   #1,lbL0035E0
-                    bne.s    lbC003988
+                    bne.b    lbC003988
                     rts
 
 lbW0039A4:          dc.w     0
@@ -1800,55 +1831,55 @@ lbW0039B4:          dc.w     0
 
 lbC0039B8:          not.b    lbW0039A4
                     bne      lbC0039DA
-                    move.b   lbB0039B2,d0
+                    move.b   lbB0039B2(pc),d0
                     btst     #1,d0
                     bne      lbC003A42
                     btst     #2,d0
                     bne      lbC003A6A
                     rts
 
-lbC0039DA:          move.b   lbB0039B2,d0
+lbC0039DA:          move.b   lbB0039B2(pc),d0
                     btst     #3,d0
                     bne      lbC003A1A
                     btst     #4,d0
                     bne      lbC0039F2
                     rts
 
-lbC0039F2:          move.l   lbL003A96,a0
+lbC0039F2:          move.l   lbL003A96(pc),a0
                     tst.l    (a0)
                     bpl      lbC003A0E
                     move.l   #lbL003AB6,lbL003A96
-                    move.l   lbL003A96,a0
+                    move.l   lbL003A96(pc),a0
 lbC003A0E:          move.l   (a0),a0
                     jsr      (a0)
                     addq.l   #4,lbL003A96
                     rts
 
-lbC003A1A:          move.l   lbL003A92,a0
+lbC003A1A:          move.l   lbL003A92(pc),a0
                     tst.l    (a0)
                     bpl      lbC003A36
                     move.l   #lbL003AA2,lbL003A92
-                    move.l   lbL003A92,a0
+                    move.l   lbL003A92(pc),a0
 lbC003A36:          move.l   (a0),a0
                     jsr      (a0)
                     addq.l   #4,lbL003A92
                     rts
 
-lbC003A42:          move.l   lbL003A9A,a0
+lbC003A42:          move.l   lbL003A9A(pc),a0
                     tst.l    (a0)
                     bpl      lbC003A5E
                     move.l   #lbL003ACA,lbL003A9A
-                    move.l   lbL003A9A,a0
+                    move.l   lbL003A9A(pc),a0
 lbC003A5E:          move.l   (a0),a0
                     jsr      (a0)
                     addq.l   #4,lbL003A9A
                     rts
 
-lbC003A6A:          move.l   lbL003A9E,a0
+lbC003A6A:          move.l   lbL003A9E(pc),a0
                     tst.l    (a0)
                     bpl      lbC003A86
                     move.l   #lbL003ADE,lbL003A9E
-                    move.l   lbL003A9E,a0
+                    move.l   lbL003A9E(pc),a0
 lbC003A86:          move.l   (a0),a0
                     jsr      (a0)
                     addq.l   #4,lbL003A9E
@@ -1861,19 +1892,23 @@ lbL003A9E:          dc.l     lbL003ADE
 lbL003AA2:          dc.l     lbC003BDA
                     dc.l     lbC003C14
                     dc.l     lbC003C4E
-                    dc.l     lbC003C88,-1
+                    dc.l     lbC003C88
+                    dc.l     -1
 lbL003AB6:          dc.l     lbC003AF2
                     dc.l     lbC003B2C
                     dc.l     lbC003B66
-                    dc.l     lbC003BA0,-1
+                    dc.l     lbC003BA0
+                    dc.l     -1
 lbL003ACA:          dc.l     lbC003CC2
                     dc.l     lbC003CFC
                     dc.l     lbC003D36
-                    dc.l     lbC003D70,-1
+                    dc.l     lbC003D70
+                    dc.l     -1
 lbL003ADE:          dc.l     lbC003DAA
                     dc.l     lbC003DE4
                     dc.l     lbC003E1E
-                    dc.l     lbC003E58,-1
+                    dc.l     lbC003E58
+                    dc.l     -1
 
 lbC003AF2:          move.l   #-1,lbL0035D8
                     move.l   #0,lbL0039AA
@@ -2009,19 +2044,19 @@ lbW003EA0:          dcb.w    7,0
 lbC003EAE:          movem.l  a4,-(sp)
                     lea      lbW003E92(pc),a4
                     tst.w    0(a4)
-                    beq.s    lbC003ED8
+                    beq.b    lbC003ED8
                     lea      lbW003EA0(pc),a4
                     bra      lbC003ED8
 
 lbC003EC4:          movem.l  a4,-(sp)
                     lea      lbW003E92(pc),a4
                     tst.w    0(a4)
-                    beq.s    lbC003EDE
+                    beq.b    lbC003EDE
                     lea      lbW003EA0(pc),a4
-                    bra.s    lbC003EDE
+                    bra.b    lbC003EDE
 
 lbC003ED8:          clr.w    2(a4)
-                    bra.s    lbC003EE8
+                    bra.b    lbC003EE8
 
 lbC003EDE:          move.w   #1,2(a4)
                     move.l   d0,6(a4)
@@ -2031,9 +2066,9 @@ lbC003EE8:          move.w   #1,0(a4)
                     movem.l  (sp)+,a4
                     rts
 
-lbC003EFC:          lea      $dff000,a6
+lbC003EFC:          lea      CUSTOM,a6
                     lea      lbW003E92(pc),a0
-                    bsr.s    lbC003F0C
+                    bsr.b    lbC003F0C
                     lea      lbW003EA0(pc),a0
 lbC003F0C:          tst.w    0(a0)
                     beq      void
@@ -2046,10 +2081,10 @@ lbC003F0C:          tst.w    0(a0)
                     sub.w    d0,d1
                     add.w    d1,d1
                     or.w     #$400,d0
-                    move.w   d1,$64(a6)
-                    move.w   d1,$66(a6)
-                    move.l   #$9f00000,$40(a6)
-                    move.l   #-1,$44(a6)
+                    move.w   d1,BLTAMOD(a6)
+                    move.w   d1,BLTDMOD(a6)
+                    move.l   #$9f00000,BLTCON0(a6)
+                    move.l   #-1,BLTAFWM(a6)
                     move.l   10(a0),a1
                     move.l   a1,a2
                     move.l   a1,a3
@@ -2059,10 +2094,10 @@ lbC003F0C:          tst.w    0(a0)
 
 lbC003F68:          
                     WAIT_BLIT2
-                    move.w   #40,$64(a6)
-                    move.w   #40,$66(a6)
-                    move.l   #$9f00000,$40(a6)
-                    move.l   #-1,$44(a6)
+                    move.w   #40,BLTAMOD(a6)
+                    move.w   #40,BLTDMOD(a6)
+                    move.l   #$9f00000,BLTCON0(a6)
+                    move.l   #-1,BLTAFWM(a6)
                     move.l   10(a0),a1
                     move.w   4(a0),d0
                     lsl.w    #4,d0
@@ -2073,9 +2108,9 @@ lbC003F68:
                     and.w    #$FFF0,d2
                     move.w   d2,d3
                     sub.w    d0,d2
-                    bpl.s    lbC003FC4
+                    bpl.b    lbC003FC4
                     move.w   d3,d0
-                    bsr.s    lbC003FC4
+                    bsr.b    lbC003FC4
                     neg.w    d2
                     move.w   d2,d0
                     lea      lbL101098,a1
@@ -2092,60 +2127,60 @@ lbC003FC4:
                     sub.l    #61740,a3
                     bra      lbC003FE6
 
-lbC003FE6:          move.w   #$8400,$dff096
-                    move.l   a1,$50(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d0,$58(a6)
+lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.l   a1,$50(a6)
-                    move.l   a3,$54(a6)
-                    move.w   d0,$58(a6)
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a3,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    add.l    #$303C,a1
-                    add.l    #$303C,a2
-                    add.l    #$303C,a3
-                    move.l   a1,$50(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d0,$58(a6)
+                    add.l    #12348,a1
+                    add.l    #12348,a2
+                    add.l    #12348,a3
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.l   a1,$50(a6)
-                    move.l   a3,$54(a6)
-                    move.w   d0,$58(a6)
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a3,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    add.l    #$303C,a1
-                    add.l    #$303C,a2
-                    add.l    #$303C,a3
-                    move.l   a1,$50(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d0,$58(a6)
+                    add.l    #12348,a1
+                    add.l    #12348,a2
+                    add.l    #12348,a3
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.l   a1,$50(a6)
-                    move.l   a3,$54(a6)
-                    move.w   d0,$58(a6)
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a3,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    add.l    #$303C,a1
-                    add.l    #$303C,a2
-                    add.l    #$303C,a3
-                    move.l   a1,$50(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d0,$58(a6)
+                    add.l    #12348,a1
+                    add.l    #12348,a2
+                    add.l    #12348,a3
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.l   a1,$50(a6)
-                    move.l   a3,$54(a6)
-                    move.w   d0,$58(a6)
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a3,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    add.l    #$303C,a1
-                    add.l    #$303C,a2
-                    add.l    #$303C,a3
-                    move.l   a1,$50(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d0,$58(a6)
+                    add.l    #12348,a1
+                    add.l    #12348,a2
+                    add.l    #12348,a3
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.l   a1,$50(a6)
-                    move.l   a3,$54(a6)
-                    move.w   d0,$58(a6)
+                    move.l   a1,BLTAPTH(a6)
+                    move.l   a3,BLTDPTH(a6)
+                    move.w   d0,BLTSIZE(a6)
                     WAIT_BLIT
-                    move.w   #$400,$dff096
+                    move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
 lbL00411C:          dc.l     0
@@ -2155,62 +2190,61 @@ lbB004128:          dcb.b    2,0
 lbW00412A:          dc.w     0
 
 lbC00412C:          clr.l    lbL004124
-lbC004132:          move.l   map_pos_x,d0
-                    move.l   map_pos_y,d1
-                    add.l    lbL004124,d1
+lbC004132:          move.l   map_pos_x(pc),d0
+                    move.l   map_pos_y(pc),d1
+                    add.l    lbL004124(pc),d1
                     move.l   #lbW0041D8,lbL00411C
                     move.l   #23,lbL004120
-                    bsr      lbC004182
+                    bsr.b    lbC004182
                     add.l    #16,lbL004124
                     cmp.l    #320,lbL004124
-                    bne      lbC004132
+                    bne.b    lbC004132
                     rts
 
-lbC004176:          move.l   map_pos_x,d0
-                    move.l   map_pos_y,d1
+lbC004176:          move.l   map_pos_x(pc),d0
+                    move.l   map_pos_y(pc),d1
 lbC004182:          lsr.w    #4,d0
                     lsr.w    #4,d1
                     add.w    d0,d0
                     add.w    d1,d1
                     add.w    d1,d1
-                    lea      map_lines_table+4,a6
+                    lea      map_lines_table+4(pc),a6
                     move.l   0(a6,d1.l),a6
                     add.l    d0,a6
-                    sub.l    #2,a6
+                    subq.l   #2,a6
                     move.l   a6,lbB004128
-                    lea      lbC004384,a4
-                    move.l   lbL00411C,a5
-                    clr.l    d6
-                    move.l   lbL004120,d7
-lbC0041B8:          move.w   (a5)+,d6
-                    move.l   a6,a3
-                    add.w    d6,a3
+                    lea      lbC004384(pc),a4
+                    move.l   lbL00411C(pc),a5
+                    moveq    #0,d6
+                    move.l   lbL004120(pc),d7
+lbC0041B8:          move.l   a6,a3
+                    add.w    (a5)+,a3
                     move.w   (a3),d6
                     and.w    #$3F,d6
                     add.w    d6,d6
                     add.w    d6,d6
-                    add.l    lbL000572,d6
+                    add.l    lbL000572(pc),d6
                     jsr      0(a4,d6.w)
                     subq.w   #1,d7
-                    bne.s    lbC0041B8
+                    bne.b    lbC0041B8
                     rts
 
-lbW0041D8:          dc.w     $FD12,$FD14,$FD16,$FD18,$FD1A,$FD1C
-lbW0041E4:          dc.w     $FD1E,$FD20,$FD22,$FD24,$FD26,$FD28
-lbW0041F0:          dc.w     $FD2A,$FD2C,$FD2E,$FD30,$FD32,$FD34
-lbW0041FC:          dc.w     $FD36,$FD38,$FD3A,$FD3C,$FD3E
-lbW004206:          dc.w     $FD3E,$FE36,$FF2E,$26,$11E
-lbW004210:          dc.w     $216,$30E,$406,$4FE,$5F6
-lbW00421A:          dc.w     $6EE,$7E6,$8DE,$9D6,$ACE
-lbW004224:          dc.w     $BC6,$CBE,$DB6,$EAE,$FA6
-lbW00422E:          dc.w     $FA6,$FA4,$FA2,$FA0,$F9E,$F9C
-lbW00423A:          dc.w     $F9A,$F98,$F96,$F94,$F92,$F90
-lbW004246:          dc.w     $F8E,$F8C,$F8A,$F88,$F86,$F84
-lbW004252:          dc.w     $F82,$F80,$F7E,$F7C,$F7A
-lbW00425C:          dc.w     $F7A,$E82,$D8A,$C92,$B9A
-lbW004266:          dc.w     $AA2,$9AA,$8B2,$7BA,$6C2
-lbW004270:          dc.w     $5CA,$4D2,$3DA,$2E2,$1EA
-lbW00427A:          dc.w     $F2,$FFFA,$FF02,$FE0A,$FD12
+lbW0041D8:          dc.w     -750,-748,-746,-744,-742,-740
+lbW0041E4:          dc.w     -738,-736,-734,-732,-730,-728
+lbW0041F0:          dc.w     -726,-724,-722,-720,-718,-716
+lbW0041FC:          dc.w     -714,-712,-710,-708,-706
+lbW004206:          dc.w     -706,-458,-210,38,286
+lbW004210:          dc.w     534,782,1030,1278,1526
+lbW00421A:          dc.w     1774,2022,2270,2518,2766
+lbW004224:          dc.w     3014,3262,3510,3758,4006
+lbW00422E:          dc.w     4006,4004,4002,4000,3998,3996
+lbW00423A:          dc.w     3994,3992,3990,3988,3986,3984
+lbW004246:          dc.w     3982,3980,3978,3976,3974,3972
+lbW004252:          dc.w     3970,3968,3966,3964,3962
+lbW00425C:          dc.w     3962,3714,3466,3218,2970
+lbW004266:          dc.w     2722,2474,2226,1978,1730
+lbW004270:          dc.w     1482,1234,986,738,490
+lbW00427A:          dc.w     242,-6,-254,-502,-750
 
                     bra.w    none
                     bra.w    none
@@ -2686,30 +2720,30 @@ lbC00499A:          bsr      lbC00AE2E
 
 lbC0049C2:          tst.w    music_enabled
                     bne      void
-                    lea      lbW008F54,a1
+                    lea      lbW008F54(pc),a1
                     bra      lbC00A718
 
 lbC0049D6:          tst.w    music_enabled
                     bne      void
-                    lea      lbW008FD4,a1
+                    lea      lbW008FD4(pc),a1
                     bra      lbC00A718
 
 lbC0049EA:          tst.w    music_enabled
                     bne      void
                     move.l   #lbW008F94,lbL00D226
-                    jmp      lbC00D22A
+                    bra      lbC00D22A
 
-lbC004A04:          lea      lbW009054,a1
+lbC004A04:          lea      lbW009054(pc),a1
                     bra      lbC00A718
 
-lbC004A0E:          lea      lbW0090D4,a1
+lbC004A0E:          lea      lbW0090D4(pc),a1
                     bra      lbC00A718
 
 lbC004A18:          move.l   #lbW009094,lbL00D226
-                    jmp      lbC00D22A
+                    bra      lbC00D22A
 
 lbC004A28:          move.l   #lbW009414,lbL00D226
-                    jmp      lbC00D22A
+                    bra      lbC00D22A
 
 lbC004A38:          cmp.w    #2,boss_nbr
                     beq      lbC004A86
@@ -2733,44 +2767,42 @@ lbC004A86:          addq.l   #2,a3
                     bsr      lbC00AE2E
                     lea      lbL02080E,a1
                     bsr      lbC00AF10
-                    bsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004A9C:          addq.l   #2,a3
                     bsr      lbC00AE2E
                     lea      lbL02082A,a1
                     bsr      lbC00AF10
-                    bsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
-lbC004AB2:          move.l   lbL004BE4,d0
-                    beq.s    lbC004B14
+lbC004AB2:          move.l   lbL004BE4(pc),d0
+                    beq.b    lbC004B14
                     move.l   d0,a1
                     move.l   8(a1),a1
                     cmp.l    #lbL004D50,a1
-                    bne      lbC004B14
-                    move.l   lbL004BE8,d0
-                    beq.s    lbC004B14
+                    bne.b    lbC004B14
+                    move.l   lbL004BE8(pc),d0
+                    beq.b    lbC004B14
                     move.l   d0,a1
                     move.l   8(a1),a1
                     cmp.l    #lbL004CE4,a1
-                    bne      lbC004B14
-                    move.l   lbL004BEC,d0
-                    beq.s    lbC004B14
+                    bne.b    lbC004B14
+                    move.l   lbL004BEC(pc),d0
+                    beq.b    lbC004B14
                     move.l   d0,a1
                     move.l   8(a1),a1
                     cmp.l    #lbL004C78,a1
-                    bne      lbC004B14
-                    move.l   lbL004BF0,d0
-                    beq.s    lbC004B14
+                    bne.b    lbC004B14
+                    move.l   lbL004BF0(pc),d0
+                    beq.b    lbC004B14
                     move.l   d0,a1
                     move.l   8(a1),a1
                     cmp.l    #lbL004C0C,a1
-                    bne      lbC004B14
+                    bne.b    lbC004B14
                     rts
 
-lbC004B14:          bsr.s    lbC004B1A
-                    bra      lbC004B8A
+lbC004B14:          bsr.b    lbC004B1A
+                    bra.b    lbC004B8A
 
 lbC004B1A:          move.l   lbW012388,d0
                     lea      lbW063124,a3
@@ -2792,26 +2824,24 @@ lbC004B1A:          move.l   lbW012388,d0
                     bsr      lbC00AE2E
                     move.l   a0,lbL004BF0
                     move.l   a3,lbL004C00
-                    bsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
-lbC004B8A:          move.l   lbL004BE4,a0
-                    lea      lbL004D50,a1
-                    move.l   lbL004BF4,a3
+lbC004B8A:          move.l   lbL004BE4(pc),a0
+                    lea      lbL004D50(pc),a1
+                    move.l   lbL004BF4(pc),a3
                     bsr      lbC00AF10
-                    move.l   lbL004BE8,a0
-                    lea      lbL004CE4,a1
-                    move.l   lbL004BF8,a3
+                    move.l   lbL004BE8(pc),a0
+                    lea      lbL004CE4(pc),a1
+                    move.l   lbL004BF8(pc),a3
                     bsr      lbC00AF10
-                    move.l   lbL004BEC,a0
-                    lea      lbL004C78,a1
-                    move.l   lbL004BFC,a3
+                    move.l   lbL004BEC(pc),a0
+                    lea      lbL004C78(pc),a1
+                    move.l   lbL004BFC(pc),a3
                     bsr      lbC00AF10
-                    move.l   lbL004BF0,a0
-                    lea      lbL004C0C,a1
-                    move.l   lbL004C00,a3
-                    bsr      lbC00AF10
-                    rts
+                    move.l   lbL004BF0(pc),a0
+                    lea      lbL004C0C(pc),a1
+                    move.l   lbL004C00(pc),a3
+                    bra      lbC00AF10
 
 lbL004BE4:          dc.l     0
 lbL004BE8:          dc.l     0
@@ -2893,9 +2923,9 @@ lbC004DB4:          clr.l    lbL004F1A
                     clr.l    lbL005166
                     rts
 
-lbC004E34:          move.l   lbL004ECE,a0
+lbC004E34:          move.l   lbL004ECE(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004E46
+                    bne.b    lbC004E46
                     bsr      lbC00AE2E
 lbC004E46:          move.l   a0,lbL004E7C
                     move.l   a3,lbL004E80
@@ -2903,21 +2933,20 @@ lbC004E46:          move.l   a0,lbL004E7C
                     or.w     #$18,(a3)
                     lea      lbL020846,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004E6C:          and.w    #$FFC0,(a3)
                     lea      lbL020702,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004E7C:          dc.l     0
 lbL004E80:          dc.l     0
 
 lbC004E84:          rts
 
-lbC004E86:          move.l   lbL004E7C,a0
+lbC004E86:          move.l   lbL004E7C(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004E98
+                    bne.b    lbC004E98
                     bsr      lbC00AE2E
 lbC004E98:          move.l   a0,lbL004ECE
                     move.l   a3,lbL004ED2
@@ -2925,96 +2954,91 @@ lbC004E98:          move.l   a0,lbL004ECE
                     or.w     #$35,(a3)
                     lea      lbL020862,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004EBE:          and.w    #$FFC0,(a3)
                     lea      lbL02072E,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004ECE:          dc.l     0
 lbL004ED2:          dc.l     0
 
-lbC004ED6:          move.l   lbL004FB2,a0
+lbC004ED6:          move.l   lbL004FB2(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004EE8
+                    bne.b    lbC004EE8
                     bsr      lbC00AE2E
 lbC004EE8:          move.l   a0,lbL004F1A
                     move.l   a3,lbL004F1E
                     move.w   #$3199,(a3)
                     lea      lbL0205FA,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004F0A:          move.w   #$3180,(a3)
                     lea      lbL020696,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004F1A:          dc.l     0
 lbL004F1E:          dc.l     0
 
-lbC004F22:          move.l   lbL004FFE,a0
+lbC004F22:          move.l   lbL004FFE(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004F34
+                    bne.b    lbC004F34
                     bsr      lbC00AE2E
 lbC004F34:          move.l   a0,lbL004F66
                     move.l   a3,lbL004F6A
                     move.w   #$369A,(a3)
                     lea      lbL020616,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004F56:          move.w   #$3680,(a3)
                     lea      lbL0206BA,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004F66:          dc.l     0
 lbL004F6A:          dc.l     0
 
-lbC004F6E:          move.l   lbL004F1A,a0
+lbC004F6E:          move.l   lbL004F1A(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004F80
+                    bne.b    lbC004F80
                     bsr      lbC00AE2E
 lbC004F80:          move.l   a0,lbL004FB2
                     move.l   a3,lbL004FB6
                     move.w   #$3B9B,(a3)
                     lea      lbL020632,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004FA2:          move.w   #$3B80,(a3)
                     lea      lbL0206DE,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004FB2:          dc.l     0
 lbL004FB6:          dc.l     0
 
-lbC004FBA:          move.l   lbL004F66,a0
+lbC004FBA:          move.l   lbL004F66(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC004FCC
+                    bne.b    lbC004FCC
                     bsr      lbC00AE2E
 lbC004FCC:          move.l   a0,lbL004FFE
                     move.l   a3,lbL005002
                     move.w   #$2C9C,(a3)
                     lea      lbL0205DE,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC004FEE:          move.w   #$2C80,(a3)
                     lea      lbL020672,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL004FFE:          dc.l     0
 lbL005002:          dc.l     0
 lbW005006:          dc.w     21643
 
-lbC005008:          move.l   lbL005106,a0
+lbC005008:          move.l   lbL005106(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC00501A
+                    bne.b    lbC00501A
                     bsr      lbC00AE2E
 lbC00501A:          move.l   a0,lbL005056
                     lea      lbL0205BA,a1
@@ -3022,20 +3046,19 @@ lbC00501A:          move.l   a0,lbL005056
                     and.w    #$FFC0,-2(a3)
                     or.w     #$1E,-2(a3)
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC005044:          and.w    #$FFC0,-2(a3)
                     lea      lbL020786,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL005056:          dc.l     0
 lbL00505A:          dc.l     0
 lbW00505E:          dc.w     21643
 
-lbC005060:          move.l   lbL00515E,a0
+lbC005060:          move.l   lbL00515E(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC005072
+                    bne.b    lbC005072
                     bsr      lbC00AE2E
 lbC005072:          lea      lbL0205BA,a1
                     move.l   a0,lbL0050AE
@@ -3043,20 +3066,19 @@ lbC005072:          lea      lbL0205BA,a1
                     and.w    #$FFC0,-2(a3)
                     or.w     #$1F,-2(a3)
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC00509C:          and.w    #$FFC0,-2(a3)
                     lea      lbL020786,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL0050AE:          dc.l     0
 lbL0050B2:          dc.l     0
 lbW0050B6:          dc.w     21643
 
-lbC0050B8:          move.l   lbL005056,a0
+lbC0050B8:          move.l   lbL005056(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC0050CA
+                    bne.b    lbC0050CA
                     bsr      lbC00AE2E
 lbC0050CA:          lea      lbL020596,a1
                     move.l   a0,lbL005106
@@ -3064,20 +3086,19 @@ lbC0050CA:          lea      lbL020596,a1
                     and.w    #$FFC0,-2(a3)
                     or.w     #$24,-2(a3)
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC0050F4:          and.w    #$FFC0,-2(a3)
                     lea      lbL02075A,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL005106:          dc.l     0
 lbL00510A:          dc.l     0
 lbW00510E:          dc.w     21643
 
-lbC005110:          move.l   lbL0050AE,a0
+lbC005110:          move.l   lbL0050AE(pc),a0
                     cmp.l    #0,a0
-                    bne.s    lbC005122
+                    bne.b    lbC005122
                     bsr      lbC00AE2E
 lbC005122:          lea      lbL020596,a1
                     move.l   a0,lbL00515E
@@ -3085,12 +3106,11 @@ lbC005122:          lea      lbL020596,a1
                     and.w    #$FFC0,-2(a3)
                     or.w     #$25,-2(a3)
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
-                    rts
+                    bra      lbC00AED8
 
 lbC00514C:          and.w    #$FFC0,-2(a3)
                     lea      lbL02075A,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbL00515E:          dc.l     0
 lbL005162:          dc.l     0
@@ -3101,9 +3121,9 @@ lbC00516A:          tst.w    lbL005166
                     move.w   #100,lbL005166
                     movem.l  a3,-(sp)
                     sub.l    #990,a3
-                    jsr      lbC004EBE
+                    bsr      lbC004EBE
                     sub.l    #246,a3
-                    jsr      lbC004E34
+                    bsr      lbC004E34
                     movem.l  (sp)+,a3
                     movem.l  a3,-(sp)
                     bsr      lbC004F0A
@@ -3131,9 +3151,9 @@ lbC0051F8:          tst.w    lbL005166
                     move.w   #100,lbL005166
                     movem.l  a3,-(sp)
                     add.l    #986,a3
-                    jsr      lbC004EBE
+                    bsr      lbC004EBE
                     sub.l    #246,a3
-                    jsr      lbC004E34
+                    bsr      lbC004E34
                     movem.l  (sp)+,a3
                     movem.l  a3,-(sp)
                     bsr      lbC004F56
@@ -3161,9 +3181,9 @@ lbC005286:          tst.w    lbL005166
                     move.w   #100,lbL005166
                     movem.l  a3,-(sp)
                     sub.l    #736,a3
-                    jsr      lbC004E6C
+                    bsr      lbC004E6C
                     add.l    #246,a3
-                    jsr      lbC004E86
+                    bsr      lbC004E86
                     movem.l  (sp)+,a3
                     movem.l  a3,-(sp)
                     bsr      lbC004FA2
@@ -3191,9 +3211,9 @@ lbC005314:          tst.w    lbL005166
                     move.w   #100,lbL005166
                     movem.l  a3,-(sp)
                     add.l    #240,a3
-                    jsr      lbC004E6C
+                    bsr      lbC004E6C
                     add.l    #246,a3
-                    jsr      lbC004E86
+                    bsr      lbC004E86
                     movem.l  (sp)+,a3
                     movem.l  a3,-(sp)
                     bsr      lbC004FEE
@@ -3216,10 +3236,10 @@ lbC005314:          tst.w    lbL005166
                     movem.l  (sp)+,a3
                     rts
 
-lbC0053A2:          lea      lbW0091D4,a1
+lbC0053A2:          lea      lbW0091D4(pc),a1
                     bra      lbC00A718
 
-lbC0053AC:          lea      lbW0091D4,a1
+lbC0053AC:          lea      lbW0091D4(pc),a1
                     bra      lbC00A718
 
 lbC0053B6:          addq.l   #2,a3
@@ -3273,29 +3293,29 @@ lbC005452:          bsr      lbC00AE2E
 
 none:               rts
 
-display_tiles:      move.l   map_pos_x,d0
-                    move.l   map_pos_y,d1
+display_tiles:      move.l   map_pos_x(pc),d0
+                    move.l   map_pos_y(pc),d1
                     lsr.l    #4,d0
-                    add.l    lbL0039AA,d0
+                    add.l    lbL0039AA(pc),d0
                     add.w    d0,d0
                     lsr.w    #4,d1
-                    add.l    lbL0035D8,d1
+                    add.l    lbL0035D8(pc),d1
                     add.w    d1,d1
                     add.w    d1,d1
-                    lea      lbL0023D4,a6
+                    lea      lbL0023D4(pc),a6
                     move.l   (a6,d1.l),a1
                     add.l    d0,a1
                     add.l    #123480,a1
-                    lea      map_lines_table+4,a2
+                    lea      map_lines_table+4(pc),a2
                     move.l   0(a2,d1.l),a2
                     add.l    d0,a2
                     subq.l   #2,a2
-                    lea      bkgnd_tiles_block_table,a3
+                    lea      bkgnd_tiles_block_table(pc),a3
                     move.l   #294*42,d1
                     move.l   #-49390,d2
-                    move.l   lbL0039A6,d3
-                    clr.l    d4
-                    jsr      lbC003EAE
+                    move.l   lbL0039A6(pc),d3
+                    moveq    #0,d4
+                    bsr      lbC003EAE
 .loop:              move.w   (a2)+,d4
                     and.w    #$FFC0,d4
                     asr.w    #4,d4
@@ -3389,32 +3409,32 @@ display_tiles:      move.l   map_pos_x,d0
                     bne      .loop
                     rts
 
-lbC005620:          move.l   map_pos_x,d0
-                    move.l   map_pos_y,d1
+lbC005620:          move.l   map_pos_x(pc),d0
+                    move.l   map_pos_y(pc),d1
                     lsr.w    #4,d0
                     lsr.w    #4,d1
-                    add.l    lbL0039AE,d1
-                    add.l    lbL0035DC,d0
-                    sub.l    #1,d1
+                    add.l    lbL0039AE(pc),d1
+                    add.l    lbL0035DC(pc),d0
+                    subq.l   #1,d1
                     add.w    d0,d0
                     add.w    d1,d1
                     add.w    d1,d1
-                    lea      map_lines_table+4,a2
+                    lea      map_lines_table+4(pc),a2
                     move.l   0(a2,d1.l),a2
                     add.l    d0,a2
-                    sub.l    #2,a2
-                    lea      bkgnd_tiles_block_table,a3
+                    subq.l   #2,a2
+                    lea      bkgnd_tiles_block_table(pc),a3
                     lea      lbL0023D4,a4
                     add.l    d1,a4
                     move.l   d0,d0
                     move.l   #248,d1
                     move.l   #12348,d2
-                    move.l   lbL0039A6,d3
+                    move.l   lbL0039A6(pc),d3
                     move.l   (a4),a1
                     add.l    #123480,a1
                     add.l    d0,a1
-                    jsr      lbC003EC4
-                    clr.l    d4
+                    bsr      lbC003EC4
+                    moveq    #0,d4
 .loop:              move.l   (a4)+,a1
                     add.l    #123480,a1
                     add.l    d0,a1
@@ -3511,9 +3531,9 @@ lbC005620:          move.l   map_pos_x,d0
                     bne      .loop
                     rts
 
-scroll_map:         move.l   map_pos_x,d0
-                    move.l   map_pos_y,d1
-                    bra.s    do_scroll_map
+scroll_map:         move.l   map_pos_x(pc),d0
+                    move.l   map_pos_y(pc),d1
+                    bra.b    do_scroll_map
 
 frame_bkgnd_flag:   dc.w     0
 
@@ -3535,41 +3555,41 @@ do_scroll_map:      add.w    #15,d0
                     lsl.w    #4,d7
                     or.w     d7,d2                  ; $x > $xx
                     move.b   d2,bplcon1+1
-                    lea      lbL0023D4,a6
+                    lea      lbL0023D4(pc),a6
                     move.l   0(a6,d1.l),d4
-                    lea      lbL002570,a6
+                    lea      lbL002570(pc),a6
                     add.l    0(a6,d3.l),d4
                     add.l    d0,d4
                     move.l   #temp_buffer,d5
                     add.l    d0,d5
                     lsr.w    #1,d1
-                    lea      lbL0025D2,a6
-                    move.w   #$127,d6
+                    lea      lbL0025D2(pc),a6
+                    move.w   #295,d6
                     sub.w    0(a6,d1.l),d6
                     lsr.w    #2,d3
                     sub.w    d3,d6
                     cmp.w    #$F7,d6
-                    bmi.s    lbC00586C
+                    bmi.b    lbC00586C
                     move.w   #$F7,d6
 lbC00586C:          cmp.w    #$D4,d6
-                    bmi.s    lbC005890
+                    bmi.b    lbC005890
                     move.l   #$2401ff00,lbW09A308
                     move.w   #$ffdf,lbW09A294
                     sub.w    #$D4,d6
                     move.b   d6,lbW09A298
-                    bra.s    lbC0058AC
+                    bra.b    lbC0058AC
 
 lbC005890:          move.l   #$ffdffffe,lbW09A308
                     add.w    #$2C,d6
                     move.w   #$0001,lbW09A294
                     move.b   d6,lbW09A298
 lbC0058AC:          cmp.l    #$ffd7fffe,lbW09A298
-                    bne      lbC0058C4
+                    bne.b    lbC0058C4
                     move.l   #$2401ff00,lbW09A308
 lbC0058C4:          cmp.w    #1,frame_bkgnd_flag
-                    beq      lbC0058DC
-                    add.l    #61740,d4
-                    add.l    #61740,d5
+                    beq.b    lbC0058DC
+                    add.l    #12348*5,d4
+                    add.l    #12348*5,d5
 
 lbC0058DC:          move.l   #12348,d7
                     move.w   d4,scroll_bp1+6
@@ -3621,32 +3641,32 @@ lbC0058DC:          move.l   #12348,d7
                     move.w   d5,lbW09A2BE+2
                     rts
 
-lbC005990:          lea      player_1_dats,a0
+lbC005990:          lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      lbC005A76
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      lbC005A52
-                    move.b   lbW005BD6,d0
-                    move.b   lbW005C16,d1
+                    move.b   lbW005BD6(pc),d0
+                    move.b   lbW005C16(pc),d1
                     ext.l    d0
                     ext.l    d1
                     cmp.w    d1,d0
                     bmi      lbC0059D0
-                    lea      lbW005BCC,a2
-                    lea      lbW005C0C,a3
-                    bra.s    lbC0059DE
+                    lea      lbW005BCC(pc),a2
+                    lea      lbW005C0C(pc),a3
+                    bra.b    lbC0059DE
 
 lbC0059D0:          move.l   d1,d0
-                    lea      lbW005C0C,a2
-                    lea      lbW005BCC,a3
-lbC0059DE:          sub.w    #2,d0
+                    lea      lbW005C0C(pc),a2
+                    lea      lbW005BCC(pc),a3
+lbC0059DE:          subq.w   #2,d0
                     cmp.b    #$FF,lbW09A294
                     beq      lbC0059FA
                     move.b   lbW09A298,d1
                     ext.l    d1
                     cmp.w    d1,d0
-                    bpl.s    lbC005A26
+                    bpl.b    lbC005A26
 lbC0059FA:          lea      lbW09A2C4,a0
                     bsr      lbC005A9A
                     lea      lbW09A250,a0
@@ -3706,22 +3726,22 @@ lbC005A9A:          move.w   #$98,(a0)
 
 lbC005B00:          move.b   d0,(a0)
                     move.b   #1,1(a0)
-                    move.w   #$120,4(a0)
-                    move.w   #$122,8(a0)
-                    move.w   #$140,12(a0)
-                    move.w   #$142,16(a0)
-                    move.w   #$124,20(a0)
-                    move.w   #$126,24(a0)
-                    move.w   #$148,28(a0)
-                    move.w   #$14A,32(a0)
-                    move.w   #$128,36(a0)
-                    move.w   #$12A,40(a0)
-                    move.w   #$150,44(a0)
-                    move.w   #$152,48(a0)
-                    move.w   #$12C,52(a0)
-                    move.w   #$12E,56(a0)
-                    move.w   #$158,60(a0)
-                    move.w   #$15A,64(a0)
+                    move.w   #SPR0PTH,4(a0)
+                    move.w   #SPR0PTL,8(a0)
+                    move.w   #SPR0POS,12(a0)
+                    move.w   #SPR0CTL,16(a0)
+                    move.w   #SPR1PTH,20(a0)
+                    move.w   #SPR1PTL,24(a0)
+                    move.w   #SPR1POS,28(a0)
+                    move.w   #SPR1CTL,32(a0)
+                    move.w   #SPR2PTH,36(a0)
+                    move.w   #SPR2PTL,40(a0)
+                    move.w   #SPR2POS,44(a0)
+                    move.w   #SPR2CTL,48(a0)
+                    move.w   #SPR3PTH,52(a0)
+                    move.w   #SPR3PTL,56(a0)
+                    move.w   #SPR3POS,60(a0)
+                    move.w   #SPR3CTL,64(a0)
                     rts
 
 lbC005B6A:          move.w   2(a0),2(a1)
@@ -3742,356 +3762,359 @@ lbC005B6A:          move.w   2(a0),2(a1)
                     move.w   62(a0),62(a1)
                     rts
 
-lbW005BCC:          dc.w     $120,0,$122,0,$140
-lbW005BD6:          dc.w     0,$142,0,$124,0,$126,0,$148,0,$14A,0
-lbW005BEC:          dc.w     $128,0,$12A,0,$150,0,$152,0,$12C,0,$12E,0,$158,0
-                    dc.w     $15A,0
-lbW005C0C:          dc.w     $130,0,$132,0,$160
-lbW005C16:          dc.w     0,$162,0,$134,0,$136,0,$168,0,$16A,0
-lbW005C2C:          dc.w     $138,0,$13A,0,$170,0,$172,0,$13C,0,$13E,0,$178,0
-                    dc.w     $17A,0
+lbW005BCC:          dc.w     SPR0PTH,0,SPR0PTL,0
+                    dc.w     SPR0POS
+lbW005BD6:          dc.w     0
+                    dc.w     SPR0CTL,0,SPR1PTH,0,SPR1PTL,0,SPR1POS,0,SPR1CTL,0
+lbW005BEC:          dc.w     SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0,SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0
+lbW005C0C:          dc.w     SPR4PTH,0,SPR4PTL,0
+                    dc.w     SPR4POS
+lbW005C16:          dc.w     0
+                    dc.w     SPR4CTL,0,SPR5PTH,0,SPR5PTL,0,SPR5POS,0,SPR5CTL,0
+lbW005C2C:          dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0,SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
 
-player_1_dats:      dc.l    $dff00c
-                    dc.l    7
-                    dc.l    lbL006FEE
-                    dc.l    lbL006B8C
-                    dc.l    lbW01227C
-                    dc.l    lbL013942
-                    dc.l    lbL013952
-                    dc.l    lbL013962
-                    dc.l    lbL013972
-                    dc.l    lbL013982
-                    dc.l    lbL013992
-                    dc.l    lbL0139A2
-                    dc.l    lbL0139B2
-                    dc.l    lbL0139C2
-                    dc.l    lbL0139EA
-                    dc.l    lbL013A12
-                    dc.l    lbL013A3A
-                    dc.l    lbL013A62
-                    dc.l    lbL013A8A
-                    dc.l    lbL013AB2
-                    dc.l    lbL013ADA
-                    dc.l    lbL013B02
-                    dc.l    lbL013B1A
-                    dc.l    lbL013B32
-                    dc.l    lbL013B4A
-                    dc.l    lbL013B62
-                    dc.l    lbL013B7A
-                    dc.l    lbL013B92
-                    dc.l    lbL013BAA
-                    dc.l    lbL013BC2
-                    dc.l    lbL013C0A
-                    dc.l    lbL013C52
-                    dc.l    lbL013C9A
-                    dc.l    lbL013CE2
-                    dc.l    lbL013D2A
-                    dc.l    lbL013D72
-                    dc.l    lbL013DBA
-                    dc.l    lbL013E02
-                    dc.l    lbL013E2A
-                    dc.l    lbL013E52
-                    dc.l    lbL013E7A
-                    dc.l    lbL013EA2
-                    dc.l    lbL013ECA
-                    dc.l    lbL013EF2
-                    dc.l    lbL013F1A
-                    dc.l    lbL013F42
-                    dc.l    lbL013F5A
-                    dc.l    lbL013F72
-                    dc.l    lbL013F8A
-                    dc.l    lbL013FA2
-                    dc.l    lbL013FBA
-                    dc.l    lbL013FD2
-                    dc.l    lbL013FEA
-                    dc.l    lbL014002
-                    dc.l    lbL01401A
-                    dc.l    lbL014032
-                    dc.l    lbL01404A
-                    dc.l    lbL014062
-                    dc.l    lbL01407A
-                    dc.l    lbL014092
-                    dc.l    lbL0140AA               ; $f0
-lbL005D40:          dc.l    lbL00E9C2
-lbL005D44:          dc.l    lbL00E9C2               ; $f8
-                    dc.l    $10                     ; $fc
+player_1_dats:      dc.l     CUSTOM+JOY1DAT
+                    dc.l     7
+                    dc.l     lbL006FEE
+                    dc.l     lbL006B8C
+                    dc.l     lbW01227C
+                    dc.l     lbL013942
+                    dc.l     lbL013952
+                    dc.l     lbL013962
+                    dc.l     lbL013972
+                    dc.l     lbL013982
+                    dc.l     lbL013992
+                    dc.l     lbL0139A2
+                    dc.l     lbL0139B2
+                    dc.l     lbL0139C2
+                    dc.l     lbL0139EA
+                    dc.l     lbL013A12
+                    dc.l     lbL013A3A
+                    dc.l     lbL013A62
+                    dc.l     lbL013A8A
+                    dc.l     lbL013AB2
+                    dc.l     lbL013ADA
+                    dc.l     lbL013B02
+                    dc.l     lbL013B1A
+                    dc.l     lbL013B32
+                    dc.l     lbL013B4A
+                    dc.l     lbL013B62
+                    dc.l     lbL013B7A
+                    dc.l     lbL013B92
+                    dc.l     lbL013BAA
+                    dc.l     lbL013BC2
+                    dc.l     lbL013C0A
+                    dc.l     lbL013C52
+                    dc.l     lbL013C9A
+                    dc.l     lbL013CE2
+                    dc.l     lbL013D2A
+                    dc.l     lbL013D72
+                    dc.l     lbL013DBA
+                    dc.l     lbL013E02
+                    dc.l     lbL013E2A
+                    dc.l     lbL013E52
+                    dc.l     lbL013E7A
+                    dc.l     lbL013EA2
+                    dc.l     lbL013ECA
+                    dc.l     lbL013EF2
+                    dc.l     lbL013F1A
+                    dc.l     lbL013F42
+                    dc.l     lbL013F5A
+                    dc.l     lbL013F72
+                    dc.l     lbL013F8A
+                    dc.l     lbL013FA2
+                    dc.l     lbL013FBA
+                    dc.l     lbL013FD2
+                    dc.l     lbL013FEA
+                    dc.l     lbL014002
+                    dc.l     lbL01401A
+                    dc.l     lbL014032
+                    dc.l     lbL01404A
+                    dc.l     lbL014062
+                    dc.l     lbL01407A
+                    dc.l     lbL014092
+                    dc.l     lbL0140AA              ; 240
+lbL005D40:          dc.l     lbL00E9C2
+lbL005D44:          dc.l     lbL00E9C2              ; 248
+                    dc.l     16                     ; 252
 player_1_cur_weapon:
-                    dc.l    1                       ; $100
-                    dc.l    3                       ; $104
-lbL005D54:          dc.l    9                       ; $108 maybe the strengh of the player (if used)
-                    dc.l    0                       ; $10c
-                    dc.l    0                       ; $110
-                    dc.l    0                       ; $114
-lbW005D64:          dcb.w   6,0                     ; $118
-lbW005D70:          dcb.w   4,0                     ; $124
-player_1_pos_x:     dc.w    0                       ; $12c
-player_1_pos_y:     dcb.w   7,0                     ; $12e
-player_1_alive:     dcb.w   10,0                    ; $13c
-player_1_health:    dcb.w   2,0                     ; $150
-player_1_lives:     dc.l    0                       ; $154
-player_1_ammopacks: dc.w    0                       ; $158
-                    dc.w    0                       ; $15a
-player_1_ammos:     dc.w    0                       ; $15c
-                    dc.w    0                       ; $15e
-player_1_keys:      dc.l    0                       ; $160
-player_1_credits:   dc.l    0                       ; $164
-                    dc.l    0                       ; $168
-                    dc.l    0                       ; $16c
-                    dc.l    0                       ; $170
-lbW005DC0:          dc.w    0                       ; $174
-                    dc.w    0                       ; $176
+                    dc.l     1                      ; 256
+                    dc.l     3                      ; 260
+lbL005D54:          dc.l     9                      ; 264 maybe the strength of the player (if used)
+                    dc.l     0                      ; 268
+                    dc.l     0                      ; 272
+                    dc.l     0                      ; 276
+lbW005D64:          dcb.w    6,0                    ; 280
+lbW005D70:          dcb.w    4,0                    ; 292
+player_1_pos_x:     dc.w     0                      ; 300
+player_1_pos_y:     dcb.w    7,0                    ; 302
+player_1_alive:     dcb.w    10,0                   ; 316
+player_1_health:    dcb.w    2,0                    ; 336
+player_1_lives:     dc.l     0                      ; 340
+player_1_ammopacks: dc.w     0                      ; 344
+                    dc.w     0                      ; 346
+player_1_ammos:     dc.w     0                      ; 348
+                    dc.w     0                      ; 350
+player_1_keys:      dc.l     0                      ; 352
+player_1_credits:   dc.l     0                      ; 356
+                    dc.l     0                      ; 360
+                    dc.l     0                      ; 364
+                    dc.l     0                      ; 368
+lbW005DC0:          dc.w     0                      ; 372
+                    dc.w     0                      ; 374
 player_1_extra_spd_x:
-                    dc.w    0                       ; $178
+                    dc.w     0                      ; 376
 player_1_extra_spd_y:
-                    dc.w    0                       ; $17a
-                    dc.l    0                       ; $17c
-                    dc.w    0                       ; $180
-                    dc.w    0                       ; $182
-                    dc.w    0                       ; $184
-                    dc.w    0                       ; $186
-                    dc.w    0                       ; $188
-                    dc.w    0                       ; $18a
-                    dc.w    0                       ; $18c
-                    dc.w    0                       ; $18e
-                    dc.w    0                       ; $190
+                    dc.w     0                      ; 378
+                    dc.l     0                      ; 380
+                    dc.w     0                      ; 384
+                    dc.w     0                      ; 386
+                    dc.w     0                      ; 388
+                    dc.w     0                      ; 390
+                    dc.w     0                      ; 392
+                    dc.w     0                      ; 394
+                    dc.w     0                      ; 396
+                    dc.w     0                      ; 398
+                    dc.w     0                      ; 400
 player_1_ownweapons:
-                    dc.w    0                       ; $192
-                    dc.w    0                       ; $194
-                    dc.w    0                       ; $196
-                    dc.w    0                       ; $198
-                    dc.w    0                       ; $19a
-                    dc.w    0                       ; $19c
-                    dc.w    0                       ; $19e
-                    dc.w    0                       ; $1a0
-                    dc.w    0                       ; $1a2
-                    dc.w    0                       ; $1a4
-                    dc.w    0                       ; $1a6
-                    dc.w    0                       ; $1a8
-                    dc.w    0                       ; $1aa
-player_1_old_pos_x: dc.w    0                       ; $1ac
-                    dc.w    0                       ; $1ae
-player_1_old_pos_y: dc.w    0                       ; $1b0
-                    dc.w    0                       ; $1b2
-player_1_shots:     dc.l    0                       ; $1b4
-player_1_score:     dcb.l   378,0                   ; $1b8
+                    dc.w     0                      ; 402
+                    dc.w     0                      ; 404
+                    dc.w     0                      ; 406
+                    dc.w     0                      ; 408
+                    dc.w     0                      ; 410
+                    dc.w     0                      ; 412
+                    dc.w     0                      ; 414
+                    dc.w     0                      ; 416
+                    dc.w     0                      ; 418
+                    dc.w     0                      ; 420
+                    dc.w     0                      ; 422
+                    dc.w     0                      ; 424
+                    dc.w     0                      ; 426
+player_1_old_pos_x: dc.w     0                      ; 428
+                    dc.w     0                      ; 430
+player_1_old_pos_y: dc.w     0                      ; 432
+                    dc.w     0                      ; 434
+player_1_shots:     dc.l     0                      ; 436
+player_1_score:     dcb.l    378,0                  ; 440
 
-player_2_dats:      dc.l    $dff00a
-                    dc.l    6
-                    dc.l    lbL006FEE
-                    dc.l    lbL006B90
-                    dc.l    lbW0122B8
-                    dc.l    lbL0140C2
-                    dc.l    lbL0140D2
-                    dc.l    lbL0140E2
-                    dc.l    lbL0140F2
-                    dc.l    lbL014102
-                    dc.l    lbL014112
-                    dc.l    lbL014122
-                    dc.l    lbL014132
-                    dc.l    lbL014142
-                    dc.l    lbL01416A
-                    dc.l    lbL014192
-                    dc.l    lbL0141BA
-                    dc.l    lbL0141E2
-                    dc.l    lbL01420A
-                    dc.l    lbL014232
-                    dc.l    lbL01425A
-                    dc.l    lbL014282
-                    dc.l    lbL01429A
-                    dc.l    lbL0142B2
-                    dc.l    lbL0142CA
-                    dc.l    lbL0142E2
-                    dc.l    lbL0142FA
-                    dc.l    lbL014312
-                    dc.l    lbL01432A
-                    dc.l    lbL014342
-                    dc.l    lbL01435A
-                    dc.l    lbL014372
-                    dc.l    lbL01438A
-                    dc.l    lbL0143A2
-                    dc.l    lbL0143BA
-                    dc.l    lbL0143D2
-                    dc.l    lbL0143EA
-                    dc.l    lbL014402
-                    dc.l    lbL01442A
-                    dc.l    lbL014452
-                    dc.l    lbL01447A
-                    dc.l    lbL0144A2
-                    dc.l    lbL0144CA
-                    dc.l    lbL0144F2
-                    dc.l    lbL01451A
-                    dc.l    lbL014542
-                    dc.l    lbL014556
-                    dc.l    lbL01456A
-                    dc.l    lbL01457E
-                    dc.l    lbL014592
-                    dc.l    lbL0145A6
-                    dc.l    lbL0145BA
-                    dc.l    lbL0145CE
-                    dc.l    lbL0145E2
-                    dc.l    lbL0145FA
-                    dc.l    lbL014612
-                    dc.l    lbL01462A
-                    dc.l    lbL014642
-                    dc.l    lbL01465A
-                    dc.l    lbL014672
-                    dc.l    lbL01468A
-lbL0064E0:          dc.l    lbL00E9D2
-lbL0064E4:          dc.l    lbL00E9D2
-                    dc.l    16                      ; $fc
+player_2_dats:      dc.l     CUSTOM+JOY0DAT
+                    dc.l     6
+                    dc.l     lbL006FEE
+                    dc.l     lbL006B90
+                    dc.l     lbW0122B8
+                    dc.l     lbL0140C2
+                    dc.l     lbL0140D2
+                    dc.l     lbL0140E2
+                    dc.l     lbL0140F2
+                    dc.l     lbL014102
+                    dc.l     lbL014112
+                    dc.l     lbL014122
+                    dc.l     lbL014132
+                    dc.l     lbL014142
+                    dc.l     lbL01416A
+                    dc.l     lbL014192
+                    dc.l     lbL0141BA
+                    dc.l     lbL0141E2
+                    dc.l     lbL01420A
+                    dc.l     lbL014232
+                    dc.l     lbL01425A
+                    dc.l     lbL014282
+                    dc.l     lbL01429A
+                    dc.l     lbL0142B2
+                    dc.l     lbL0142CA
+                    dc.l     lbL0142E2
+                    dc.l     lbL0142FA
+                    dc.l     lbL014312
+                    dc.l     lbL01432A
+                    dc.l     lbL014342
+                    dc.l     lbL01435A
+                    dc.l     lbL014372
+                    dc.l     lbL01438A
+                    dc.l     lbL0143A2
+                    dc.l     lbL0143BA
+                    dc.l     lbL0143D2
+                    dc.l     lbL0143EA
+                    dc.l     lbL014402
+                    dc.l     lbL01442A
+                    dc.l     lbL014452
+                    dc.l     lbL01447A
+                    dc.l     lbL0144A2
+                    dc.l     lbL0144CA
+                    dc.l     lbL0144F2
+                    dc.l     lbL01451A
+                    dc.l     lbL014542
+                    dc.l     lbL014556
+                    dc.l     lbL01456A
+                    dc.l     lbL01457E
+                    dc.l     lbL014592
+                    dc.l     lbL0145A6
+                    dc.l     lbL0145BA
+                    dc.l     lbL0145CE
+                    dc.l     lbL0145E2
+                    dc.l     lbL0145FA
+                    dc.l     lbL014612
+                    dc.l     lbL01462A
+                    dc.l     lbL014642
+                    dc.l     lbL01465A
+                    dc.l     lbL014672
+                    dc.l     lbL01468A
+lbL0064E0:          dc.l     lbL00E9D2
+lbL0064E4:          dc.l     lbL00E9D2
+                    dc.l     16                     ; 252
 player_2_cur_weapon:
-                    dc.l    1                       ; $100
-                    dc.l    3                       ; $104
-lbL0064F4:          dc.l    9                       ; $108
-                    dc.l    0                       ; $10c
-                    dc.l    0                       ; $110
-                    dc.l    0                       ; $114
-lbW006504:          dcb.w   6,0                     ; $118
-lbW006510:          dcb.w   4,0                     ; $124
-player_2_pos_x:     dc.w    0                       ; $12c
-player_2_pos_y:     dcb.w   7,0                     ; $12e
-player_2_alive:     dcb.w   10,0                    ; $13c
-player_2_health:    dcb.w   2,0                     ; $150
-player_2_lives:     dc.l    0                       ; $154
-player_2_ammopacks: dc.w    0                       ; $158
-                    dc.w    0                       ; $15a
-player_2_ammos:     dc.w    0                       ; $15c
-                    dc.w    0                       ; $15e
-player_2_keys:      dc.l    0                       ; $160
-player_2_credits:   dc.l    0                       ; $164
-                    dc.l    0                       ; $168
-                    dc.l    0                       ; $16c
-                    dc.l    0                       ; $170
-lbW006560:          dc.w    0                       ; $174
-                    dc.w    0                       ; $176
+                    dc.l     1                      ; 256
+                    dc.l     3                      ; 260
+lbL0064F4:          dc.l     9                      ; 264
+                    dc.l     0                      ; 268
+                    dc.l     0                      ; 272
+                    dc.l     0                      ; 276
+lbW006504:          dcb.w    6,0                    ; 280
+lbW006510:          dcb.w    4,0                    ; 292
+player_2_pos_x:     dc.w     0                      ; 300
+player_2_pos_y:     dcb.w    7,0                    ; 302
+player_2_alive:     dcb.w    10,0                   ; 316
+player_2_health:    dcb.w    2,0                    ; 336
+player_2_lives:     dc.l     0                      ; 340
+player_2_ammopacks: dc.w     0                      ; 344
+                    dc.w     0                      ; 346
+player_2_ammos:     dc.w     0                      ; 348
+                    dc.w     0                      ; 350
+player_2_keys:      dc.l     0                      ; 352
+player_2_credits:   dc.l     0                      ; 356
+                    dc.l     0                      ; 360
+                    dc.l     0                      ; 364
+                    dc.l     0                      ; 368
+lbW006560:          dc.w     0                      ; 372
+                    dc.w     0                      ; 374
 player_2_extra_spd_x:
-                    dc.w    0                       ; $178
+                    dc.w     0                      ; 376
 player_2_extra_spd_y:
-                    dc.w    0                       ; $17a
-                    dc.l    0                       ; $17c
-                    dc.w    0                       ; $180
-                    dc.w    0                       ; $182
-                    dc.w    0                       ; $184
-                    dc.w    0                       ; $186
-                    dc.w    0                       ; $188
-                    dc.w    0                       ; $18a
-                    dc.w    0                       ; $18c
-                    dc.w    0                       ; $18e
-                    dc.w    0                       ; $190
+                    dc.w     0                      ; 378
+                    dc.l     0                      ; 380
+                    dc.w     0                      ; 384
+                    dc.w     0                      ; 386
+                    dc.w     0                      ; 388
+                    dc.w     0                      ; 390
+                    dc.w     0                      ; 392
+                    dc.w     0                      ; 394
+                    dc.w     0                      ; 396
+                    dc.w     0                      ; 398
+                    dc.w     0                      ; 400
 player_2_ownweapons:
-                    dc.w    0                       ; $192
-                    dc.w    0                       ; $194
-                    dc.w    0                       ; $196
-                    dc.w    0                       ; $198
-                    dc.w    0                       ; $19a
-                    dc.w    0                       ; $19c
-                    dc.w    0                       ; $19e
-                    dc.w    0                       ; $1a0
-                    dc.w    0                       ; $1a2
-                    dc.w    0                       ; $1a4
-                    dc.w    0                       ; $1a6
-                    dc.w    0                       ; $1a8
-                    dc.w    0                       ; $1aa
-player_2_old_pos_x: dc.w    0                       ; $1ac
-                    dc.w    0                       ; $1ae
-player_2_old_pos_y: dc.w    0                       ; $1b0
-                    dc.w    0                       ; $1b2
-player_2_shots:     dc.l    0                       ; $1b4
-player_2_score:     dcb.l   378,0                   ; $1b8
+                    dc.w     0                      ; 402
+                    dc.w     0                      ; 404
+                    dc.w     0                      ; 406
+                    dc.w     0                      ; 408
+                    dc.w     0                      ; 410
+                    dc.w     0                      ; 412
+                    dc.w     0                      ; 414
+                    dc.w     0                      ; 416
+                    dc.w     0                      ; 418
+                    dc.w     0                      ; 420
+                    dc.w     0                      ; 422
+                    dc.w     0                      ; 424
+                    dc.w     0                      ; 426
+player_2_old_pos_x: dc.w     0                      ; 428
+                    dc.w     0                      ; 430
+player_2_old_pos_y: dc.w     0                      ; 432
+                    dc.w     0                      ; 434
+player_2_shots:     dc.l     0                      ; 436
+player_2_score:     dcb.l    378,0                  ; 440
 
 lbL006B8C:          dc.l     0
 lbL006B90:          dc.l     0
 
-lbC006B94:          lea      player_1_dats,a0
+lbC006B94:          lea      player_1_dats(pc),a0
                     jsr      lbC006C08
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     jsr      lbC006C08
                     cmp.l    #2,number_players
                     beq      lbC006BD0
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     bsr      lbC006BE4
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     bra      lbC006BF6
 
-lbC006BD0:          lea      player_1_dats,a0
+lbC006BD0:          lea      player_1_dats(pc),a0
                     bsr      lbC006BE4
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     bra      lbC006BE4
 
-lbC006BE4:          move.l   $10(a0),a1
+lbC006BE4:          move.l   16(a0),a1
                     move.w   PLAYER_POS_X(a0),-4(a1)
                     move.w   PLAYER_POS_Y(a0),-2(a1)
                     rts
 
-lbC006BF6:          move.l   $10(a0),a1
+lbC006BF6:          move.l   16(a0),a1
                     move.w   #2984,PLAYER_POS_X(a0)
                     move.w   PLAYER_POS_X(a0),-4(a1)
                     rts
 
-lbC006C08:          clr.w    $112(a0)
-                    clr.w    $114(a0)
-                    clr.w    $118(a0)
-                    clr.w    $174(a0)
+lbC006C08:          clr.w    274(a0)
+                    clr.w    276(a0)
+                    clr.w    280(a0)
+                    clr.w    372(a0)
                     clr.w    PLAYER_EXTRA_SPD_X(a0)
                     clr.w    PLAYER_EXTRA_SPD_Y(a0)
-                    clr.l    $17C(a0)
+                    clr.l    380(a0)
                     move.w   #3,PLAYER_CUR_SPRITE(a0)
                     rts
 
-lbC006C28:          jsr      lbC006C5E
-                    lea      player_1_dats,a6
+lbC006C28:          bsr      lbC006C5E
+                    lea      player_1_dats(pc),a6
                     tst.w    PLAYER_ALIVE(a6)
                     bpl      void
-                    lea      player_2_dats,a6
+                    lea      player_2_dats(pc),a6
                     tst.w    PLAYER_ALIVE(a6)
                     bpl      void
                     move.l   #1,flag_jump_to_gameover
                     move.w   #1,lbL000586
                     rts
 
-lbC006C5E:          clr.w    $118(a0)
+lbC006C5E:          clr.w    280(a0)
                     move.w   #-1,PLAYER_ALIVE(a0)
-                    move.w   #$BA8,PLAYER_POS_X(a0)
-                    move.l   $10(a0),a6
+                    move.w   #2984,PLAYER_POS_X(a0)
+                    move.l   16(a0),a6
                     move.w   PLAYER_POS_X(a0),-4(a6)
                     rts
 
 lbC006C7A:          cmp.w    #1,player_1_health
-                    bpl.s    lbC006C9E
+                    bpl.b    lbC006C9E
                     cmp.w    #1,lbW005D64
-                    bpl      lbC006C9E
+                    bpl.b    lbC006C9E
                     move.w   #200,lbW005D64
                     clr.w    lbW005D70
 lbC006C9E:          cmp.w    #1,player_2_health
-                    bpl.s    lbC006CC0
+                    bpl.b    lbC006CC0
                     cmp.w    #1,lbW006504
-                    bpl.s    lbC006CC0
+                    bpl.b    lbC006CC0
                     move.w   #$C8,lbW006504
                     clr.w    lbW006510
-lbC006CC0:          lea      player_1_dats,a0
-                    bsr      lbC006CD0
-                    lea      player_2_dats,a0
+lbC006CC0:          lea      player_1_dats(pc),a0
+                    bsr.b    lbC006CD0
+                    lea      player_2_dats(pc),a0
+                    ; no rts
 lbC006CD0:          tst.w    PLAYER_HEALTH(a0)
-                    beq      lbC006D30
-                    cmp.w    #$1C,PLAYER_HEALTH(a0)
-                    bpl.s    lbC006D30
-                    tst.w    $1A8(a0)
+                    beq.b    lbC006D30
+                    cmp.w    #28,PLAYER_HEALTH(a0)
+                    bpl.b    lbC006D30
+                    tst.w    424(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #$3C,lbW02314E
-                    move.w   #$41,lbW02313A
+                    move.w   #60,lbW02314E
+                    move.w   #65,lbW02313A
                     cmp.l    #player_1_dats,a0
-                    beq      lbC006D14
-                    move.w   #$42,lbW02313A
+                    beq.b    lbC006D14
+                    move.w   #66,lbW02313A
 lbC006D14:          jsr      lbC02325A
                     tst.w    lbW02328A
-                    beq      lbC006D2A
-                    move.w   #1,$1A8(a0)
+                    beq.b    lbC006D2A
+                    move.w   #1,424(a0)
 lbC006D2A:          movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbC006D30:          clr.w    $1A8(a0)
+lbC006D30:          clr.w    424(a0)
                     rts
 
 lbW006D36:          dc.w     0
@@ -4102,16 +4125,16 @@ lbC006D3C:          clr.w    lbW006D3A
                     tst.w    d0
                     bne      void
                     move.w   6(a0),d2
-                    btst     d2,$bfe001
+                    btst     d2,CIAA
                     beq      void
                     cmp.w    #-1,player_2_alive
                     beq      lbC006D6C
                     cmp.l    #player_2_dats,a0
                     bne      void
 lbC006D6C:          move.w   #1,lbW006D3A
-                    move.w   lbW006D36,d0
+                    move.w   lbW006D36(pc),d0
                     cmp.b    #KEY_LEFT,key_released
-                    bne.s    lbC006D94
+                    bne.b    lbC006D94
                     bclr     #3,d0
                     clr.b    key_released
                     clr.b    key_pressed
@@ -4136,23 +4159,23 @@ lbC006DE8:          cmp.b    #KEY_RETURN,key_released
                     clr.b    key_released
                     clr.b    key_pressed
 lbC006E06:          cmp.b    #KEY_LEFT,key_pressed
-                    bne.s    lbC006E18
+                    bne.b    lbC006E18
                     bset     #3,d0
                     bclr     #2,d0
 lbC006E18:          cmp.b    #KEY_RIGHT,key_pressed
-                    bne.s    lbC006E2A
+                    bne.b    lbC006E2A
                     bset     #2,d0
                     bclr     #3,d0
 lbC006E2A:          cmp.b    #KEY_UP,key_pressed
-                    bne.s    lbC006E3C
+                    bne.b    lbC006E3C
                     bset     #1,d0
                     bclr     #0,d0
 lbC006E3C:          cmp.b    #KEY_DOWN,key_pressed
-                    bne.s    lbC006E4E
+                    bne.b    lbC006E4E
                     bset     #0,d0
                     bclr     #1,d0
 lbC006E4E:          cmp.b    #KEY_RETURN,key_pressed
-                    bne.s    lbC006E60
+                    bne.b    lbC006E60
                     move.w   #1,lbW006D38
 lbC006E60:          move.w   d0,lbW006D36
                     add.w    d0,d0
@@ -4165,9 +4188,9 @@ lbL006E76:          dc.w     0,5,1,0,3,4,2,0,7,6,8,0,0,0,0,0
 
 lbC006E96:          tst.w    PLAYER_ALIVE(a0)
                     bmi      void
-                    tst.w    $118(a0)
-                    beq.s    lbC006EB0
-                    subq.w   #1,$118(a0)
+                    tst.w    280(a0)
+                    beq.b    lbC006EB0
+                    subq.w   #1,280(a0)
                     move.w   #36,d0
                     bra      lbC006F64
 
@@ -4181,54 +4204,54 @@ lbC006EB0:          move.l   0(a0),a6
                     lea      joystick_directions(pc),a6
                     move.b   0(a6,d0.w),d0
                     tst.w    music_enabled
-                    beq.s    lbC006EE2
+                    beq.b    lbC006EE2
                     clr.w    d0
-lbC006EE2:          jsr      lbC006D3C
+lbC006EE2:          bsr      lbC006D3C
                     cmp.w    #9,d0
-                    bmi      lbC006EF4
+                    bmi.b    lbC006EF4
                     move.w   #0,d0
 lbC006EF4:          tst.w    d0
-                    beq.s    lbC006F18
-                    not.w    $120(a0)
-                    beq.s    lbC006F18
+                    beq.b    lbC006F18
+                    not.w    288(a0)
+                    beq.b    lbC006F18
                     move.w   d0,d2
                     move.w   PLAYER_CUR_SPRITE(a0),d1
-                    lea      lbB00A24F,a6
+                    lea      lbB00A24F(pc),a6
                     lsl.w    #3,d0
                     add.w    d1,d0
                     move.b   0(a6,d0.w),d0
                     move.w   d0,PLAYER_CUR_SPRITE(a0)
                     move.w   d2,d0
-lbC006F18:          tst.w    $112(a0)
-                    beq.s    lbC006F24
-                    add.w    #$1B,d0
-                    bra.s    lbC006F64
+lbC006F18:          tst.w    274(a0)
+                    beq.b    lbC006F24
+                    add.w    #27,d0
+                    bra.b    lbC006F64
 
-lbC006F24:          tst.w    $124(a0)
-                    beq      lbC006F38
-                    subq.w   #1,$124(a0)
-                    add.w    #$12,d0
-                    bra      lbC006F64
+lbC006F24:          tst.w    292(a0)
+                    beq.b    lbC006F38
+                    subq.w   #1,292(a0)
+                    add.w    #18,d0
+                    bra.b    lbC006F64
 
 lbC006F38:          tst.w    lbW006D3A
-                    beq      lbC006F54
+                    beq.b    lbC006F54
                     tst.w    lbW006D38
-                    beq      lbC006F64
+                    beq.b    lbC006F64
                     add.w    #9,d0
-                    bra      lbC006F64
+                    bra.b    lbC006F64
 
 lbC006F54:          move.w   6(a0),d1
-                    btst     d1,$bfe001
-                    bne.s    lbC006F64
+                    btst     d1,CIAA
+                    bne.b    lbC006F64
                     add.w    #9,d0
-lbC006F64:          move.w   d0,$128(a0)
-                    bra      lbC006FD0
+lbC006F64:          move.w   d0,296(a0)
+                    bra.b    lbC006FD0
 
 joystick_directions:
                     dc.b     0,5,4,3,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2,0,0,0,0,0
                     dc.b     0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,6
 
-lbC006FD0:          move.w   $128(a0),d0
+lbC006FD0:          move.w   296(a0),d0
                     ext.l    d0
                     add.l    d0,d0
                     add.l    d0,d0
@@ -4237,7 +4260,7 @@ lbC006FD0:          move.w   $128(a0),d0
                     clr.l    lbB006FEA
                     jmp      (a6)
 
-lbB006FEA:          dcb.b    2,0
+lbB006FEA:          dc.w     0
 lbW006FEC:          dc.w     0
 lbL006FEE:          dc.l     lbC007082
                     dc.l     lbC0070A6
@@ -4277,304 +4300,300 @@ lbL006FEE:          dc.l     lbC007082
                     dc.l     lbC007796
                     dc.l     lbC0077DC
 
-lbC007082:          move.l   $10(a0),a5
+lbC007082:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $14(a0,d0.l),a6
+                    move.l   20(a0,d0.l),a6
                     jsr      lbC011346
-                    jsr      lbC0078AC
+                    bsr      lbC0078AC
                     bra      lbC00E08A
 
-lbC0070A6:          move.l   $10(a0),a5
+lbC0070A6:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
+                    move.l   52(a0,d0.l),a6
                     jsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC00E08A
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC00E08A
 
-lbC0070DC:          move.l   $10(a0),a5
+lbC0070DC:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
+                    move.l   52(a0,d0.l),a6
                     jsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007926
                     bra      lbC00E08A
 
-lbC007102:          move.l   $10(a0),a5
+lbC007102:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
+                    move.l   52(a0,d0.l),a6
                     jsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC00E08A
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC00E08A
 
-lbC007138:          move.l   $10(a0),a5
+lbC007138:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
+                    move.l   52(a0,d0.l),a6
                     jsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC0079D6
                     bra      lbC00E08A
 
-lbC00715E:          move.l   $10(a0),a5
+lbC00715E:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
-                    jsr      lbC011346
+                    move.l   52(a0,d0.l),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC00E08A
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC00E08A
 
-lbC007194:          move.l   $10(a0),a5
+lbC007194:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
-                    jsr      lbC011346
+                    move.l   52(a0,d0.l),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007962
                     bra      lbC00E08A
 
-lbC0071BA:          move.l   $10(a0),a5
+lbC0071BA:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
-                    jsr      lbC011346
+                    move.l   52(a0,d0.l),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC00E08A
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC00E08A
 
-lbC0071F0:          move.l   $10(a0),a5
+lbC0071F0:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $34(a0,d0.l),a6
-                    jsr      lbC011346
+                    move.l   52(a0,d0.l),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC00799A
                     bra      lbC00E08A
 
-lbC007216:          tst.w    $196(a0)
-                    bne      lbC007228
-                    tst.w    $198(a0)
-                    bne      lbC007238
+lbC007216:          tst.w    406(a0)
+                    bne.b    lbC007228
+                    tst.w    408(a0)
+                    bne.b    lbC007238
                     rts
 
-lbC007228:          tst.w    $198(a0)
+lbC007228:          tst.w    408(a0)
                     bne      lbC00E08A
-                    jsr      lbC007926
-                    rts
+                    bra      lbC007926
 
-lbC007238:          tst.w    $196(a0)
+lbC007238:          tst.w    406(a0)
                     bne      lbC00E08A
-                    jsr      lbC007962
+                    bra      lbC007962
+
+lbC007248:          tst.w    410(a0)
+                    bne.b    lbC00725A
+                    tst.w    412(a0)
+                    bne.b    lbC00726A
                     rts
 
-lbC007248:          tst.w    $19A(a0)
-                    bne      lbC00725A
-                    tst.w    $19C(a0)
-                    bne      lbC00726A
-                    rts
-
-lbC00725A:          tst.w    $19C(a0)
+lbC00725A:          tst.w    412(a0)
                     bne      lbC00E08A
-                    jsr      lbC00799A
-                    rts
+                    bra      lbC00799A
 
-lbC00726A:          tst.w    $19A(a0)
+lbC00726A:          tst.w    410(a0)
                     bne      lbC00E08A
-                    jsr      lbC0079D6
-                    rts
+                    bra      lbC0079D6
 
-lbC00727A:          move.l   $10(a0),a5
+lbC00727A:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $54(a0,d0.l),a6
+                    move.l   84(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC00729A
-                    move.l   $14(a0,d0.l),a6
-lbC00729A:          jsr      lbC011346
-                    jsr      lbC0078AC
+                    bpl.b    lbC00729A
+                    move.l   20(a0,d0.l),a6
+lbC00729A:          bsr      lbC011346
+                    bsr      lbC0078AC
                     bra      lbC00E0C8
 
-lbC0072AA:          move.l   $10(a0),a5
+lbC0072AA:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC0072CA
-                    move.l   $34(a0,d0.l),a6
-lbC0072CA:          jsr      lbC011346
+                    bpl.b    lbC0072CA
+                    move.l   52(a0,d0.l),a6
+lbC0072CA:          bsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC00E0C8
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC00E0C8
 
-lbC0072EC:          move.l   $10(a0),a5
+lbC0072EC:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC00730C
-                    move.l   $34(a0,d0.l),a6
-lbC00730C:          jsr      lbC011346
+                    bpl.b    lbC00730C
+                    move.l   52(a0,d0.l),a6
+lbC00730C:          bsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007926
                     bra      lbC00E0C8
 
-lbC00731E:          move.l   $10(a0),a5
+lbC00731E:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC00733E
-                    move.l   $34(a0,d0.l),a6
-lbC00733E:          jsr      lbC011346
+                    bpl.b    lbC00733E
+                    move.l   52(a0,d0.l),a6
+lbC00733E:          bsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC00E0C8
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC00E0C8
 
-lbC007360:          move.l   $10(a0),a5
+lbC007360:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC007380
-                    move.l   $34(a0,d0.l),a6
-lbC007380:          jsr      lbC011346
+                    bpl.b    lbC007380
+                    move.l   52(a0,d0.l),a6
+lbC007380:          bsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC0079D6
                     bra      lbC00E0C8
 
-lbC007392:          move.l   $10(a0),a5
+lbC007392:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC0073B2
-                    move.l   $34(a0,d0.l),a6
-lbC0073B2:          jsr      lbC011346
+                    bpl.b    lbC0073B2
+                    move.l   52(a0,d0.l),a6
+lbC0073B2:          bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC00E0C8
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC00E0C8
 
-lbC0073D4:          move.l   $10(a0),a5
+lbC0073D4:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC0073F4
-                    move.l   $34(a0,d0.l),a6
-lbC0073F4:          jsr      lbC011346
+                    bpl.b    lbC0073F4
+                    move.l   52(a0,d0.l),a6
+lbC0073F4:          bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007962
                     bra      lbC00E0C8
 
-lbC007406:          move.l   $10(a0),a5
+lbC007406:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC007426
-                    move.l   $34(a0,d0.l),a6
-lbC007426:          jsr      lbC011346
+                    bpl.b    lbC007426
+                    move.l   52(a0,d0.l),a6
+lbC007426:          bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC00E0C8
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC00E0C8
 
-lbC007448:          move.l   $10(a0),a5
+lbC007448:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    move.l   $74(a0,d0.l),a6
+                    move.l   116(a0,d0.l),a6
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC007468
-                    move.l   $34(a0,d0.l),a6
-lbC007468:          jsr      lbC011346
+                    bpl.b    lbC007468
+                    move.l   52(a0,d0.l),a6
+lbC007468:          bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC00799A
                     bra      lbC00E0C8
 
-lbC00747A:          move.l   $10(a0),a5
+lbC00747A:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4582,12 +4601,12 @@ lbC00747A:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
-                    jsr      lbC0078AC
+                    move.l   148(a6),a6
+                    bsr      lbC011346
+                    bsr      lbC0078AC
                     bra      lbC007632
 
-lbC0074A2:          move.l   $10(a0),a5
+lbC0074A2:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4595,16 +4614,16 @@ lbC0074A2:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC007632
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC007632
 
-lbC0074DC:          move.l   $10(a0),a5
+lbC0074DC:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4612,13 +4631,13 @@ lbC0074DC:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007926
                     bra      lbC007632
 
-lbC007506:          move.l   $10(a0),a5
+lbC007506:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4626,16 +4645,16 @@ lbC007506:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC007632
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC007632
 
-lbC007540:          move.l   $10(a0),a5
+lbC007540:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4643,13 +4662,13 @@ lbC007540:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC0079D6
                     bra      lbC007632
 
-lbC00756A:          move.l   $10(a0),a5
+lbC00756A:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4657,16 +4676,16 @@ lbC00756A:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007216
                     tst.w    lbW006FEC
                     bne      lbC007632
-                    jsr      lbC0078F0
+                    bsr      lbC0078F0
                     bra      lbC007632
 
-lbC0075A4:          move.l   $10(a0),a5
+lbC0075A4:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4674,13 +4693,13 @@ lbC0075A4:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007962
                     bra      lbC007632
 
-lbC0075CE:          move.l   $10(a0),a5
+lbC0075CE:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4688,16 +4707,16 @@ lbC0075CE:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC007248
                     tst.w    lbB006FEA
                     bne      lbC007632
-                    jsr      lbC0078B6
+                    bsr      lbC0078B6
                     bra      lbC007632
 
-lbC007608:          move.l   $10(a0),a5
+lbC007608:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4705,23 +4724,22 @@ lbC007608:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $94(a6),a6
-                    jsr      lbC011346
+                    move.l   148(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC00799A
-                    bra      lbC007632
-
-lbC007632:          tst.w    $186(a0)
-                    bne.s    lbC007650
+                    ; no rts
+lbC007632:          tst.w    390(a0)
+                    bne.b    lbC007650
                     move.w   #33,sample_to_play
                     jsr      trigger_sample
-                    move.w   #10,$186(a0)
+                    move.w   #10,390(a0)
                     bra      lbC00E08A
 
-lbC007650:          subq.w   #1,$186(a0)
+lbC007650:          subq.w   #1,390(a0)
                     bra      lbC00E08A
 
-lbC007658:          move.l   $10(a0),a5
+lbC007658:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4729,12 +4747,12 @@ lbC007658:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
-                    jsr      lbC0078AC
+                    move.l   212(a6),a6
+                    bsr      lbC011346
+                    bsr      lbC0078AC
                     bra      lbC0077C0
 
-lbC007680:          move.l   $10(a0),a5
+lbC007680:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4742,12 +4760,12 @@ lbC007680:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC00799A
                     bra      lbC0077C0
 
-lbC0076A6:          move.l   $10(a0),a5
+lbC0076A6:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4755,13 +4773,13 @@ lbC0076A6:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC00799A
                     bsr      lbC007926
                     bra      lbC0077C0
 
-lbC0076D0:          move.l   $10(a0),a5
+lbC0076D0:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4769,12 +4787,12 @@ lbC0076D0:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007926
                     bra      lbC0077C0
 
-lbC0076F6:          move.l   $10(a0),a5
+lbC0076F6:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4782,13 +4800,13 @@ lbC0076F6:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007926
                     bsr      lbC0079D6
                     bra      lbC0077C0
 
-lbC007720:          move.l   $10(a0),a5
+lbC007720:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4796,12 +4814,12 @@ lbC007720:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bra      lbC0077C0
 
-lbC007746:          move.l   $10(a0),a5
+lbC007746:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4809,13 +4827,13 @@ lbC007746:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC0079D6
                     bsr      lbC007962
                     bra      lbC0077C0
 
-lbC007770:          move.l   $10(a0),a5
+lbC007770:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4823,12 +4841,12 @@ lbC007770:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bra      lbC0077C0
 
-lbC007796:          move.l   $10(a0),a5
+lbC007796:          move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4836,38 +4854,38 @@ lbC007796:          move.l   $10(a0),a5
                     add.w    d0,d0
                     move.l   a0,a6
                     add.l    d0,a6
-                    move.l   $D4(a6),a6
-                    jsr      lbC011346
+                    move.l   212(a6),a6
+                    bsr      lbC011346
                     bsr      lbC007962
                     bsr      lbC00799A
                     bra      lbC0077C0
 
 lbC0077C0:          move.w   #64,PLAYER_HEALTH(a0)
-                    tst.w    $114(a0)
-                    beq.s    lbC0077D4
-                    subq.w   #1,$114(a0)
+                    tst.w    276(a0)
+                    beq.b    lbC0077D4
+                    subq.w   #1,276(a0)
                     bra      lbC00E08A
 
-lbC0077D4:          clr.w    $112(a0)
+lbC0077D4:          clr.w    274(a0)
                     bra      lbC00E08A
 
-lbC0077DC:          cmp.w    #199,$118(a0)
-                    bne.s    lbC0077F2
+lbC0077DC:          cmp.w    #199,280(a0)
+                    bne.b    lbC0077F2
                     move.w   #73,sample_to_play
                     jsr      trigger_sample
-lbC0077F2:          jsr      lbC0078AC
-                    move.w   $118(a0),d0
+lbC0077F2:          bsr      lbC0078AC
+                    move.w   280(a0),d0
                     cmp.w    #140,d0
-                    bpl.s    lbC00780C
+                    bpl.b    lbC00780C
                     cmp.w    #130,d0
-                    bpl.s    lbC007854
+                    bpl.b    lbC007854
                     bra      lbC00788E
 
-lbC00780C:          addq.w   #1,$11C(a0)
-                    cmp.w    #3,$11C(a0)
+lbC00780C:          addq.w   #1,284(a0)
+                    cmp.w    #3,284(a0)
                     bmi      lbC00E08A
-                    clr.w    $11C(a0)
-                    move.l   $10(a0),a5
+                    clr.w    284(a0)
+                    move.l   16(a0),a5
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     ext.l    d0
                     subq.w   #1,d0
@@ -4875,139 +4893,135 @@ lbC00780C:          addq.w   #1,$11C(a0)
                     add.w    d0,d0
                     move.l   a0,a6
                     add.w    d0,a6
-                    move.l   $B4(a6),a6
-                    jsr      lbC011346
+                    move.l   180(a6),a6
+                    bsr      lbC011346
                     move.w   PLAYER_CUR_SPRITE(a0),d0
                     addq.w   #1,d0
                     cmp.w    #8,d0
-                    bmi.s    lbC00784C
+                    bmi.b    lbC00784C
                     move.w   #1,d0
 lbC00784C:          move.w   d0,PLAYER_CUR_SPRITE(a0)
                     bra      lbC00E08A
 
-lbC007854:          cmp.w    #$8B,d0
-                    bne.s    lbC00787A
+lbC007854:          cmp.w    #139,d0
+                    bne.b    lbC00787A
                     subq.w   #1,PLAYER_LIVES(a0)
                     tst.w    PLAYER_LIVES(a0)
-                    bne.s    lbC00787A
-                    move.l   $10(a0),a5
+                    bne.b    lbC00787A
+                    move.l   16(a0),a5
                     lea      lbL0146A2,a6
-                    jsr      lbC011346
-                    jmp      lbC006C28
+                    bsr      lbC011346
+                    bra      lbC006C28
 
-lbC00787A:          move.l   $10(a0),a5
+lbC00787A:          move.l   16(a0),a5
                     lea      lbL0146A2,a6
-                    jsr      lbC011346
+                    bsr      lbC011346
                     bra      lbC00E08A
 
-lbC00788E:          move.w   #$40,PLAYER_HEALTH(a0)
-                    clr.w    $124(a0)
-                    move.w   #1,$112(a0)
-                    move.w   #$32,$114(a0)
-                    clr.w    $118(a0)
+lbC00788E:          move.w   #64,PLAYER_HEALTH(a0)
+                    clr.w    292(a0)
+                    move.w   #1,274(a0)
+                    move.w   #50,276(a0)
+                    clr.w    280(a0)
                     bra      lbC00E08A
 
 lbC0078AC:          bsr      lbC0078B6
-                    bsr      lbC0078F0
-                    rts
+                    bra      lbC0078F0
 
-lbC0078B6:          move.w   lbW0035D2,d0
-                    add.w    #$14,d0
+lbC0078B6:          move.w   lbW0035D2(pc),d0
+                    add.w    #20,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bpl      void
-                    move.w   lbW0035D2,d0
-                    add.w    #$DA,d0
+                    move.w   lbW0035D2(pc),d0
+                    add.w    #218,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bmi      void
                     move.w   PLAYER_EXTRA_SPD_Y(a0),d0
-                    move.l   $10(a0),a6
+                    move.l   16(a0),a6
                     add.w    d0,-2(a6)
                     move.w   #1,lbB006FEA
                     rts
 
 lbC0078F0:          move.w   lbW0035D6,d0
-                    add.w    #$100,d0
+                    add.w    #256,d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bmi      void
-                    move.w   lbW0035D6,d0
+                    move.w   lbW0035D6(pc),d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bpl      void
                     move.w   PLAYER_EXTRA_SPD_X(a0),d0
-                    move.l   $10(a0),a6
+                    move.l   16(a0),a6
                     add.w    d0,-4(a6)
                     move.w   #1,lbW006FEC
                     rts
 
-lbC007926:          tst.w    $116(a0)
+lbC007926:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D6,d0
-                    add.w    #$100,d0
+                    move.w   lbW0035D6(pc),d0
+                    add.w    #256,d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bmi      void
-                    move.w   $134(a0),d0
-                    beq.s    lbC00794A
+                    move.w   308(a0),d0
+                    beq.b    lbC00794A
                     add.w    PLAYER_EXTRA_SPD_X(a0),d0
-lbC00794A:          move.l   $10(a0),a6
+lbC00794A:          move.l   16(a0),a6
                     add.w    d0,-4(a6)
-                    move.w   #1,$144(a0)
+                    move.w   #1,324(a0)
                     move.w   #1,lbW006FEC
                     rts
 
-lbC007962:          tst.w    $116(a0)
+lbC007962:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D6,d0
+                    move.w   lbW0035D6(pc),d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bpl      void
-                    move.w   $134(a0),d0
-                    beq.s    lbC007982
+                    move.w   308(a0),d0
+                    beq.b    lbC007982
                     sub.w    PLAYER_EXTRA_SPD_X(a0),d0
-lbC007982:          move.l   $10(a0),a6
+lbC007982:          move.l   16(a0),a6
                     sub.w    d0,-4(a6)
-                    move.w   #$100,$144(a0)
+                    move.w   #256,324(a0)
                     move.w   #1,lbW006FEC
                     rts
 
-lbC00799A:          tst.w    $116(a0)
+lbC00799A:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D2,d0
-                    add.w    #$14,d0
+                    move.w   lbW0035D2(pc),d0
+                    add.w    #20,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bpl      void
-                    move.w   $138(a0),d0
-                    beq.s    lbC0079BE
+                    move.w   312(a0),d0
+                    beq.b    lbC0079BE
                     sub.w    PLAYER_EXTRA_SPD_Y(a0),d0
-lbC0079BE:          move.l   $10(a0),a6
+lbC0079BE:          move.l   16(a0),a6
                     sub.w    d0,-2(a6)
-                    move.w   #$100,$146(a0)
+                    move.w   #256,326(a0)
                     move.w   #1,lbB006FEA
                     rts
 
-lbC0079D6:          tst.w    $116(a0)
+lbC0079D6:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D2,d0
-                    add.w    #$DA,d0
+                    move.w   lbW0035D2(pc),d0
+                    add.w    #218,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bmi      void
-                    move.w   $138(a0),d0
-                    beq.s    lbC0079FA
+                    move.w   312(a0),d0
+                    beq.b    lbC0079FA
                     add.w    PLAYER_EXTRA_SPD_Y(a0),d0
-lbC0079FA:          move.l   $10(a0),a6
+lbC0079FA:          move.l   16(a0),a6
                     add.w    d0,-2(a6)
-                    move.w   #$10,$146(a0)
+                    move.w   #16,326(a0)
                     move.w   #1,lbB006FEA
                     rts
 
-lbC007A12:          jsr      lbC007A20
-                    rts
-
-lbC007A20:          lea      player_1_dats,a1
-                    lea      player_2_dats,a2
-                    move.l   $10(a1),a3
-                    move.l   $10(a2),a4
+lbC007A20:          lea      player_1_dats(pc),a1
+                    lea      player_2_dats(pc),a2
+                    move.l   16(a1),a3
+                    move.l   16(a2),a4
                     tst.w    PLAYER_ALIVE(a1)
                     bmi      lbC007AA4
                     tst.w    PLAYER_ALIVE(a2)
-                    bmi.s    lbC007A98
+                    bmi.b    lbC007A98
                     move.w   -4(a3),d0
                     move.w   -2(a3),d1
                     addq.w   #8,d0
@@ -5025,23 +5039,23 @@ lbC007A20:          lea      player_1_dats,a1
                     add.w    #16,d6
                     add.w    #16,d7
                     cmp.w    d0,d6
-                    bmi.s    lbC007A98
+                    bmi.b    lbC007A98
                     cmp.w    d1,d7
-                    bmi.s    lbC007A98
+                    bmi.b    lbC007A98
                     cmp.w    d4,d2
-                    bmi.s    lbC007A98
+                    bmi.b    lbC007A98
                     cmp.w    d5,d3
-                    bmi.s    lbC007A98
+                    bmi.b    lbC007A98
                     move.w   PLAYER_POS_X(a1),-4(a3)
                     move.w   PLAYER_POS_Y(a1),-2(a3)
-                    bra.s    lbC007AA4
+                    bra.b    lbC007AA4
 
 lbC007A98:          move.w   -4(a3),PLAYER_POS_X(a1)
                     move.w   -2(a3),PLAYER_POS_Y(a1)
 lbC007AA4:          tst.w    PLAYER_ALIVE(a2)
                     bmi      void
                     tst.w    PLAYER_ALIVE(a1)
-                    bmi.s    lbC007B08
+                    bmi.b    lbC007B08
                     move.w   -4(a4),d0
                     move.w   -2(a4),d1
                     addq.w   #8,d0
@@ -5059,13 +5073,13 @@ lbC007AA4:          tst.w    PLAYER_ALIVE(a2)
                     add.w    #16,d6
                     add.w    #16,d7
                     cmp.w    d0,d6
-                    bmi.s    lbC007B08
+                    bmi.b    lbC007B08
                     cmp.w    d1,d7
-                    bmi.s    lbC007B08
+                    bmi.b    lbC007B08
                     cmp.w    d4,d2
-                    bmi.s    lbC007B08
+                    bmi.b    lbC007B08
                     cmp.w    d5,d3
-                    bmi.s    lbC007B08
+                    bmi.b    lbC007B08
                     move.w   PLAYER_POS_X(a2),-4(a4)
                     move.w   PLAYER_POS_Y(a2),-2(a4)
                     rts
@@ -5084,31 +5098,31 @@ lbW007B4A:          dc.w     0
 
 lbC007B4C:          tst.w    PLAYER_ALIVE(a0)
                     bmi      void
-                    clr.w    $174(a0)
+                    clr.w    372(a0)
                     clr.w    PLAYER_EXTRA_SPD_X(a0)
                     clr.w    PLAYER_EXTRA_SPD_Y(a0)
-                    not.w    $148(a0)
-                    bne.s    lbC007B7E
-                    move.w   #2,$134(a0)
-                    clr.l    $19A(a0)
-                    tst.b    $144(a0)
-                    bne.s    lbC007B78
+                    not.w    328(a0)
+                    bne.b    lbC007B7E
+                    move.w   #2,308(a0)
+                    clr.l    410(a0)
+                    tst.b    324(a0)
+                    bne.b    lbC007B78
                     lea      lbW007B22(pc),a4
-                    bra.s    lbC007B98
+                    bra.b    lbC007B98
 
 lbC007B78:          lea      lbW007B16(pc),a4
-                    bra.s    lbC007B98
+                    bra.b    lbC007B98
 
-lbC007B7E:          move.w   #2,$138(a0)
-                    clr.l    $196(a0)
-                    tst.b    $146(a0)
-                    bne.s    lbC007B94
+lbC007B7E:          move.w   #2,312(a0)
+                    clr.l    406(a0)
+                    tst.b    326(a0)
+                    bne.b    lbC007B94
                     lea      lbW007B3A(pc),a4
-                    bra.s    lbC007B98
+                    bra.b    lbC007B98
 
 lbC007B94:          lea      lbW007B2E(pc),a4
-lbC007B98:          clr.l    d0
-                    clr.l    d1
+lbC007B98:          moveq    #0,d0
+                    moveq    #0,d1
                     lea      tiles_action_table(pc),a5
                     lea      map_lines_table+4(pc),a6
                     clr.w    lbW007B46
@@ -5186,7 +5200,7 @@ lbC007B98:          clr.l    d0
                     add.w    d0,d0
                     jsr      0(a5,d0.w)
                     movem.l  (sp)+,d0/a0
-                    move.w   d0,$170(a0)
+                    move.w   d0,368(a0)
                     rts
 
 tiles_action_table: bra.w    tile_not_used
@@ -5256,61 +5270,61 @@ tiles_action_table: bra.w    tile_not_used
 
 tile_not_used:      rts
 
-lbC007D98:          cmp.l    #$300,lbL000572
+lbC007D98:          cmp.l    #768,lbL000572
                     bne      void
                     tst.w    lbW007B46
                     beq      void
                     lea      lbL0209E2,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 tile_wall:          tst.w    pass_thru_walls
                     bne      void
-                    tst.w    $148(a0)
+                    tst.w    328(a0)
                     bne      lbC007E02
-                    clr.w    $134(a0)
+                    clr.w    308(a0)
                     cmp.w    #1,lbW007B48
-                    beq.s    lbC007DF2
+                    beq.b    lbC007DF2
                     cmp.w    #1,lbW007B4A
-                    beq.s    lbC007DF2
+                    beq.b    lbC007DF2
                     cmp.w    #3,lbW007B4A
-                    beq.s    lbC007DFA
+                    beq.b    lbC007DFA
                     rts
 
-lbC007DF2:          move.w   #1,$19C(a0)
+lbC007DF2:          move.w   #1,412(a0)
                     rts
 
-lbC007DFA:          move.w   #1,$19A(a0)
+lbC007DFA:          move.w   #1,410(a0)
                     rts
 
-lbC007E02:          clr.w    $138(a0)
+lbC007E02:          clr.w    312(a0)
                     cmp.w    #1,lbW007B48
-                    beq.s    lbC007E26
+                    beq.b    lbC007E26
                     cmp.w    #1,lbW007B4A
-                    beq.s    lbC007E26
+                    beq.b    lbC007E26
                     cmp.w    #3,lbW007B4A
-                    beq.s    lbC007E2E
+                    beq.b    lbC007E2E
                     rts
 
-lbC007E26:          move.w   #1,$196(a0)
+lbC007E26:          move.w   #1,406(a0)
                     rts
 
-lbC007E2E:          move.w   #1,$198(a0)
+lbC007E2E:          move.w   #1,408(a0)
                     rts
 
 lbC007E36:          movem.w  d6/d7,-(sp)
                     move.w   PLAYER_OLD_POS_X(a0),d6
                     move.w   PLAYER_OLD_POS_Y(a0),d7
                     sub.w    PLAYER_POS_X(a0),d6
-                    bpl.s    lbC007E4A
+                    bpl.b    lbC007E4A
                     neg.w    d6
-lbC007E4A:          cmp.w    #$20,d6
-                    bpl.s    lbC007E62
+lbC007E4A:          cmp.w    #32,d6
+                    bpl.b    lbC007E62
                     sub.w    PLAYER_POS_Y(a0),d7
-                    bpl.s    lbC007E58
+                    bpl.b    lbC007E58
                     neg.w    d7
-lbC007E58:          cmp.w    #$20,d7
-                    bpl.s    lbC007E62
-                    bra      lbC007E70
+lbC007E58:          cmp.w    #32,d7
+                    bpl.b    lbC007E62
+                    bra.b    lbC007E70
 
 lbC007E62:          move.w   #SAMPLE_ACID_POOL,sample_to_play
                     jsr      trigger_sample
@@ -5323,23 +5337,23 @@ exit_unlocked:      dc.w     0
 
 tile_exit:          tst.w    lbW007B46
                     beq      void
-                    move.w   #1,$174(a0)
+                    move.w   #1,372(a0)
                     tst.w    exit_unlocked
-                    bne.s    lbC007EA6
+                    bne.b    lbC007EA6
                     tst.w    lbW00057A
                     beq      void
 lbC007EA6:          cmp.l    #player_1_dats,a0
-                    beq.s    lbC007EC4
+                    beq.b    lbC007EC4
                     cmp.w    #-1,player_1_alive
-                    beq.s    lbC007EDA
+                    beq.b    lbC007EDA
                     cmp.w    #1,lbW005DC0
-                    beq.s    lbC007EDA
+                    beq.b    lbC007EDA
                     rts
 
 lbC007EC4:          cmp.w    #-1,player_2_alive
-                    beq.s    lbC007EDA
+                    beq.b    lbC007EDA
                     cmp.w    #1,lbW006560
-                    beq.s    lbC007EDA
+                    beq.b    lbC007EDA
                     rts
 
 lbC007EDA:          move.w   #1,flag_end_level
@@ -5348,17 +5362,17 @@ lbC007EDA:          move.w   #1,flag_end_level
 tile_door:          tst.w    lbW007B48
                     beq      void
                     tst.w    pass_thru_walls
-                    bne.s    key_cheat
+                    bne.b    key_cheat
                     tst.w    infinite_keys
-                    bne.s    key_cheat
+                    bne.b    key_cheat
                     tst.w    PLAYER_KEYS(a0)
-                    bhi.s    force_door
+                    bhi.b    force_door
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
                     move.w   #63,lbW02314E
                     move.w   #65,lbW02313A
                     cmp.l    #player_1_dats,a0
-                    beq.s    lbC007F30
+                    beq.b    lbC007F30
                     move.w   #66,lbW02313A
 lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
                     bra      tile_wall
@@ -5366,9 +5380,9 @@ lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
 key_cheat:          move.w   #0,PLAYER_KEYS(a0)
 
 force_door:         movem.l  d6/d7/a4-a6,-(sp)
-                    bsr.s    open_door
+                    bsr.b    open_door
                     tst.w    flag_opened_door
-                    beq.s    door_not_opened
+                    beq.b    door_not_opened
                     move.w   #23,sample_to_play
                     jsr      trigger_sample
 door_not_opened:    movem.l  (sp)+,d6/d7/a4-a6
@@ -5379,7 +5393,7 @@ flag_opened_door:   dc.w     0
 open_door:          clr.w    flag_opened_door
                   
                     ; check 4 adjacents tiles
-                    move.l   old_map_pos,a4
+                    move.l   old_map_pos(pc),a4
                     cmp.l    a4,a3
                     beq      void
                     sub.l    #248,a4
@@ -5400,42 +5414,42 @@ open_door:          clr.w    flag_opened_door
                     move.w   2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #TILE_DOOR,d0
-                    bne.s    door_on_right
+                    bne.b    door_on_right
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq DEBUG
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
                     endif
                     move.l   #lbL020CFE,a2
                     and.w    #$FFC0,(a3)
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 door_on_right:      move.w   -2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #TILE_DOOR,d0
-                    bne.s    door_on_left
+                    bne.b    door_on_left
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq DEBUG
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
                     endif
                     move.l   #lbL020CFE,a2
                     subq.l   #2,a3
                     and.w    #$FFC0,(a3)
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 door_on_left:       move.w   248(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #TILE_DOOR,d0
-                    bne.s    door_below
+                    bne.b    door_below
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq DEBUG
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
                     endif
-                    move.l   #lbL020D32,a2
+                    lea      lbL020D32,a2
                     and.w    #$FFC0,(a3)
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 door_below:         move.w   -248(a3),d0
                     and.w    #$3F,d0
@@ -5443,22 +5457,22 @@ door_below:         move.w   -248(a3),d0
                     bne      void
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq DEBUG
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
                     endif
                     sub.l    #248,a3
-                    move.l   #lbL020D32,a2
+                    lea      lbL020D32,a2
                     and.w    #$FFC0,(a3)
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 old_map_pos:        dc.l     0
 
 tile_key:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
-                    move.l   #lbL020EFE,a2
-                    jsr      patch_tiles                        ; possibly changing the tile's gfx
+                    lea      lbL020EFE,a2
+                    bsr      patch_tiles                        ; possibly changing the tile's gfx
                     tst.w    lbW00AD50
-                    beq      lbC008078
+                    beq.b    lbC008078
                     and.w    #$FFC0,(a3)                        ; change the property of the tile to "floor"
                     move.w   #SAMPLE_KEY,sample_to_play
                     jsr      trigger_sample
@@ -5470,16 +5484,16 @@ tile_first_aid:     movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
                     move.w   PLAYER_HEALTH(a0),d0
                     cmp.w    #64,d0
-                    bpl      lbC0080A0
+                    bpl.b    .max
                     add.w    #20,d0
-                    cmp.w    #$41,d0
-                    bmi.s    lbC0080A0
+                    cmp.w    #65,d0
+                    bmi.b    .max
                     move.w   #64,d0
-lbC0080A0:          move.w   d0,PLAYER_HEALTH(a0)
-                    move.l   #lbL020ED2,a2
-                    jsr      patch_tiles
+.max:               move.w   d0,PLAYER_HEALTH(a0)
+                    lea      lbL020ED2,a2
+                    bsr      patch_tiles
                     tst.w    lbW00AD50
-                    beq      lbC0080CC
+                    beq.b    lbC0080CC
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
                     jsr      trigger_sample
@@ -5491,12 +5505,12 @@ tile_ammo:          movem.l  d0-d7/a0-a6,-(sp)
                     move.w   #32,PLAYER_AMMUNITIONS(a0)
                     addq.w   #1,PLAYER_AMMOPACKS(a0)
                     cmp.w    #4,PLAYER_AMMOPACKS(a0)
-                    bmi.s    lbC0080F2
+                    bmi.b    .max
                     move.w   #4,PLAYER_AMMOPACKS(a0)
-lbC0080F2:          move.l   #lbL020F2A,a2
-                    jsr      patch_tiles
+.max:               lea      lbL020F2A,a2
+                    bsr      patch_tiles
                     tst.w    lbW00AD50
-                    beq      lbC00811A
+                    beq.b    lbC00811A
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_AMMO,sample_to_play
                     jsr      trigger_sample
@@ -5505,10 +5519,10 @@ lbC00811A:          movem.l  (sp)+,d0-d7/a0-a6
 
 tile_1up:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
-                    move.l   #lbL020EA6,a2
-                    jsr      patch_tiles
+                    lea      lbL020EA6,a2
+                    bsr      patch_tiles
                     tst.w    lbW00AD50
-                    beq      lbC008154
+                    beq.b    lbC008154
                     and.w    #$FFC0,(a3)
                     addq.w   #1,PLAYER_LIVES(a0)
                     move.w   #SAMPLE_1UP,sample_to_play
@@ -5521,9 +5535,9 @@ tile_add_100_credits:
                     bsr      lbC00D144
                     add.l    #5000,PLAYER_CREDITS(a0)
                     move.l   #lbL020F56,a2
-                    jsr      patch_tiles
+                    bsr      patch_tiles
                     tst.w    lbW00AD50
-                    beq      lbC008192
+                    beq.b    lbC008192
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
                     jsr      trigger_sample
@@ -5535,9 +5549,9 @@ tile_add_1000_credits:
                     bsr      lbC00D144
                     add.l    #50000,PLAYER_CREDITS(a0)
                     move.l   #lbL020F82,a2
-                    jsr      patch_tiles
+                    bsr      patch_tiles
                     tst.w    lbW00AD50
-                    beq      lbC0081D0
+                    beq.b    lbC0081D0
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
                     jsr      trigger_sample
@@ -5549,56 +5563,54 @@ tile_facehuggers_hatch:
                     bne      void
                     tst.w    lbW007B46
                     beq      void
-                    move.l   lbL000572,d0
-                    cmp.w    #0,d0
-                    beq      lbC0082C0
-                    cmp.w    #$100,d0
-                    beq      lbC0082CE
-                    cmp.w    #$400,d0
+                    move.l   lbL000572(pc),d0
+                    tst.w    d0
+                    beq.b    lbC0082C0
+                    cmp.w    #256,d0
+                    beq.b    lbC0082CE
+                    cmp.w    #1024,d0
                     beq      lbC008302
                     rts
 
 lbC0082C0:          move.l   #lbW008F94,lbL00D226
-                    bra      lbC0082D8
+                    bra.b    lbC0082D8
 
 lbC0082CE:          move.l   #lbW009094,lbL00D226
 lbC0082D8:          move.l   a0,-(sp)
-                    lea      lbL00D29A,a0
-                    jsr      lbC00D22A
+                    lea      lbL00D29A(pc),a0
+                    bsr      lbC00D22A
                     move.l   (sp)+,a0
                     move.w   #36,sample_to_play
                     jsr      trigger_sample
                     lea      lbL0200F2,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 lbC008302:          move.l   #lbW009414,lbL00D226
                     move.l   a0,-(sp)
-                    lea      lbL00D29A,a0
-                    jsr      lbC00D22A
+                    lea      lbL00D29A(pc),a0
+                    bsr      lbC00D22A
                     move.l   (sp)+,a0
                     move.w   #36,sample_to_play
                     jsr      trigger_sample
                     lea      lbL020BF6,a2
-                    jmp      patch_tiles
+                    bra      patch_tiles
 
 tile_one_way_up:    tst.w    pass_thru_walls
                     bne      return
                     tst.w    lbW007B46
                     beq      void
                     move.w   #-2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_one_way_right: tst.w    pass_thru_walls
                     bne      return
                     tst.w    lbW007B46
                     beq      void
                     move.w   #2,PLAYER_EXTRA_SPD_X(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_hard_climb_right:
-                    tst.w    $118(a0)
+                    tst.w    280(a0)
                     beq      tile_wall
                     move.w   #2,PLAYER_EXTRA_SPD_X(a0)
                     rts
@@ -5608,18 +5620,16 @@ tile_one_way_down:  tst.w    pass_thru_walls
                     tst.w    lbW007B46
                     beq      void
                     move.w   #2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_one_way_left:  tst.w    pass_thru_walls
                     bne      return
                     tst.w    lbW007B46
                     beq      void
                     move.w   #-2,PLAYER_EXTRA_SPD_X(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
-tile_deadly_hole:   tst.w    $112(a0)
+tile_deadly_hole:   tst.w    274(a0)
                     bne      void
                     tst.w    lbW007B46
                     beq      void
@@ -5630,7 +5640,7 @@ lbC0083DE:          move.w   #1,self_destruct_initiated
                     move.w   #1,lbW0004D8
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL0201EE,a2
-                    jsr      patch_tiles
+                    bsr      patch_tiles
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
@@ -5638,7 +5648,7 @@ tile_start_destruction:
                     cmp.b    #2,timer_digit_lo
                     beq      lbC0083DE
                     cmp.w    #4,boss_nbr
-                    beq.s    lbC008424
+                    beq.b    lbC008424
                     tst.w    lbW0004EA
                     bne      void
 lbC008424:          move.w   #1,lbW0004D8
@@ -5649,7 +5659,7 @@ lbC008424:          move.w   #1,lbW0004D8
                     and.w    #$FFC0,lbW062460
                     bra      tile_wall
 
-tile_acid_pool:     tst.w    $112(a0)
+tile_acid_pool:     tst.w    274(a0)
                     bne      void
                     tst.w    lbW007B46
                     beq      void
@@ -5658,27 +5668,26 @@ tile_acid_pool:     tst.w    $112(a0)
                     subq.w   #1,PLAYER_HEALTH(a0)
                     subq.w   #1,lbW0084C4
                     bpl      void
-                    move.w   #$19,lbW0084C4
+                    move.w   #25,lbW0084C4
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.w   #SAMPLE_ACID_POOL,sample_to_play
                     jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
-                    cmp.l    #$400,lbL000572
+                    cmp.l    #1024,lbL000572
                     beq      void
-                    move.l   #35,d0
-                    move.l   #0,d2
-                    jsr      trigger_sample_select_channel
-                    rts
+                    moveq    #35,d0
+                    moveq    #0,d2
+                    jmp      trigger_sample_select_channel
 
 lbW0084C4:          dc.w     0
 
 tile_intex_terminal:
                     cmp.b    #KEY_SPACE,key_pressed
-                    beq      lbC00851E
+                    beq.b    lbC00851E
                     btst     #7,player_2_input
-                    bne      lbC00851E
+                    bne.b    lbC00851E
                     btst     #7,player_1_input
-                    bne      lbC00851E
+                    bne.b    lbC00851E
                     cmp.b    #KEY_SPACE,key_pressed
                     bne      void
 lbC00851E:          clr.w    lbW00853C
@@ -5706,40 +5715,40 @@ lbC00853E:          tst.w    lbW007B46
                     bsr      lbC00AE2E
                     lea      lbL01F076,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
+                    bsr      lbC00AED8
                     move.l   (sp)+,a3
                     addq.l   #2,a3
                     move.l   a3,-(sp)
                     bsr      lbC00AE2E
                     lea      lbL01F3C2,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
+                    bsr      lbC00AED8
                     move.l   (sp)+,a3
                     addq.l   #2,a3
                     move.l   a3,-(sp)
                     bsr      lbC00AE2E
                     lea      lbL01F70E,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
+                    bsr      lbC00AED8
                     move.l   (sp)+,a3
                     addq.l   #2,a3
                     move.l   a3,-(sp)
                     bsr      lbC00AE2E
                     lea      lbL01FA5A,a1
                     bsr      lbC00AF10
-                    jsr      lbC00AED8
+                    bsr      lbC00AED8
                     move.l   (sp)+,a3
                     addq.l   #2,a3
                     bsr      lbC00AE2E
                     lea      lbL01FDA6,a1
                     bsr      lbC00AF10
-                    jmp      lbC00AED8
+                    bra      lbC00AED8
 
 tile_one_deadly_way_right:
                     tst.w    lbW007B46
-                    beq      lbC008614
+                    beq.b    lbC008614
                     move.w   #2,PLAYER_EXTRA_SPD_X(a0)
-lbC008614:          tst.w    $148(a0)
+lbC008614:          tst.w    328(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
@@ -5753,7 +5762,7 @@ lbC008614:          tst.w    $148(a0)
 
 tile_one_deadly_way_left:
                     tst.w    lbW007B46
-                    beq      lbC008654
+                    beq.b    lbC008654
                     move.w   #-2,PLAYER_EXTRA_SPD_X(a0)
 lbC008654:          tst.w    $148(a0)
                     bne      void
@@ -5805,111 +5814,110 @@ boss_nbr_4:         tst.w    lbW0004D8
                     bne      lbC00885C
                     move.w   #1,lbW0004EE
                     bsr      lbC00D2BA
-                    lea      lbW008C9C,a0
-                    move.l   #lbW0256B4,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    lea      lbW008C9C(pc),a0
+                    move.l   #lbW0256B4,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW06188C,a3
-                    jsr      patch_boss_door
-                    lea      lbW008CF6,a0
-                    move.l   #lbW0256D8,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008CF6(pc),a0
+                    move.l   #lbW0256D8,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW061AFC,a3
-                    jsr      patch_boss_door
-                    lea      lbW008D50,a0
-                    move.l   #lbW0256FC,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008D50(pc),a0
+                    move.l   #lbW0256FC,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW061D6C,a3
-                    jsr      patch_boss_door
-                    lea      lbW008DAA,a0
-                    move.l   #lbW025720,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008DAA(pc),a0
+                    move.l   #lbW025720,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW061FDC,a3
-                    jsr      patch_boss_door
-                    lea      lbW008E04,a0
-                    move.l   #lbW025744,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008E04(pc),a0
+                    move.l   #lbW025744,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW06224C,a3
-                    jsr      patch_boss_door
-                    lea      lbW008E5E,a0
-                    move.l   #lbW025768,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008E5E(pc),a0
+                    move.l   #lbW025768,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW06258C,a3
-                    jsr      patch_boss_door
-                    lea      lbW008EB8,a0
-                    move.l   #lbW02578C,$48(a0)
-                    move.l   #lbW0256B4,$44(a0)
-                    lea      lbW009014,a1
+                    bsr      patch_boss_door
+                    lea      lbW008EB8(pc),a0
+                    move.l   #lbW02578C,72(a0)
+                    move.l   #lbW0256B4,68(a0)
+                    lea      lbW009014(pc),a1
                     lea      lbW0627FC,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
 lbC00885C:          move.w   #1,lbW0004EA
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 boss_nbr_1:         tst.w    lbW0004D8
-                    bne      lbC0088F0
-                    lea      lbW008C9C,a0
-                    cmp.l    #lbW009114,$1A(a0)
-                    beq      lbC0088F0
+                    bne.b    lbC0088F0
+                    lea      lbW008C9C(pc),a0
+                    cmp.l    #lbW009114,26(a0)
+                    beq.b    lbC0088F0
                     bsr      lbC00D2BA
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL020196,a2
                     lea      lbW062D52,a3
                     bsr      patch_tiles
                     movem.l  (sp)+,d0-d7/a0-a6
-                    lea      lbW008C9C,a0
-                    lea      lbW009114,a1
+                    lea      lbW008C9C(pc),a0
+                    lea      lbW009114(pc),a1
                     lea      lbW0619E8,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6,a0
-                    lea      lbW009154,a1
+                    lea      lbW008CF6(pc),a0
+                    lea      lbW009154(pc),a1
                     lea      lbW064204,a3
-                    jsr      patch_boss_door
-                    lea      lbW008D50,a0
-                    lea      lbW009194,a1
+                    bsr      patch_boss_door
+                    lea      lbW008D50(pc),a0
+                    lea      lbW009194(pc),a1
                     lea      lbW064204,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
 lbC0088F0:          move.w   #1,lbW0004EA
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 boss_nbr_2:         tst.w    lbW0004D8
                     bne      lbC008974
-                    lea      lbW008C9C,a0
+                    lea      lbW008C9C(pc),a0
                     cmp.l    #lbW009254,$1A(a0)
-                    beq      lbC008974
+                    beq.b    lbC008974
                     bsr      lbC00D2BA
-                    movem.l  d0-d7/a0-a6,-(sp)
-                    
-                    movem.l  (sp)+,d0-d7/a0-a6
-                    lea      lbW008C9C,a0
-                    lea      lbW009254,a1
+;                    movem.l  d0-d7/a0-a6,-(sp)
+ ;                   movem.l  (sp)+,d0-d7/a0-a6
+                    lea      lbW008C9C(pc),a0
+                    lea      lbW009254(pc),a1
                     lea      lbW05F7A8,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6,a0
-                    lea      lbW009294,a1
+                    lea      lbW008CF6(pc),a0
+                    lea      lbW009294(pc),a1
                     lea      lbW063DB8,a3
-                    jsr      patch_boss_door
-                    lea      lbW008D50,a0
-                    lea      lbW0092D4,a1
+                    bsr      patch_boss_door
+                    lea      lbW008D50(pc),a0
+                    lea      lbW0092D4(pc),a1
                     lea      lbW063DB8,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
 lbC008974:          move.w   #1,lbW0004EA
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 boss_nbr_3:         tst.w    lbW0004D8
-                    bne      lbC008AE0
-                    lea      lbW008C9C,a0
-                    cmp.l    #lbW009254,$1A(a0)
-                    beq      lbC008AE0
+                    bne.b    lbC008AE0
+                    lea      lbW008C9C(pc),a0
+                    cmp.l    #lbW009254,26(a0)
+                    beq.b    lbC008AE0
                     bsr      lbC00D2BA
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW063CCE,a3
@@ -5919,19 +5927,19 @@ boss_nbr_3:         tst.w    lbW0004D8
                     lea      lbL020B2E,a2
                     bsr      patch_tiles
                     movem.l  (sp)+,d0-d7/a0-a6
-                    lea      lbW008C9C,a0
-                    lea      lbW009314,a1
+                    lea      lbW008C9C(pc),a0
+                    lea      lbW009314(pc),a1
                     lea      lbW062872,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6,a0
-                    lea      lbW009354,a1
+                    lea      lbW008CF6(pc),a0
+                    lea      lbW009354(pc),a1
                     lea      lbW062872,a3
-                    jsr      patch_boss_door
-                    lea      lbW008D50,a0
-                    lea      lbW009394,a1
+                    bsr      patch_boss_door
+                    lea      lbW008D50(pc),a0
+                    lea      lbW009394(pc),a1
                     lea      lbW062872,a3
-                    jsr      patch_boss_door
+                    bsr      patch_boss_door
 lbC008AE0:          move.w   #1,lbW0004EA
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
@@ -5963,10 +5971,7 @@ tile_one_way_up_right:
                     beq      return
                     move.w   #2,PLAYER_EXTRA_SPD_X(a0)
                     move.w   #-2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
-
-lbC008B5C:          bra      lbC007E36
+                    bra      lbC007E36
 
 tile_one_way_down_right:
                     tst.w    pass_thru_walls
@@ -5975,8 +5980,7 @@ tile_one_way_down_right:
                     beq      return
                     move.w   #2,PLAYER_EXTRA_SPD_X(a0)
                     move.w   #2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_one_way_down_left:
                     tst.w    pass_thru_walls
@@ -5985,8 +5989,7 @@ tile_one_way_down_left:
                     beq      return
                     move.w   #-2,PLAYER_EXTRA_SPD_X(a0)
                     move.w   #2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_one_way_up_left:
                     tst.w    pass_thru_walls
@@ -5995,8 +5998,7 @@ tile_one_way_up_left:
                     beq      return
                     move.w   #-2,PLAYER_EXTRA_SPD_X(a0)
                     move.w   #-2,PLAYER_EXTRA_SPD_Y(a0)
-                    bsr      lbC008B5C
-                    rts
+                    bra      lbC007E36
 
 tile_hard_climb_down:
                     tst.w    lbW007B46
@@ -6013,13 +6015,13 @@ tile_unknown5:      move.w   d0,-(sp)
                     move.w   2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #$30,d0
-                    beq.s    lbC008C18
+                    beq.b    lbC008C18
                     move.w   -2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #$30,d0
-                    beq.s    lbC008C18
+                    beq.b    lbC008C18
                     move.w   (sp)+,d0
-                    bra.s    lbC008C56
+                    bra.b    lbC008C56
 
 lbC008C18:          move.w   (sp)+,d0
                     move.w   #1,lbW008C9A
@@ -6029,26 +6031,26 @@ tile_unknown6:      move.w   d0,-(sp)
                     move.w   2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #$31,d0
-                    beq.s    lbC008C48
+                    beq.b    lbC008C48
                     move.w   -2(a3),d0
                     and.w    #$3F,d0
                     cmp.w    #$31,d0
-                    beq.s    lbC008C48
+                    beq.b    lbC008C48
                     move.w   (sp)+,d0
-                    bra.s    lbC008C60
+                    bra.b    lbC008C60
 
 lbC008C48:          move.w   (sp)+,d0
                     move.w   #2,lbW008C9A
                     bra      lbC008C8A
 
 lbC008C56:          move.w   #3,lbW008C9A
-                    bra.s    lbC008C8A
+                    bra.b    lbC008C8A
 
 lbC008C60:          move.w   #4,lbW008C9A
-                    bra.s    lbC008C8A
+                    bra.b    lbC008C8A
 
 tile_unknown7:      move.w   #5,lbW008C9A
-                    bra.s    lbC008C8A
+                    bra.b    lbC008C8A
 
 tile_force_fields_sequence:
                     move.w   #6,lbW008C9A
@@ -6497,7 +6499,7 @@ lbL00976C:          dc.l     lbL01BE96
                     dc.l     lbL018C2E
 
 lbC0097D4:          move.l   #700,d0
-                    jsr      rand
+                    bsr      rand
                     move.w   d0,lbW0097E8
                     rts
 
@@ -6508,53 +6510,53 @@ lbW0097F2:          dc.w     20
 lbW0097F4:          dc.w     0
 
 lbC0097F6:          subq.w   #1,lbW0097F4
-                    bpl      lbC00984A
-                    move.w   lbW0097F2,lbW0097F4
-                    move.w   player_1_pos_x,d0
-                    move.w   player_1_pos_y,d1
+                    bpl.b    lbC00984A
+                    move.w   lbW0097F2(pc),lbW0097F4
+                    move.w   player_1_pos_x(pc),d0
+                    move.w   player_1_pos_y(pc),d1
                     tst.w    player_1_alive
-                    bpl.s    lbC009826
-                    move.w   #$BA8,d0
-                    move.w   #$BA8,d1
-lbC009826:          move.w   player_2_pos_x,d2
-                    move.w   player_2_pos_y,d3
+                    bpl.b    lbC009826
+                    move.w   #2984,d0
+                    move.w   #2984,d1
+lbC009826:          move.w   player_2_pos_x(pc),d2
+                    move.w   player_2_pos_y(pc),d3
                     tst.w    player_2_alive
-                    bpl.s    lbC009842
-                    move.w   #$BA8,d2
-                    move.w   #$BA8,d3
+                    bpl.b    lbC009842
+                    move.w   #2984,d2
+                    move.w   #2984,d3
 lbC009842:          lea      lbW0097F2(pc),a6
                     movem.w  d0-d3,-(a6)
 lbC00984A:          lea      lbW008C9C(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008CF6(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008D50(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008DAA(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008E04(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008E5E(pc),a0
-                    bsr.s    lbC009872
+                    bsr.b    lbC009872
                     lea      lbW008EB8(pc),a0
-lbC009872:          move.l   $40(a0),a6
+lbC009872:          move.l   64(a0),a6
                     jmp      (a6)
 
 lbC00987C:          rts
 
 lbC00987E:          tst.w    8(a0)
                     bmi      return
-                    move.l   $1A(a0),a1
+                    move.l   26(a0),a1
                     move.l   0(a0),a2
-                    clr.l    $22(a0)
-                    clr.l    $26(a0)
-                    tst.w    $38(a0)
+                    clr.l    34(a0)
+                    clr.l    38(a0)
+                    tst.w    56(a0)
                     bne      lbC00A5CC
-                    tst.w    $34(a0)
+                    tst.w    52(a0)
                     bne      lbC00A582
-                    tst.w    $4C(a0)
+                    tst.w    76(a0)
                     bne      lbC00A568
-                    jsr      check_aliens_collisions
+                    bsr      check_aliens_collisions
 
                     move.w   ALIEN_POS_X(a0),d4
                     move.w   ALIEN_POS_Y(a0),d5
@@ -6566,99 +6568,99 @@ lbC00987E:          tst.w    8(a0)
                     lea      lbL0097EA(pc),a6
                     movem.w  (a6)+,d0-d3
                     sub.w    d0,d4
-                    bpl.s    lbC0098D2
+                    bpl.b    lbC0098D2
                     neg.w    d4
 lbC0098D2:          sub.w    d1,d5
-                    bpl.s    lbC0098D8
+                    bpl.b    lbC0098D8
                     neg.w    d5
 lbC0098D8:          sub.w    d2,d6
-                    bpl.s    lbC0098DE
+                    bpl.b    lbC0098DE
                     neg.w    d6
 lbC0098DE:          sub.w    d3,d7
-                    bpl.s    lbC0098E4
+                    bpl.b    lbC0098E4
                     neg.w    d7
 lbC0098E4:          add.w    d5,d4
                     add.w    d7,d6
                     cmp.w    d4,d6
-                    bmi.s    lbC0098F2
+                    bmi.b    lbC0098F2
                     move.w   d0,d4
                     move.w   d1,d5
-                    bra.s    lbC0098F6
+                    bra.b    lbC0098F6
 
 lbC0098F2:          move.w   d2,d4
                     move.w   d3,d5
 
-lbC0098F6:          add.w    #8,d4
-                    add.w    #8,d5
+lbC0098F6:          addq.w   #8,d4
+                    addq.w   #8,d5
                     movem.w  (sp)+,d6/d7
                     clr.w    d0
                     move.w   12(a0),d1
-                    tst.w    $4E(a0)
-                    beq.s    lbC009912
-                    subq.w   #1,$4E(a0)
-lbC009912:          tst.w    $4E(a0)
-                    beq.s    lbC00991C
-                    subq.w   #1,$4E(a0)
+                    tst.w    78(a0)
+                    beq.b    lbC009912
+                    subq.w   #1,78(a0)
+lbC009912:          tst.w    78(a0)
+                    beq.b    lbC00991C
+                    subq.w   #1,78(a0)
 lbC00991C:          sub.w    d6,d4
-                    bmi      lbC00994E
+                    bmi.b    lbC00994E
                     tst.w    d4
                     bpl.w    lbC009928
                     neg.w    d4
-lbC009928:          tst.w    $4E(a0)
-                    bne      lbC009956
+lbC009928:          tst.w    78(a0)
+                    bne.b    lbC009956
                     cmp.w    #4,d4
-                    bmi      lbC009966
-lbC009938:          move.w   #1,$2A(a0)
+                    bmi.b    lbC009966
+lbC009938:          move.w   #1,42(a0)
                     tst.w    d1
-                    beq      lbC009966
+                    beq.b    lbC009966
                     add.w    d1,d6
                     move.w   #4,d0
-                    bra      lbC009966
+                    bra.b    lbC009966
 
-lbC00994E:          tst.w    $4E(a0)
-                    bne      lbC009938
-lbC009956:          move.w   #$100,$2A(a0)
+lbC00994E:          tst.w    78(a0)
+                    bne.b    lbC009938
+lbC009956:          move.w   #256,42(a0)
                     tst.w    d1
-                    beq.s    lbC009966
+                    beq.b    lbC009966
                     sub.w    d1,d6
                     move.w   #8,d0
-lbC009966:          jsr      lbC00A96C
+lbC009966:          bsr      lbC00A96C
                     move.w   14(a0),d1
                     sub.w    d7,d5
-                    bmi.s    lbC00999A
+                    bmi.b    lbC00999A
                     tst.w    d5
-                    bpl.s    lbC00997A
+                    bpl.b    lbC00997A
                     neg.w    d5
-lbC00997A:          tst.w    $50(a0)
-                    bne      lbC0099A2
+lbC00997A:          tst.w    80(a0)
+                    bne.b    lbC0099A2
                     cmp.w    #4,d5
-                    bmi.s    lbC0099B4
-lbC009988:          move.w   #$10,$2C(a0)
+                    bmi.b    lbC0099B4
+lbC009988:          move.w   #16,44(a0)
                     tst.w    d1
-                    beq.s    lbC0099B4
+                    beq.b    lbC0099B4
                     add.w    d1,d7
                     or.w     #1,d0
-                    bra.s    lbC0099B4
+                    bra.b    lbC0099B4
 
-lbC00999A:          tst.w    $50(a0)
-                    bne      lbC009988
-lbC0099A2:          move.w   #$100,$2C(a0)
+lbC00999A:          tst.w    80(a0)
+                    bne.b    lbC009988
+lbC0099A2:          move.w   #256,44(a0)
                     tst.w    d1
-                    beq      lbC0099B4
+                    beq.b    lbC0099B4
                     sub.w    d1,d7
                     or.w     #2,d0
 lbC0099B4:          jsr      lbC00A9D6
-                    not.w    $30(a0)
+                    not.w    48(a0)
                     beq      lbC009A98
                     add.w    d0,d0
-                    beq.s    lbC009A16
+                    beq.b    lbC009A16
                     move.l   12(a1),a5
                     lea      lbB00A228(pc),a6
                     move.w   0(a6,d0.w),d0
-                    tst.w    $3E(a0)
-                    beq.s    lbC0099E8
-                    clr.w    $3E(a0)
-                    move.w   d0,$10(a0)
+                    tst.w    62(a0)
+                    beq.b    lbC0099E8
+                    clr.w    62(a0)
+                    move.w   d0,16(a0)
                     add.w    d0,d0
                     add.w    d0,d0
                     bra      lbC009A74
@@ -6666,129 +6668,128 @@ lbC0099B4:          jsr      lbC00A9D6
 lbC0099E8:          move.w   d6,d1
                     swap     d1
                     move.w   d7,d1
-                    cmp.l    $1E(a0),d1
-                    bne.s    lbC0099FA
-                    add.l    #$40,a5
-lbC0099FA:          move.w   $10(a0),d1
+                    cmp.l    30(a0),d1
+                    bne.b    lbC0099FA
+                    add.l    #64,a5
+lbC0099FA:          move.w   16(a0),d1
                     lea      lbB00A24F(pc),a6
                     lsl.w    #3,d0
                     add.w    d1,d0
                     move.b   0(a6,d0.w),d0
-                    move.w   d0,$10(a0)
+                    move.w   d0,16(a0)
                     add.w    d0,d0
                     add.w    d0,d0
                     bra      lbC009A74
 
-lbC009A16:          addq.w   #1,$58(a0)
-                    cmp.w    #$19,$58(a0)
-                    bmi.s    lbC009A60
-                    clr.w    $58(a0)
-                    cmp.w    #0,$52(a0)
-                    beq      lbC009A4A
-                    tst.w    $4E(a0)
-                    beq      lbC009A40
-                    clr.w    $4E(a0)
-                    bra      lbC009A60
+lbC009A16:          addq.w   #1,88(a0)
+                    cmp.w    #25,88(a0)
+                    bmi.b    lbC009A60
+                    clr.w    88(a0)
+                    cmp.w    #0,82(a0)
+                    beq.b    lbC009A4A
+                    tst.w    78(a0)
+                    beq.b    lbC009A40
+                    clr.w    78(a0)
+                    bra.b    lbC009A60
 
-lbC009A40:          move.w   #$32,$4E(a0)
-                    bra      lbC009A60
+lbC009A40:          move.w   #50,78(a0)
+                    bra.b    lbC009A60
 
-lbC009A4A:          tst.w    $50(a0)
-                    beq      lbC009A5A
-                    clr.w    $50(a0)
-                    bra      lbC009A60
+lbC009A4A:          tst.w    80(a0)
+                    beq.b    lbC009A5A
+                    clr.w    80(a0)
+                    bra.b    lbC009A60
 
-lbC009A5A:          move.w   #$32,$50(a0)
+lbC009A5A:          move.w   #50,80(a0)
 lbC009A60:          move.l   12(a1),a5
-                    add.w    #$40,a5
-                    move.w   $10(a0),d0
+                    add.w    #64,a5
+                    move.w   16(a0),d0
                     add.w    d0,d0
                     add.w    d0,d0
-                    bra      lbC009A74
-
-lbC009A74:          tst.w    $32(a0)
-                    beq.s    lbC009A86
-                    clr.w    $32(a0)
+                    ; no rts
+lbC009A74:          tst.w    50(a0)
+                    beq.b    lbC009A86
+                    clr.w    50(a0)
                     move.l   12(a1),a5
-                    add.w    #$20,a5
+                    add.w    #32,a5
 lbC009A86:          move.l   0(a5,d0.w),a6
-                    move.l   $12(a0),a5
+                    move.l   18(a0),a5
                     cmp.l    8(a5),a6
-                    beq.s    lbC009A98
-                    move.l   a6,$28(a5)
+                    beq.b    lbC009A98
+                    move.l   a6,40(a5)
 lbC009A98:          swap     d6
                     move.w   d7,d6
-                    move.l   d6,$1E(a0)
-                    move.l   $16(a0),a6
+                    move.l   d6,30(a0)
+                    move.l   22(a0),a6
                     move.l   d6,(a6)
                     add.l    4(a1),d6
                     move.l   d6,(a2)
                     add.l    8(a1),d6
                     move.l   d6,4(a2)
-                    tst.l    $22(a0)
-                    beq.s    lbC009AFA
-                    move.l   $26(a0),a6
+                    tst.l    34(a0)
+                    beq.b    lbC009AFA
+                    move.l   38(a0),a6
                     cmp.l    #0,a6
-                    beq.s    lbC009AFA
+                    beq.b    lbC009AFA
                     move.w   10(a6),d0
                     tst.w    10(a6)
-                    beq.s    lbC009AE4
+                    beq.b    lbC009AE4
                     move.w   10(a0),10(a6)
                     cmp.w    #3,10(a6)
-                    bmi.s    lbC009AE4
+                    bmi.b    lbC009AE4
                     move.w   #3,10(a6)
 lbC009AE4:          tst.w    10(a0)
-                    beq.s    lbC009AFA
+                    beq.b    lbC009AFA
                     cmp.w    #3,10(a0)
-                    bmi.s    lbC009AFA
+                    bmi.b    lbC009AFA
                     move.w   #3,d0
                     move.w   d0,10(a0)
 lbC009AFA:          rts
 
 lbC009AFC:          tst.w    8(a0)
                     bmi      return
-                    move.l   $1A(a0),a1
+                    move.l   26(a0),a1
                     move.l   0(a0),a2
-                    move.l   $48(a0),a6
+                    move.l   72(a0),a6
                     tst.w    (a6)
-                    bpl.s    lbC009B1C
-                    move.l   $44(a0),a6
-                    move.l   a6,$48(a0)
-lbC009B1C:          addq.l   #4,$48(a0)
+                    bpl.b    lbC009B1C
+                    move.l   68(a0),a6
+                    move.l   a6,72(a0)
+lbC009B1C:          addq.l   #4,72(a0)
                     move.w   (a6),ALIEN_POS_X(a0)
                     move.w   2(a6),ALIEN_POS_Y(a0)
                     move.w   (a6),d0
                     move.w   2(a6),d1
-                    move.w   #$4B,d2
-                    move.w   #$4B,d3
+                    move.w   #75,d2
+                    move.w   #75,d3
                     bsr      lbC009BC4
                     lsl.w    #4,d1
                     lea      lbL01B4F6,a6
                     add.w    d1,a6
-                    tst.w    $34(a0)
-                    beq.s    lbC009B66
-                    move.w   #1,$10(a0)
-                    jsr      lbC00A582
-                    cmp.w    #$FFFF,8(a0)
+                    tst.w    52(a0)
+                    beq.b    lbC009B66
+                    move.w   #1,16(a0)
+                    bsr      lbC00A582
+                    cmp.w    #-1,8(a0)
                     beq      return
                     bra      lbC009B98
 
-lbC009B66:          tst.w    $38(a0)
-                    beq.s    lbC009B80
-                    jsr      lbC00A5CC
-                    cmp.w    #$FFFF,8(a0)
+lbC009B66:          tst.w    56(a0)
+                    beq.b    lbC009B80
+                    bsr      lbC00A5CC
+                    cmp.w    #-1,8(a0)
                     beq      return
-                    bra      lbC009B98
+                    bra.b    lbC009B98
 
-lbC009B80:          tst.w    $32(a0)
-                    beq.s    lbC009B90
-                    add.l    #$100,a6
-                    clr.w    $32(a0)
-lbC009B90:          move.l   $12(a0),a5
-                    move.l   a6,$28(a5)
-lbC009B98:          add.w    #$67E,ALIEN_POS_X(a0)
-                    add.w    #$2DB,ALIEN_POS_Y(a0)
-                    move.l   $16(a0),a6
+lbC009B80:          tst.w    50(a0)
+                    beq.b    lbC009B90
+                    add.l    #256,a6
+                    clr.w    50(a0)
+lbC009B90:          move.l   18(a0),a5
+                    move.l   a6,40(a5)
+lbC009B98:          add.w    #1662,ALIEN_POS_X(a0)
+                    add.w    #731,ALIEN_POS_Y(a0)
+                    move.l   22(a0),a6
                     move.w   ALIEN_POS_X(a0),d6
                     swap     d6
                     move.w   ALIEN_POS_Y(a0),d6
@@ -6807,60 +6808,60 @@ lbC009BC4:          move.w   #$F0,d4
                     exg      d1,d4
                     sub.w    d1,d3
                     sub.w    d0,d2
-                    beq.s    lbC009BFC
+                    beq.b    lbC009BFC
                     tst.w    d3
-                    bpl.s    lbC009BEE
+                    bpl.b    lbC009BEE
                     tst.w    d2
-                    bpl.s    lbC009BE8
+                    bpl.b    lbC009BE8
                     moveq    #3,d0
                     neg.w    d3
                     neg.w    d2
-                    bra.s    lbC009C06
+                    bra.b    lbC009C06
 
 lbC009BE8:          moveq    #4,d0
                     neg.w    d3
-                    bra.s    lbC009C06
+                    bra.b    lbC009C06
 
 lbC009BEE:          tst.w    d2
-                    bpl.s    lbC009BF8
+                    bpl.b    lbC009BF8
                     moveq    #2,d0
                     neg.w    d2
-                    bra.s    lbC009C06
+                    bra.b    lbC009C06
 
 lbC009BF8:          moveq    #1,d0
-                    bra.s    lbC009C06
+                    bra.b    lbC009C06
 
 lbC009BFC:          moveq    #0,d1
                     tst.w    d3
-                    bpl.s    lbC009C04
+                    bpl.b    lbC009C04
                     addq.b   #8,d1
 lbC009C04:          rts
 
-lbC009C06:          mulu     #$C0,d3
+lbC009C06:          mulu     #192,d3
                     divu     d2,d3
                     moveq    #0,d1
-                    cmp.w    #$3C5,d3
-                    bge.s    lbC009C2E
+                    cmp.w    #965,d3
+                    bge.b    lbC009C2E
                     addq.l   #1,d1
-                    cmp.w    #$11F,d3
-                    bge.s    lbC009C2E
+                    cmp.w    #287,d3
+                    bge.b    lbC009C2E
                     addq.l   #1,d1
-                    cmp.w    #$80,d3
-                    bge.s    lbC009C2E
+                    cmp.w    #128,d3
+                    bge.b    lbC009C2E
                     addq.l   #1,d1
-                    cmp.w    #$26,d3
-                    bge.s    lbC009C2E
+                    cmp.w    #38,d3
+                    bge.b    lbC009C2E
                     addq.l   #1,d1
 lbC009C2E:          tst.b    d0
-                    bne.s    lbC009C34
+                    bne.b    lbC009C34
                     rts
 
 lbC009C34:          cmp.b    #1,d0
-                    beq.s    lbC009C60
+                    beq.b    lbC009C60
                     cmp.b    #2,d0
-                    beq.s    lbC009C52
+                    beq.b    lbC009C52
                     cmp.b    #3,d0
-                    beq.s    lbC009C4E
+                    beq.b    lbC009C4E
                     moveq    #8,d0
                     sub.b    d1,d0
                     exg      d0,d1
@@ -6870,10 +6871,10 @@ lbC009C4E:          addq.b   #8,d1
                     rts
 
 lbC009C52:          tst.w    d1
-                    bne.s    lbC009C58
+                    bne.b    lbC009C58
                     rts
 
-lbC009C58:          move.b   #$10,d0
+lbC009C58:          move.b   #16,d0
                     sub.b    d1,d0
                     exg      d1,d0
 lbC009C60:          rts
@@ -6883,20 +6884,20 @@ lbL009C64:          dc.l     0
 
 lbC009C68:          tst.w    8(a0)
                     bmi      return
-                    tst.w    $32(a0)
-                    beq      lbC009C84
+                    tst.w    50(a0)
+                    beq.b    lbC009C84
                     move.w   #1,lbL008CCE
-                    clr.w    $32(a0)
-lbC009C84:          tst.w    $34(a0)
-                    beq.s    lbC009C9E
-                    clr.w    $34(a0)
+                    clr.w    50(a0)
+lbC009C84:          tst.w    52(a0)
+                    beq.b    lbC009C9E
+                    clr.w    52(a0)
                     move.w   #1,lbL009C64
                     move.w   #10,lbW009C62
-lbC009C9E:          move.l   $1A(a0),a1
+lbC009C9E:          move.l   26(a0),a1
                     move.l   0(a0),a2
-                    clr.l    $22(a0)
-                    clr.l    $26(a0)
-                    lea      lbW008C9C,a6
+                    clr.l    34(a0)
+                    clr.l    38(a0)
+                    lea      lbW008C9C(pc),a6
                     move.w   ALIEN_POS_X(a6),d6
                     move.w   ALIEN_POS_Y(a6),d7
                     swap     d6
@@ -6914,67 +6915,67 @@ lbW009CDE:          dc.w     0
 lbW009CE0:          dc.w     0
 
 lbC009CE2:          tst.w    lbL008D2E
-                    beq      lbC009CF2
-                    move.w   #1,$38(a0)
-lbC009CF2:          tst.w    $38(a0)
-                    beq.s    lbC009D0A
+                    beq.b    lbC009CF2
+                    move.w   #1,56(a0)
+lbC009CF2:          tst.w    56(a0)
+                    beq.b    lbC009D0A
                     cmp.w    #1,boss_nbr                        ; trigger self destruct
-                    bne.s    lbC009D0A                          ; after having killed boss #1
+                    bne.b    lbC009D0A                          ; after having killed boss #1
                     move.w   #1,self_destruct_initiated
 lbC009D0A:          tst.w    8(a0)
                     bmi      return
-                    move.l   $1A(a0),a1
+                    move.l   26(a0),a1
                     move.l   0(a0),a2
-                    clr.l    $22(a0)
-                    clr.l    $26(a0)
+                    clr.l    34(a0)
+                    clr.l    38(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #300,d0
-                    jsr      rand
+                    bsr      rand
                     tst.w    lbW009C62
-                    bne.s    lbC009D50
+                    bne.b    lbC009D50
                     cmp.w    #2,d0
-                    bpl.s    lbC009D50
+                    bpl.b    lbC009D50
                     move.w   #1,lbL009C64
                     move.w   #40,lbW009C62
 lbC009D50:          cmp.w    #6,d0
-                    bpl.s    lbC009D6C
-                    move.w   #0,lbW009CE0
+                    bpl.b    lbC009D6C
+                    clr.w    lbW009CE0
                     cmp.w    #3,d0
-                    bmi.s    lbC009D6C
+                    bmi.b    lbC009D6C
                     move.w   #1,lbW009CE0
 lbC009D6C:          movem.l  (sp)+,d0-d7/a0-a6
                     tst.w    lbW009C62
-                    beq.s    lbC009D80
+                    beq.b    lbC009D80
                     subq.w   #1,lbW009C62
-                    bra.s    lbC009DA0
+                    bra.b    lbC009DA0
 
 lbC009D80:          clr.w    lbL009C64
                     tst.w    lbW005D64
-                    bne.s    lbC009D98
+                    bne.b    lbC009D98
                     tst.w    lbW006504
-                    bne.s    lbC009D98
-                    bra.s    lbC009DA0
+                    bne.b    lbC009D98
+                    bra.b    lbC009DA0
 
 lbC009D98:          move.w   #1,lbL009C64
-lbC009DA0:          cmp.l    #$400,lbL000572
-                    bne.s    lbC009DCE
+lbC009DA0:          cmp.l    #1024,lbL000572
+                    bne.b    lbC009DCE
                     move.l   cur_palette_ptr,a5
                     move.w   32(a5),lbW099FBA
                     tst.w    50(a0)
-                    beq.s    lbC009E1A
+                    beq.b    lbC009E1A
                     clr.w    50(a0)
                     move.w   #$FFF,lbW099FBA
-                    bra.s    lbC009DEE
+                    bra.b    lbC009DEE
 
 lbC009DCE:          move.l   cur_palette_ptr,a5
                     move.w   2(a5),lbW09A212
                     tst.w    50(a0)
-                    beq.s    lbC009E1A
+                    beq.b    lbC009E1A
                     clr.w    50(a0)
                     move.w   #$FFF,lbW09A212
 lbC009DEE:          addq.w   #1,lbW009CDE
                     cmp.w    #6,lbW009CDE
-                    bne.s    lbC009E1A
+                    bne.b    lbC009E1A
                     clr.w    lbW009CDE
                     move.w   #55,d0
                     add.w    lbW009CE0,d0
@@ -6982,9 +6983,9 @@ lbC009DEE:          addq.w   #1,lbW009CDE
                     jsr      trigger_sample
 
                     ; the following code only applies to the bosses
-lbC009E1A:          tst.w    $38(a0)
+lbC009E1A:          tst.w    56(a0)
                     bne      lbC009F62
-                    jsr      check_aliens_collisions
+                    bsr      check_aliens_collisions
                     move.w   ALIEN_POS_X(a0),d4
                     move.w   ALIEN_POS_Y(a0),d5
                     move.w   d4,d6
@@ -6994,75 +6995,75 @@ lbC009E1A:          tst.w    $38(a0)
                     lea      lbL0097EA(pc),a6
                     movem.w  (a6)+,d0-d3
                     sub.w    d0,d4
-                    bpl.s    lbC009E46
+                    bpl.b    lbC009E46
                     neg.w    d4
 lbC009E46:          sub.w    d1,d5
-                    bpl.s    lbC009E4C
+                    bpl.b    lbC009E4C
                     neg.w    d5
 lbC009E4C:          sub.w    d2,d6
-                    bpl.s    lbC009E52
+                    bpl.b    lbC009E52
                     neg.w    d6
 lbC009E52:          sub.w    d3,d7
-                    bpl.s    lbC009E58
+                    bpl.b    lbC009E58
                     neg.w    d7
 lbC009E58:          add.w    d5,d4
                     add.w    d7,d6
                     cmp.w    d4,d6
-                    bmi.s    lbC009E66
+                    bmi.b    lbC009E66
                     move.w   d0,d4
                     move.w   d1,d5
-                    bra.s    lbC009E6A
+                    bra.b    lbC009E6A
 
 lbC009E66:          move.w   d2,d4
                     move.w   d3,d5
 lbC009E6A:          movem.w  (sp)+,d6/d7
-                    sub.w    #$18,d4
-                    sub.w    #$68,d5
+                    sub.w    #24,d4
+                    sub.w    #104,d5
                     clr.w    d0
                     move.w   12(a0),d1
                     sub.w    d6,d4
-                    bmi.s    lbC009EA8
+                    bmi.b    lbC009EA8
                     tst.w    lbL009C64
-                    bne      lbC009EB2
+                    bne.b    lbC009EB2
 lbC009E8A:          tst.w    d4
-                    bpl.s    lbC009E90
+                    bpl.b    lbC009E90
                     neg.w    d4
 lbC009E90:          cmp.w    #4,d4
-                    bmi.s    lbC009EC2
-                    move.w   #1,$2A(a0)
+                    bmi.b    lbC009EC2
+                    move.w   #1,42(a0)
                     tst.w    d1
-                    beq.s    lbC009EC2
+                    beq.b    lbC009EC2
                     add.w    d1,d6
                     move.w   #4,d0
-                    bra.s    lbC009EC2
+                    bra.b    lbC009EC2
 
 lbC009EA8:          tst.w    lbL009C64
-                    bne      lbC009E8A
-lbC009EB2:          move.w   #$100,$2A(a0)
+                    bne.b    lbC009E8A
+lbC009EB2:          move.w   #256,42(a0)
                     tst.w    d1
-                    beq.s    lbC009EC2
+                    beq.b    lbC009EC2
                     sub.w    d1,d6
                     move.w   #8,d0
 lbC009EC2:          move.w   14(a0),d1
                     sub.w    d7,d5
-                    bmi.s    lbC009EF2
+                    bmi.b    lbC009EF2
                     tst.w    lbL009C64
-                    bne      lbC009EFC
+                    bne.b    lbC009EFC
 lbC009ED4:          tst.w    d5
-                    bpl.s    lbC009EDA
+                    bpl.b    lbC009EDA
                     neg.w    d5
 lbC009EDA:          cmp.w    #4,d5
-                    bmi.s    lbC009F0E
-                    move.w   #$10,$2C(a0)
+                    bmi.b    lbC009F0E
+                    move.w   #16,44(a0)
                     tst.w    d1
-                    beq.s    lbC009F0E
+                    beq.b    lbC009F0E
                     add.w    d1,d7
                     or.w     #1,d0
-                    bra.s    lbC009F0E
+                    bra.b    lbC009F0E
 
 lbC009EF2:          tst.w    lbL009C64
-                    bne      lbC009ED4
-lbC009EFC:          move.w   #$100,$2C(a0)
+                    bne.b    lbC009ED4
+lbC009EFC:          move.w   #256,44(a0)
                     tst.w    d1
                     beq      lbC009F0E
                     sub.w    d1,d7
@@ -7070,26 +7071,26 @@ lbC009EFC:          move.w   #$100,$2C(a0)
 lbC009F0E:          swap     d6
                     move.w   d7,d6
                     move.l   d6,ALIEN_POS_X(a0)
-                    move.l   $16(a0),a6
+                    move.l   22(a0),a6
                     move.l   d6,(a6)
                     add.l    4(a1),d6
                     move.l   d6,(a2)
                     add.l    8(a1),d6
                     move.l   d6,4(a2)
-                    not.w    $30(a0)
-                    beq      lbC009F60
+                    not.w    48(a0)
+                    beq.b    lbC009F60
                     lea      lbL01BBE2,a6
                     tst.w    d0
-                    bne.s    lbC009F42
+                    bne.b    lbC009F42
                     lea      lbL01BBFE,a6
-lbC009F42:          tst.w    $34(a0)
-                    beq.s    lbC009F52
-                    clr.w    $34(a0)
+lbC009F42:          tst.w    52(a0)
+                    beq.b    lbC009F52
+                    clr.w    52(a0)
                     lea      lbL01BBE2,a6
-lbC009F52:          move.l   $12(a0),a5
+lbC009F52:          move.l   18(a0),a5
                     cmp.l    8(a5),a6
-                    beq.s    lbC009F60
-                    move.l   a6,$28(a5)
+                    beq.b    lbC009F60
+                    move.l   a6,40(a5)
 lbC009F60:          rts
 
 lbC009F62:          tst.w    lbW0004D8
@@ -7097,46 +7098,46 @@ lbC009F62:          tst.w    lbW0004D8
                     clr.w    lbW0004EA
                     move.w   #1,lbW0004D8
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbW008CF6,a0
+                    lea      lbW008CF6(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008D50,a0
+                    lea      lbW008D50(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008C9C,a0
-                    sub.w    #8,ALIEN_POS_X(a0)
+                    lea      lbW008C9C(pc),a0
+                    subq.w   #8,ALIEN_POS_X(a0)
                     move.w   ALIEN_POS_X(a0),d0
                     move.w   ALIEN_POS_Y(a0),d1
-                    move.l   $12(a0),a0
-                    add.w    #$20,-4(a0)
-                    sub.w    #$10,d0
-                    add.w    #$1E,d1
-                    lea      lbW008CF6,a0
-                    add.w    #$20,d0
-                    add.w    #0,d1
+                    move.l   18(a0),a0
+                    add.w    #32,-4(a0)
+                    sub.w    #16,d0
+                    add.w    #30,d1
+                    lea      lbW008CF6(pc),a0
+                    add.w    #32,d0
+                    ;add.w    #0,d1
                     bsr      lbC00A212
-                    lea      lbW008D50,a0
-                    add.w    #$1C,d0
-                    add.w    #0,d1
+                    lea      lbW008D50(pc),a0
+                    add.w    #28,d0
+                    ;add.w    #0,d1
                     bsr      lbC00A212
-                    lea      lbW008DAA,a0
-                    sub.w    #$20,d0
-                    add.w    #$1C,d1
+                    lea      lbW008DAA(pc),a0
+                    sub.w    #32,d0
+                    add.w    #28,d1
                     bsr      lbC00A212
-                    lea      lbW008E04,a0
-                    add.w    #$28,d0
-                    add.w    #4,d1
+                    lea      lbW008E04(pc),a0
+                    add.w    #40,d0
+                    addq.w   #4,d1
                     bsr      lbC00A212
-                    lea      lbW008E5E,a0
-                    sub.w    #$20,d0
-                    add.w    #$20,d1
+                    lea      lbW008E5E(pc),a0
+                    sub.w    #32,d0
+                    add.w    #32,d1
                     bsr      lbC00A212
-                    lea      lbW008EB8,a0
-                    add.w    #$12,d0
-                    add.w    #0,d1
+                    lea      lbW008EB8(pc),a0
+                    add.w    #18,d0
+                    ;add.w    #0,d1
                     bsr      lbC00A212
                     cmp.w    #1,boss_nbr
-                    beq.s    lbC00A056
+                    beq.b    lbC00A056
                     cmp.w    #3,boss_nbr
                     beq      lbC00A1BA
                     cmp.w    #2,boss_nbr
@@ -7175,10 +7176,10 @@ lbC00A1BA:          lea      lbL020B52,a2
                     movem.l  (sp)+,d0-d7/a0-a6
                     bra      lbC00A5CC
 
-lbC00A212:          move.l   $12(a0),a1
+lbC00A212:          move.l   18(a0),a1
                     move.w   d0,-4(a1)
                     move.w   d1,-2(a1)
-                    move.l   #lbL018C2E,$28(a1)
+                    move.l   #lbL018C2E,40(a1)
                     rts
 
 lbB00A228:          dc.b    0,0,0
@@ -7195,46 +7196,46 @@ lbB00A24F:          dc.b    0,0,0,0,0,0,0,0,0
 
 lbW00A29A:          dcb.w    3,-4
                     dc.w     -10,-5,1
-lbW00A2A6:          dcb.w    3,$10
+lbW00A2A6:          dcb.w    3,16
                     dc.w     -10,-5,1
 lbW00A2B2:          dc.w     0,5,11,-13,-13,-13
 lbW00A2BE:          dc.w     0,5,11,5,5,5
 lbW00A2CA:          dcb.w    3,-4
-                    dc.w     -6,4,$10
-lbW00A2D6:          dcb.w    3,$1E
-                    dc.w     -6,4,$10
-lbW00A2E2:          dc.w     0,10,$16,-10,-10,-10
-lbW00A2EE:          dc.w     0,10,$16,$14,$14,$14
+                    dc.w     -6,4,16
+lbW00A2D6:          dcb.w    3,30
+                    dc.w     -6,4,16
+lbW00A2E2:          dc.w     0,10,22,-10,-10,-10
+lbW00A2EE:          dc.w     0,10,22,20,20,20
 lbW00A2FA:          dcb.w    4,-6
-                    dc.w     4,$10
-lbW00A306:          dcb.w    3,$64
-                    dc.w     -6,4,$10
-lbW00A312:          dc.w     4,$32,$5A,-10,-10,-10
-lbW00A31E:          dc.w     4,$32,$5A,$70,$70,$70
+                    dc.w     4,16
+lbW00A306:          dcb.w    3,100
+                    dc.w     -6,4,16
+lbW00A312:          dc.w     4,50,90,-10,-10,-10
+lbW00A31E:          dc.w     4,50,90,112,112,112
 
 check_aliens_collisions:
-                    not.w    $2E(a0)
-                    bne.s    lbC00A348
+                    not.w    46(a0)
+                    bne.b    lbC00A348
                     move.w   10(a0),12(a0)
-                    tst.b    $2A(a0)
-                    bne.s    lbC00A342
-                    move.l   $14(a1),a4
-                    bra.s    lbC00A360
+                    tst.b    42(a0)
+                    bne.b    lbC00A342
+                    move.l   20(a1),a4
+                    bra.b    lbC00A360
 
-lbC00A342:          move.l   $10(a1),a4
-                    bra.s    lbC00A360
+lbC00A342:          move.l   16(a1),a4
+                    bra.b    lbC00A360
 
 lbC00A348:          move.w   10(a0),14(a0)
-                    tst.b    $2C(a0)
-                    bne.s    lbC00A35C
-                    move.l   $1C(a1),a4
-                    bra      lbC00A360
+                    tst.b    44(a0)
+                    bne.b    lbC00A35C
+                    move.l   28(a1),a4
+                    bra.b    lbC00A360
 
-lbC00A35C:          move.l   $18(a1),a4
-lbC00A360:          clr.l    d0
-                    clr.l    d1
+lbC00A35C:          move.l   24(a1),a4
+lbC00A360:          moveq    #0,d0
+                    moveq    #0,d1
                     lea      aliens_collisions_table(pc),a5
-                    lea      map_lines_table+4,a6
+                    lea      map_lines_table+4(pc),a6
                     move.w   ALIEN_POS_X(a0),d0
                     move.w   ALIEN_POS_Y(a0),d1
                     move.w   d0,d6
@@ -7360,84 +7361,84 @@ last_boss_random_stop:
                     move.l   #200,d0
                     bsr      rand
                     cmp.w    #75,d0
-                    bmi.s    lbC00A528
+                    bmi.b    lbC00A528
                     jsr      aliens_collision_stop
 lbC00A528:          movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 aliens_collision_stop:
-                    tst.w    $2E(a0)
+                    tst.w    46(a0)
                     bne      lbC00A546
                     clr.w    12(a0)
-                    move.w   #0,$52(a0)
+                    move.w   #0,82(a0)
                     clr.w    12(a0)
                     rts
 
 lbC00A546:          clr.w    14(a0)
-                    move.w   #1,$52(a0)
+                    move.w   #1,82(a0)
                     clr.w    14(a0)
                     rts
 
 aliens_collision_door:
-                    bra.s    aliens_collision_stop
+                    bra.b    aliens_collision_stop
 
-lbC00A560:          move.w   #1,$34(a0)
+lbC00A560:          move.w   #1,52(a0)
                     rts
 
-lbC00A568:          subq.w   #1,$4C(a0)
-                    move.l   $34(a1),a6
-                    move.l   $12(a0),a5
+lbC00A568:          subq.w   #1,76(a0)
+                    move.l   52(a1),a6
+                    move.l   18(a0),a5
                     cmp.l    8(a5),a6
                     beq      return
-                    move.l   a6,$28(a5)
+                    move.l   a6,40(a5)
                     rts
 
-lbC00A582:          move.w   $28(a1),d0
-                    cmp.w    $36(a0),d0
-                    beq.s    alien_dies_touching_player
-                    subq.w   #1,$36(a0)
-                    tst.w    $36(a0)
+lbC00A582:          move.w   40(a1),d0
+                    cmp.w    54(a0),d0
+                    beq.b    alien_dies_touching_player
+                    subq.w   #1,54(a0)
+                    tst.w    54(a0)
                     bmi      lbC00A63A
                     rts
 
 alien_dies_touching_player:
-                    subq.w   #1,$36(a0)
-                    move.w   $10(a0),d0
+                    subq.w   #1,54(a0)
+                    move.w   16(a0),d0
                     add.w    d0,d0
                     add.w    d0,d0
                     add.w    #32,d0
                     move.l   12(a1),a6
-                    move.l   $12(a0),a5
-                    move.l   0(a6,d0.w),$28(a5)
+                    move.l   18(a0),a5
+                    move.l   0(a6,d0.w),40(a5)
                     addq.l   #1,aliens_killed
-                    move.w   $3A(a1),sample_to_play         ; alien shit sound
+                    move.w   58(a1),sample_to_play          ; alien shit sound
                     jmp      trigger_sample
 
-lbC00A5CC:          cmp.w    #13,$3A(a0)
-                    beq.s    alien_dies
-                    subq.w   #1,$3A(a0)
-                    tst.w    $3A(a0)
+lbC00A5CC:          cmp.w    #13,58(a0)
+                    beq.b    alien_dies
+                    subq.w   #1,58(a0)
+                    tst.w    58(a0)
                     bmi      lbC00A63A
                     rts
 
-alien_dies:         subq.w   #1,$3A(a0)
+alien_dies:         subq.w   #1,58(a0)
                     move.w   #100,d0
                     move.l   12(a1),a6
-                    move.l   $12(a0),a5
-                    move.l   0(a6,d0.w),$28(a5)
+                    move.l   18(a0),a5
+                    move.l   0(a6,d0.w),40(a5)
                     addq.l   #1,aliens_killed
-                    move.w   $3A(a1),sample_to_play         ; explo
+                    move.w   58(a1),sample_to_play          ; explo
                     jsr      trigger_sample
-                    move.w   $38(a1),sample_to_play         ; alien shit sound
+                    move.w   56(a1),sample_to_play          ; alien shit sound
                     jmp      trigger_sample
 
-lbC00A61C:          lea      lbW008C9C,a0
-lbC00A622:          move.l   $1A(a0),a1
+lbC00A61C:          lea      lbW008C9C(pc),a0
+lbC00A622:          move.l   26(a0),a1
                     move.l   0(a0),a2
-                    bsr      lbC00A63A
-                    add.l    #$5A,a0
+                    bsr.b    lbC00A63A
+                    add.l    #90,a0
                     tst.w    (a0)
-                    bpl.s    lbC00A622
+                    bpl.b    lbC00A622
                     rts
 
 lbC00A63A:          clr.w    lbW0004EA
@@ -7446,7 +7447,7 @@ lbC00A63A:          clr.w    lbW0004EA
                     move.w   6(a0),d1
                     move.w   d0,ALIEN_POS_X(a0)
                     move.w   d1,ALIEN_POS_Y(a0)
-                    move.l   $16(a0),a6
+                    move.l   22(a0),a6
                     move.w   d0,(a6)
                     move.w   d1,2(a6)
                     move.w   d0,(a2)
@@ -7455,14 +7456,14 @@ lbC00A63A:          clr.w    lbW0004EA
                     add.w    #32,d1
                     move.w   d0,4(a2)
                     move.w   d1,6(a2)
-                    clr.w    $32(a0)
+                    clr.w    50(a0)
                     clr.w    12(a0)
                     clr.w    14(a0)
-                    clr.w    $34(a0)
-                    clr.w    $38(a0)
-                    move.w   #13,$3A(a0)
-                    move.l   #lbC00987C,$40(a0)         ;;
-                    move.l   #lbW008F14,$1A(a0)
+                    clr.w    52(a0)
+                    clr.w    56(a0)
+                    move.w   #13,58(a0)
+                    move.l   #lbC00987C,64(a0)              ;;
+                    move.l   #lbW008F14,26(a0)
                     rts
 
 lbL00A6A2:          dc.l     0
@@ -7476,19 +7477,19 @@ lbC00A6AE:          clr.l    lbL00A6A2
                     rts
 
 lbC00A6C2:          tst.w    lbL005166
-                    beq.s    lbC00A6D0
+                    beq.b    lbC00A6D0
                     subq.w   #1,lbL005166
 lbC00A6D0:          addq.w   #1,lbL00A6A6
-                    cmp.w    #$10,lbL00A6A6
+                    cmp.w    #16,lbL00A6A6
                     bmi      return
                     clr.w    lbL00A6A6
-                    move.w   lbW00412A,d0
-                    cmp.w    lbW00A6AC,d0
-                    bne.s    lbC00A700
+                    move.w   lbW00412A(pc),d0
+                    cmp.w    lbW00A6AC(pc),d0
+                    bne.b    lbC00A700
                     move.w   #1,lbL00A6A2
                     rts
 
-lbC00A700:          move.w   lbW00412A,lbW00A6AC
+lbC00A700:          move.w   lbW00412A(pc),lbW00A6AC
                     clr.w    lbL00A6A2
                     rts
 
@@ -7499,38 +7500,38 @@ lbC00A718:          clr.w    play_alien_spawning_sample
                     tst.w    lbW0004B2
                     beq      lbC00A8D0
                     tst.w    lbL00A6A2
-                    beq.s    lbC00A74C
+                    beq.b    lbC00A74C
                     move.w   lbW0005AA,d0
                     move.w   rnd_number,d1
                     cmp.w    d0,d1
                     bpl      return
-lbC00A74C:          move.w   lbW0035D6,d0
+lbC00A74C:          move.w   lbW0035D6(pc),d0
                     move.w   d0,d1
-                    sub.w    #$42,d0
-                    add.w    #$132,d1
-                    move.w   lbW0035D2,d2
+                    sub.w    #66,d0
+                    add.w    #306,d1
+                    move.w   lbW0035D2(pc),d2
                     move.w   d2,d3
-                    sub.w    #$42,d2
-                    add.w    #$102,d3
-                    lea      lbW008C9C,a0
+                    sub.w    #66,d2
+                    add.w    #258,d3
+                    lea      lbW008C9C(pc),a0
 lbC00A772:          tst.w    (a0)
                     bmi      return
                     move.w   ALIEN_POS_X(a0),d4
                     move.w   ALIEN_POS_Y(a0),d5
-                    add.w    #$5A,a0
+                    add.w    #90,a0
                     cmp.w    d4,d0
-                    bpl.s    lbC00A794
+                    bpl.b    lbC00A794
                     cmp.w    d1,d4
-                    bpl.s    lbC00A794
+                    bpl.b    lbC00A794
                     cmp.w    d5,d2
-                    bpl.s    lbC00A794
+                    bpl.b    lbC00A794
                     cmp.w    d3,d5
-                    bmi.s    lbC00A772
-lbC00A794:          sub.w    #$5A,a0
+                    bmi.b    lbC00A772
+lbC00A794:          sub.w    #90,a0
 
 patch_boss_door:    tst.w    lbW0004EA
                     bne      return
-                    move.w   $2A(a1),lbW0097F2
+                    move.w   42(a1),lbW0097F2
                     move.l   cur_map_top_ptr,d0
                     move.l   a3,d1
                     sub.l    d0,d1
@@ -7539,8 +7540,8 @@ patch_boss_door:    tst.w    lbW0004EA
                     swap     d0
                     lsl.w    #3,d0
                     lsl.w    #4,d1
-                    add.w    $30(a1),d0
-                    add.w    $32(a1),d1
+                    add.w    48(a1),d0
+                    add.w    50(a1),d1
                     movem.w  d0/d1,-(sp)
                     add.w    4(a1),d0
                     add.w    6(a1),d1
@@ -7548,20 +7549,20 @@ patch_boss_door:    tst.w    lbW0004EA
                     move.w   d1,d3
                     add.w    8(a1),d2
                     add.w    10(a1),d3
-                    lea      cur_alien1_dats,a2
+                    lea      cur_alien1_dats(pc),a2
                     movem.w  d6/d7,-(sp)
 lbC00A7EA:          movem.w  (a2)+,d4-d7
                     addq.w   #4,a2
                     tst.w    d4
-                    bmi.s    do_alien_spawn
+                    bmi.b    do_alien_spawn
                     cmp.w    d1,d7
-                    bmi.s    lbC00A7EA
+                    bmi.b    lbC00A7EA
                     cmp.w    d5,d3
-                    bmi.s    lbC00A7EA
+                    bmi.b    lbC00A7EA
                     cmp.w    d0,d6
-                    bmi.s    lbC00A7EA
+                    bmi.b    lbC00A7EA
                     cmp.w    d4,d2
-                    bmi.s    lbC00A7EA
+                    bmi.b    lbC00A7EA
                     movem.w  (sp)+,d6/d7
                     bra      lbC00A8CA
 
@@ -7572,43 +7573,41 @@ do_alien_spawn:     movem.w  (sp)+,d6/d7
                     move.w   d1,2(a2)
                     move.w   d2,4(a2)
                     move.w   d3,6(a2)
-                    move.l   a1,$1A(a0)
+                    move.l   a1,26(a0)
                     tst.w    select_speed_boss
-                    beq.s    set_alien_random_speed
-                    move.w   $20(a1),ALIEN_SPEED(a0)             ; max speed (boss speed ?)
-                    bra.s    lbC00A872
+                    beq.b    set_alien_random_speed
+                    move.w   32(a1),ALIEN_SPEED(a0)                 ; max speed (boss speed ?)
+                    bra.b    lbC00A872
 
 set_alien_random_speed:
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   $20(a1),d0
+                    move.w   32(a1),d0
                     ext.l    d0
-                    jsr      get_alien_rnd_speed
-                    move.w   cur_aliens_speed,ALIEN_SPEED(a0)    ; random speed
+                    bsr      get_alien_rnd_speed
+                    move.w   cur_aliens_speed(pc),ALIEN_SPEED(a0)   ; random speed
                     movem.l  (sp)+,d0-d7/a0-a6
 
-lbC00A872:          move.w   $22(a1),ALIEN_STRENGTH(a0)
+lbC00A872:          move.w   34(a1),ALIEN_STRENGTH(a0)
                     move.w   d0,-(sp)
                     move.w   global_aliens_extra_strength,d0
                     add.w    d0,ALIEN_STRENGTH(a0)
                     move.w   (sp)+,d0
-                    move.l   (a1),$40(a0)                       ;;
+                    move.l   (a1),64(a0)                            ;;
                     movem.w  (sp)+,d0/d1
-                    move.w   #1,$3E(a0)
+                    move.w   #1,62(a0)
                     move.w   d0,ALIEN_POS_X(a0)
                     move.w   d1,ALIEN_POS_Y(a0)
-                    move.l   $12(a0),a2
+                    move.l   18(a0),a2
                     move.l   ALIEN_POS_X(a0),-4(a2)
-                    move.w   $28(a1),$36(a0)
-                    clr.l    $4E(a0)
-                    clr.w    $54(a0)
-                    clr.w    $58(a0)
-                    move.w   $2E(a1),$4C(a0)
+                    move.w   40(a1),54(a0)
+                    clr.l    78(a0)
+                    clr.w    84(a0)
+                    clr.w    88(a0)
+                    move.w   46(a1),76(a0)
                     move.w   #1,play_alien_spawning_sample
                     rts
 
 lbC00A8CA:          movem.w  (sp)+,d0/d1
-                    rts
-
 lbC00A8D0:          rts
 
 cur_alien1_dats:    dcb.w    4,0
@@ -7625,7 +7624,6 @@ cur_alien6_dats:    dcb.w    4,0
                     dc.l     lbW008E5E
 cur_alien7_dats:    dcb.w    4,0
                     dc.l     lbW008EB8
-
                     dc.w     $FFFF
 
 lbC00A96C:          movem.w  d0/d5-d7,-(sp)
@@ -7645,24 +7643,24 @@ lbC00A96C:          movem.w  d0/d5-d7,-(sp)
 lbC00A994:          movem.w  (a6)+,d4-d7
                     addq.w   #4,a6
                     tst.w    d4
-                    bmi.s    lbC00A9D0
+                    bmi.b    lbC00A9D0
                     cmp.l    a6,a5
-                    beq.s    lbC00A994
+                    beq.b    lbC00A994
                     cmp.w    d0,d6
-                    bmi.s    lbC00A994
+                    bmi.b    lbC00A994
                     cmp.w    d4,d2
-                    bmi.s    lbC00A994
+                    bmi.b    lbC00A994
                     cmp.w    d1,d7
-                    bmi.s    lbC00A994
+                    bmi.b    lbC00A994
                     cmp.w    d5,d3
-                    bmi.s    lbC00A994
+                    bmi.b    lbC00A994
                     movem.w  (sp)+,d0/d5-d7
                     move.w   (a2),d6
                     sub.w    4(a1),d6
                     subq.w   #4,a6
                     move.l   (a6),a6
-                    move.l   a6,$26(a0)
-                    move.w   #1,$22(a0)
+                    move.l   a6,38(a0)
+                    move.w   #1,34(a0)
                     and.w    #3,d0
                     rts
 
@@ -7686,31 +7684,31 @@ lbC00A9D6:          movem.w  d0/d6/d7,-(sp)
 lbC00AA00:          movem.w  (a6)+,d4-d7
                     addq.w   #4,a6
                     tst.w    d4
-                    bmi.s    lbC00AA3E
+                    bmi.b    lbC00AA3E
                     cmp.l    a6,a5
-                    beq.s    lbC00AA00
+                    beq.b    lbC00AA00
                     cmp.w    d1,d7
-                    bmi.s    lbC00AA00
+                    bmi.b    lbC00AA00
                     cmp.w    d5,d3
-                    bmi.s    lbC00AA00
+                    bmi.b    lbC00AA00
                     cmp.w    d0,d6
-                    bmi.s    lbC00AA00
+                    bmi.b    lbC00AA00
                     cmp.w    d4,d2
-                    bmi.s    lbC00AA00
+                    bmi.b    lbC00AA00
                     movem.w  (sp)+,d0/d6/d7
                     move.w   2(a2),d7
                     sub.w    6(a1),d7
                     subq.w   #4,a6
                     move.l   (a6),a6
-                    move.l   a6,$26(a0)
-                    move.w   #1,$24(a0)
+                    move.l   a6,38(a0)
+                    move.w   #1,36(a0)
                     and.w    #12,d0
                     rts
 
 lbC00AA3E:          movem.w  (sp)+,d0/d6/d7
                     rts
 
-lbC00AA44:          lea      player_1_dats,a1
+lbC00AA44:          lea      player_1_dats(pc),a1
                     move.l   PLAYER_POS_X(a1),d1
                     add.l    #$80008,d1
                     move.l   d1,d3
@@ -7719,8 +7717,8 @@ lbC00AA44:          lea      player_1_dats,a1
                     swap     d0
                     move.l   d3,d2
                     swap     d2
-                    bsr.s    lbC00AA86
-                    lea      player_2_dats,a1
+                    bsr.b    lbC00AA86
+                    lea      player_2_dats(pc),a1
                     move.l   PLAYER_POS_X(a1),d1
                     add.l    #$80008,d1
                     move.l   d1,d3
@@ -7729,47 +7727,47 @@ lbC00AA44:          lea      player_1_dats,a1
                     swap     d0
                     move.l   d3,d2
                     swap     d2
-lbC00AA86:          clr.w    $116(a1)
-                    lea      cur_alien1_dats,a6
+lbC00AA86:          clr.w    278(a1)
+                    lea      cur_alien1_dats(pc),a6
 lbC00AA90:          movem.w  (a6)+,d4-d7
                     addq.w   #4,a6
                     tst.w    d4
                     bmi      return
                     cmp.w    d1,d7
-                    bmi.s    lbC00AA90
+                    bmi.b    lbC00AA90
                     cmp.w    d5,d3
-                    bmi.s    lbC00AA90
+                    bmi.b    lbC00AA90
                     cmp.w    d0,d6
-                    bmi.s    lbC00AA90
+                    bmi.b    lbC00AA90
                     cmp.w    d4,d2
-                    bmi.s    lbC00AA90
+                    bmi.b    lbC00AA90
                     subq.w   #4,a6
                     move.l   (a6),a0
-                    move.l   $1A(a0),a2
-                    tst.w    $38(a0)
-                    bne.s    lbC00AADC
-                    tst.w    $34(a0)
-                    bne.s    lbC00AAD0
+                    move.l   26(a0),a2
+                    tst.w    56(a0)
+                    bne.b    lbC00AADC
+                    tst.w    52(a0)
+                    bne.b    lbC00AAD0
                     add.l    #1500,PLAYER_CREDITS(a1)
                     add.l    #100,PLAYER_SCORE(a1)
-lbC00AAD0:          move.w   #5,$124(a1)
-                    move.w   #1,$116(a1)
-lbC00AADC:          tst.w    $34(a0)
-                    bne.s    lbC00AB04
-                    tst.w    $38(a0)
-                    bne.s    lbC00AB04
+lbC00AAD0:          move.w   #5,292(a1)
+                    move.w   #1,278(a1)
+lbC00AADC:          tst.w    52(a0)
+                    bne.b    lbC00AB04
+                    tst.w    56(a0)
+                    bne.b    lbC00AB04
                     tst.w    PLAYER_HEALTH(a1)
-                    beq.s    lbC00AB04
-                    move.w   $24(a2),d5
+                    beq.b    lbC00AB04
+                    move.w   36(a2),d5
                     add.w    d5,d5
                     sub.w    d5,PLAYER_HEALTH(a1)
                     cmp.w    #1,PLAYER_HEALTH(a1)
-                    bpl.s    lbC00AB04
+                    bpl.b    lbC00AB04
                     clr.w    PLAYER_HEALTH(a1)
-lbC00AB04:          move.w   #1,$34(a0)
+lbC00AB04:          move.w   #1,52(a0)
                     rts
 
-lbC00AB0C:          lea      lbW00E940,a1
+lbC00AB0C:          lea      lbW00E940(pc),a1
                     move.l   0(a1),d1
                     add.l    #$40004,d1
                     move.l   d1,d3
@@ -7779,7 +7777,7 @@ lbC00AB0C:          lea      lbW00E940,a1
                     move.l   d3,d2
                     swap     d2
                     bsr      lbC00ABB8
-                    lea      lbW00E95A,a1
+                    lea      lbW00E95A(pc),a1
                     move.l   0(a1),d1
                     add.l    #$40004,d1
                     move.l   d1,d3
@@ -7789,7 +7787,7 @@ lbC00AB0C:          lea      lbW00E940,a1
                     move.l   d3,d2
                     swap     d2
                     bsr      lbC00ABB8
-                    lea      lbW00E974,a1
+                    lea      lbW00E974(pc),a1
                     move.l   0(a1),d1
                     add.l    #$40004,d1
                     move.l   d1,d3
@@ -7798,8 +7796,8 @@ lbC00AB0C:          lea      lbW00E940,a1
                     swap     d0
                     move.l   d3,d2
                     swap     d2
-                    bsr.s    lbC00ABB8
-                    lea      lbW00E98E,a1
+                    bsr.b    lbC00ABB8
+                    lea      lbW00E98E(pc),a1
                     move.l   0(a1),d1
                     add.l    #$40004,d1
                     move.l   d1,d3
@@ -7808,8 +7806,8 @@ lbC00AB0C:          lea      lbW00E940,a1
                     swap     d0
                     move.l   d3,d2
                     swap     d2
-                    bsr.s    lbC00ABB8
-                    lea      lbW00E9A8,a1
+                    bsr.b    lbC00ABB8
+                    lea      lbW00E9A8(pc),a1
                     move.l   0(a1),d1
                     add.l    #$40004,d1
                     move.l   d1,d3
@@ -7818,40 +7816,40 @@ lbC00AB0C:          lea      lbW00E940,a1
                     swap     d0
                     move.l   d3,d2
                     swap     d2
-lbC00ABB8:          lea      cur_alien1_dats,a6
+lbC00ABB8:          lea      cur_alien1_dats(pc),a6
 lbC00ABBE:          movem.w  (a6)+,d4-d7
                     addq.w   #4,a6
                     tst.w    d4
                     bmi      return
                     cmp.w    d1,d7
-                    bmi.s    lbC00ABBE
+                    bmi.b    lbC00ABBE
                     cmp.w    d5,d3
-                    bmi.s    lbC00ABBE
+                    bmi.b    lbC00ABBE
                     cmp.w    d0,d6
-                    bmi.s    lbC00ABBE
+                    bmi.b    lbC00ABBE
                     cmp.w    d4,d2
-                    bmi.s    lbC00ABBE
+                    bmi.b    lbC00ABBE
                     subq.w   #4,a6
                     move.l   (a6),a0
-                    move.w   #1,$32(a0)
-                    move.w   $10(a1),d0
+                    move.w   #1,50(a0)
+                    move.w   16(a1),d0
                     sub.w    d0,ALIEN_STRENGTH(a0)
                     tst.w    ALIEN_STRENGTH(a0)
-                    bpl.s    lbC00AC14
-                    move.l   $14(a1),a6
-                    tst.w    $38(a0)
-                    bne      lbC00AC0E
+                    bpl.b    lbC00AC14
+                    move.l   20(a1),a6
+                    tst.w    56(a0)
+                    bne.b    lbC00AC0E
                     add.l    #1500,PLAYER_CREDITS(a6)
                     add.l    #100,PLAYER_SCORE(a6)
-lbC00AC0E:          move.w   #1,$38(a0)
-lbC00AC14:          move.l   $1A(a0),a6
-                    cmp.w    #1,$26(a6)
-                    beq.s    lbC00AC26
-                    tst.w    $12(a1)
-                    bne.s    lbC00AC38
-lbC00AC26:          move.w   #$7D00,0(a1)
+lbC00AC0E:          move.w   #1,56(a0)
+lbC00AC14:          move.l   26(a0),a6
+                    cmp.w    #1,38(a6)
+                    beq.b    lbC00AC26
+                    tst.w    18(a1)
+                    bne.b    lbC00AC38
+lbC00AC26:          move.w   #32000,0(a1)
                     move.l   8(a1),a6
-                    move.l   #lbL018CBA,$28(a6)
+                    move.l   #lbL018CBA,40(a6)
 lbC00AC38:          rts
 
 lbL00AC3E:          dcb.l    2,0
@@ -7876,11 +7874,11 @@ lbL00ACA2:          dc.l     lbL00AC3E
 
 lbC00ACC2:          clr.l    lbB00AC9E
                     clr.w    lbW00ACE2
-                    lea      lbL00AC3E,a6
-                    move.l   #$60,d0
+                    lea      lbL00AC3E(pc),a6
+                    moveq    #96,d0
 lbC00ACDA:          clr.b    (a6)+
                     subq.l   #1,d0
-                    bne.s    lbC00ACDA
+                    bne.b    lbC00ACDA
                     rts
 
 lbW00ACE2:          dc.w     0
@@ -7889,40 +7887,40 @@ lbC00ACE4:          tst.w    lbW00ACE2
                     bne      return
                     tst.w    lbW00ACA0
                     beq      return
-                    lea      lbL00ACA2,a0
+                    lea      lbL00ACA2(pc),a0
                     move.l   (a0),a1
                     move.l   4(a0),(a0)
                     move.l   8(a0),4(a0)
                     move.l   12(a0),8(a0)
-                    move.l   $10(a0),12(a0)
-                    move.l   $14(a0),$10(a0)
-                    move.l   $18(a0),$14(a0)
-                    move.l   $1C(a0),$18(a0)
-                    move.l   a1,$1C(a0)
+                    move.l   16(a0),12(a0)
+                    move.l   20(a0),16(a0)
+                    move.l   24(a0),20(a0)
+                    move.l   28(a0),24(a0)
+                    move.l   a1,28(a0)
                     subq.w   #4,lbW00ACA0
-                    lea      lbW012A28,a0
+                    lea      lbW012A28(pc),a0
                     move.l   0(a1),-4(a0)
                     move.l   8(a1),a3
                     clr.l    8(a1)
                     move.l   4(a1),a1
-                    jmp      lbC00AF00
+                    bra      lbC00AF00
 
 lbW00AD50:          dc.w     0
 
 patch_tiles:        clr.w    lbW00AD50
-                    cmp.l    lbW012A6A,a3
+                    cmp.l    lbW012A6A(pc),a3
                     beq      return
-                    lea      lbL00AC46,a1
+                    lea      lbL00AC46(pc),a1
                     move.l   #32,d7
 lbC00AD6E:          cmp.l    (a1),a3
                     beq      return
                     add.l    #12,a1
                     subq.w   #4,d7
-                    bpl.s    lbC00AD6E
-                    lea      lbL00ACA2,a1
-                    add.l    lbB00AC9E,a1
+                    bpl.b    lbC00AD6E
+                    lea      lbL00ACA2(pc),a1
+                    add.l    lbB00AC9E(pc),a1
                     move.l   (a1),a1
-                    cmp.w    #$20,lbW00ACA0
+                    cmp.w    #32,lbW00ACA0
                     beq      return
                     addq.w   #4,lbW00ACA0
                     move.l   cur_map_top_ptr,d0
@@ -7942,69 +7940,67 @@ lbC00AD6E:          cmp.l    (a1),a3
                     move.w   #1,lbW00AD50
                     rts
 
-lbC00ADD6:          lea      lbL012380,a0
-                    jsr      lbC00AE20
-                    lea      lbW01249C,a0
-                    jsr      lbC00AE20
-                    lea      lbW0125B8,a0
-                    jsr      lbC00AE20
-                    lea      lbW0126D4,a0
-                    jsr      lbC00AE20
-                    lea      lbW0127F0,a0
-                    jsr      lbC00AE20
-                    lea      lbW01290C,a0
-                    jsr      lbC00AE20
-                    rts
-
+lbC00ADD6:          lea      lbL012380(pc),a0
+                    bsr.b    lbC00AE20
+                    lea      lbW01249C(pc),a0
+                    bsr.b    lbC00AE20
+                    lea      lbW0125B8(pc),a0
+                    bsr.b    lbC00AE20
+                    lea      lbW0126D4(pc),a0
+                    bsr.b    lbC00AE20
+                    lea      lbW0127F0(pc),a0
+                    bsr.b    lbC00AE20
+                    lea      lbW01290C(pc),a0
+                    ; no rts
 lbC00AE20:          move.w   #2984,-4(a0)
                     move.w   #30000,-2(a0)
                     rts
 
-lbC00AE2E:          cmp.l    lbW0123C2,a3
+lbC00AE2E:          cmp.l    lbW0123C2(pc),a3
                     beq      lbC00AEB6
-                    cmp.l    lbW0124DE,a3
+                    cmp.l    lbW0124DE(pc),a3
                     beq      lbC00AEB6
-                    cmp.l    lbW0125FA,a3
+                    cmp.l    lbW0125FA(pc),a3
                     beq      lbC00AEB6
-                    cmp.l    lbW012716,a3
+                    cmp.l    lbW012716(pc),a3
                     beq      lbC00AEB6
-                    cmp.l    lbW012832,a3
-                    beq.s    lbC00AEB6
-                    cmp.l    lbW01294E,a3
-                    beq.s    lbC00AEB6
-                    move.l   map_pos_x,d0
+                    cmp.l    lbW012832(pc),a3
+                    beq.b    lbC00AEB6
+                    cmp.l    lbW01294E(pc),a3
+                    beq.b    lbC00AEB6
+                    move.l   map_pos_x(pc),d0
                     move.l   d0,d2
-                    sub.w    #$40,d0
-                    add.w    #$170,d2
-                    move.l   map_pos_y,d1
+                    sub.w    #64,d0
+                    add.w    #368,d2
+                    move.l   map_pos_y(pc),d1
                     move.l   d1,d3
-                    sub.w    #$40,d1
-                    add.w    #$130,d3
-                    lea      lbL012380,a0
-                    bsr.s    lbC00AEBA
-                    lea      lbW01249C,a0
-                    bsr.s    lbC00AEBA
-                    lea      lbW0125B8,a0
-                    bsr.s    lbC00AEBA
-                    lea      lbW0126D4,a0
-                    bsr.s    lbC00AEBA
-                    lea      lbW0127F0,a0
-                    bsr.s    lbC00AEBA
-                    lea      lbW01290C,a0
-                    bsr.s    lbC00AEBA
+                    sub.w    #64,d1
+                    add.w    #304,d3
+                    lea      lbL012380(pc),a0
+                    bsr.b    lbC00AEBA
+                    lea      lbW01249C(pc),a0
+                    bsr.b    lbC00AEBA
+                    lea      lbW0125B8(pc),a0
+                    bsr.b    lbC00AEBA
+                    lea      lbW0126D4(pc),a0
+                    bsr.b    lbC00AEBA
+                    lea      lbW0127F0(pc),a0
+                    bsr.b    lbC00AEBA
+                    lea      lbW01290C(pc),a0
+                    bsr.b    lbC00AEBA
 lbC00AEB6:          addq.l   #4,sp
                     rts
 
 lbC00AEBA:          move.w   -4(a0),d4
                     move.w   -2(a0),d5
                     cmp.w    d0,d4
-                    bmi.s    lbC00AED4
+                    bmi.b    lbC00AED4
                     cmp.w    d2,d4
-                    bpl.s    lbC00AED4
+                    bpl.b    lbC00AED4
                     cmp.w    d1,d5
-                    bmi.s    lbC00AED4
+                    bmi.b    lbC00AED4
                     cmp.w    d3,d5
-                    bpl.s    lbC00AED4
+                    bpl.b    lbC00AED4
                     rts
 
 lbC00AED4:          addq.l   #4,sp
@@ -8013,58 +8009,58 @@ lbC00AED4:          addq.l   #4,sp
 lbC00AED8:          move.l   cur_map_top_ptr,a1
                     move.l   a3,d1
                     sub.l    a1,d1
-                    divu     #$F8,d1
+                    divu     #248,d1
                     move.l   d1,d0
                     swap     d0
                     lsl.w    #3,d0
                     lsl.w    #4,d1
-                    add.w    #$10,d0
-                    add.w    #$10,d1
+                    add.w    #16,d0
+                    add.w    #16,d1
                     move.w   d0,-4(a0)
                     move.w   d1,-2(a0)
                     rts
 
 lbC00AF00:          move.w   #1,lbW00ACE2
                     move.l   #1,d0
-                    bra.s    lbC00AF20
+                    bra.b    lbC00AF20
 
 lbC00AF10:          cmp.l    #0,a0
                     beq      return
-                    clr.l    d0
+                    moveq    #0,d0
                     bra      lbC00AF20
 
-lbC00AF20:          move.l   a3,$42(a0)
-                    move.w   d0,$30(a0)
-                    move.l   a1,$28(a0)
+lbC00AF20:          move.l   a3,66(a0)
+                    move.w   d0,48(a0)
+                    move.l   a1,40(a0)
                     move.l   a4,-(sp)
-                    move.l   #lbL00051C,a4
+                    lea      lbL00051C,a4
                     move.w   -8(a1),d0
-                    cmp.w    #$FFFF,d0
-                    beq.s    lbC00AF42
+                    cmp.w    #-1,d0
+                    beq.b    lbC00AF42
                     move.l   a3,a4
                     add.w    d0,a4
-lbC00AF42:          move.l   a4,$32(a0)
+lbC00AF42:          move.l   a4,50(a0)
                     move.l   #lbL00051C,a4
                     move.w   -6(a1),d0
-                    cmp.w    #$FFFF,d0
-                    beq.s    lbC00AF5A
+                    cmp.w    #-1,d0
+                    beq.b    lbC00AF5A
                     move.l   a3,a4
                     add.w    d0,a4
-lbC00AF5A:          move.l   a4,$36(a0)
+lbC00AF5A:          move.l   a4,54(a0)
                     move.l   #lbL00051C,a4
                     move.w   -4(a1),d0
-                    cmp.w    #$FFFF,d0
-                    beq.s    lbC00AF72
+                    cmp.w    #-1,d0
+                    beq.b    lbC00AF72
                     move.l   a3,a4
                     add.w    d0,a4
-lbC00AF72:          move.l   a4,$3A(a0)
+lbC00AF72:          move.l   a4,58(a0)
                     move.l   #lbL00051C,a4
                     move.w   -2(a1),d0
-                    cmp.w    #$FFFF,d0
-                    beq.s    lbC00AF8A
+                    cmp.w    #-1,d0
+                    beq.b    lbC00AF8A
                     move.l   a3,a4
                     add.w    d0,a4
-lbC00AF8A:          move.l   a4,$3E(a0)
+lbC00AF8A:          move.l   a4,62(a0)
                     move.l   (sp)+,a4
                     rts
 
@@ -8117,60 +8113,57 @@ lev12_dats:         dc.l    'LBMA',aliens_sprites_block
                     dc.l    'L5BO',aliens_sprites_block
                     
 load_level_1:       lea      lev1_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_2:       lea      lev2_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_3:       lea      lev3_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_4:       lea      lev4_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_5:       lea      lev5_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_6:       lea      lev6_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_7:       lea      lev7_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_8:       lea      lev8_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_9:       lea      lev9_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_10:      lea      lev10_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_11:      lea      lev11_dats(pc),a2
-                    bra      load_level
+                    bra.b    load_level
 
 load_level_12:      lea      lev12_dats(pc),a2
-                    bra      load_level
+                    ; no rts
 
 load_level:         bsr      load_map_file
-                    jsr      copy_map_datas
+                    bsr      copy_map_datas
                     bsr      load_map_sprites           ; load animated tiles
                     bsr      load_map_bkgnd_tiles       ; load background tiles
-                    bsr      load_map_sprites           ; load sprites
-                    rts
+                    bra      load_map_sprites           ; load sprites
 
 load_map_bkgnd_tiles:
-                    move.l   tilespic_filename,file_name    ; filename coming from the map file
+                    move.l   tilespic_filename(pc),file_name    ; filename coming from the map file
                     lea      file_name(pc),a0
                     lea      bkgnd_tiles_block,a1
-                    bsr      load_file
-                    rts
+                    bra      load_file
 
 load_map_sprites:   move.l   (a2)+,file_name
                     lea      file_name(pc),a0
                     move.l   (a2)+,a1
-                    bsr      load_file
-                    rts
+                    bra      load_file
 
 load_map_file:      move.l   (a2)+,file_name
                     lea      file_name(pc),a0
@@ -8190,7 +8183,7 @@ load_map_file:      move.l   (a2)+,file_name
                     move.l   #23040,d0
 move_map_datas:     move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.s    move_map_datas
+                    bne.b    move_map_datas
                     rts
 
 file_name:          dc.b     "    ", 0
@@ -8221,9 +8214,9 @@ soundmon_title:     dc.b     "title.soundmon", 0
 get_map_datas:      move.l   a0,a1
                     move.l   #2048,d0
 search_BODY_chunk:  cmp.l    #'BODY',(a0)+
-                    beq.s    copy_BODY_chunk
+                    beq.b    copy_BODY_chunk
                     subq.w   #1,d0
-                    bne.s    search_BODY_chunk
+                    bne.b    search_BODY_chunk
                     move.l   #-1,d0
                     rts
 
@@ -8231,27 +8224,27 @@ copy_BODY_chunk:    move.l   (a0)+,d0
                     lsr.l    #2,d0
 .copy_loop:         move.l   (a0)+,(a1)+
                     subq.l   #1,d0
-                    bne.s    .copy_loop
+                    bne.b    .copy_loop
                     rts
 
 search_starting_position: 
                     move.l   #(end_map_datas-cur_map_datas)/2,d0
                     lea      cur_map_datas,a0
-                    clr.l    d2
-                    clr.l    d3
+                    moveq    #0,d2
+                    moveq    #0,d3
 search_starting_pos_loop:
                     move.w   (a0)+,d1
                     and.w    #$3F,d1
-                    cmp.w    #$35,d1
-                    beq.s    lbC00B58A
+                    cmp.w    #53,d1
+                    beq.b    lbC00B58A
                     add.w    #16,d2
                     cmp.w    #124*16,d2
-                    bne.s    starting_pos_next_line
+                    bne.b    starting_pos_next_line
                     add.w    #16,d3
                     clr.w    d2
 starting_pos_next_line:
                     subq.l   #1,d0
-                    bne.s    search_starting_pos_loop
+                    bne.b    search_starting_pos_loop
                     move.w   #1280,start_pos_x
                     move.w   #320,start_pos_y
                     rts
@@ -8259,10 +8252,10 @@ starting_pos_next_line:
 lbC00B58A:          add.w    #4,d2
                     add.w    #58,d3
                     tst.w    d2
-                    bpl.s    lbC00B598
+                    bpl.b    lbC00B598
                     clr.w    d2
 lbC00B598:          tst.w    d3
-                    bpl.s    lbC00B59E
+                    bpl.b    lbC00B59E
                     clr.w    d3
 lbC00B59E:          ext.l    d2
                     ext.l    d3
@@ -8285,45 +8278,45 @@ retrieve_bkgnd_tiles_filename:
 tilespic_filename:  dc.l     '    '
 
 get_map_palettes:   lea      temp_map_buffer,a0
-                    move.l   #$80,d0
+                    move.l   #128,d0
 Search_PALA_Chunk:  cmp.l    #'PALA',(a0)+
-                    beq.s    copy_PALA_chunk
+                    beq.b    copy_PALA_chunk
                     subq.w   #1,d0
-                    bne.s    Search_PALA_Chunk
+                    bne.b    Search_PALA_Chunk
                     rts
 
 copy_PALA_chunk:    add.l    #68,a0
-                    move.l   #32,d0
+                    moveq    #32,d0
                     lea      level_palette1,a1
 .copy_loop:         move.w   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.s    .copy_loop
+                    bne.b    .copy_loop
                     lea      temp_map_buffer,a0
                     move.l   #128,d0
 search_PALB_chunk:  cmp.l    #'PALB',(a0)+
-                    beq.s    copy_PALB_chunk
+                    beq.b    copy_PALB_chunk
                     subq.w   #1,d0
-                    bne.s    search_PALB_chunk
+                    bne.b    search_PALB_chunk
                     rts
 
 copy_PALB_chunk:    add.l    #68,a0
-                    move.l   #$20,d0
+                    moveq    #32,d0
                     lea      level_palette2,a1
 .copy:              move.w   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.s    .copy
+                    bne.b    .copy
                     rts
 
 cur_holocode:       dc.l     0
 
 lbC00B6B2:          move.l   a0,cur_holocode
                     move.l   a0,a1
-                    lea      current_keysequence,a2
+                    lea      current_keysequence(pc),a2
 lbC00B6C0:          move.b   (a1)+,d0
                     bsr      get_ascii_keycode
                     move.b   d0,(a2)+
                     tst.b    (a1)
-                    bpl.s    lbC00B6C0
+                    bpl.b    lbC00B6C0
                     bra      search_keysequence
 
 lbL00B6D0:          dc.l     0
@@ -8339,23 +8332,23 @@ lbC00B6D4:          tst.w    input_enabled
                     beq      return
                     move.l   #2,lbL00B6D0
                     move.b   key_pressed,d0
-                    move.l   keysequence_ptr,a0            ; store the key value in the sequences buffer
+                    move.l   keysequence_ptr(pc),a0            ; store the key value in the sequences buffer
                     move.b   d0,(a0)
                     addq.l   #1,keysequence_ptr
 
-search_keysequence: lea      input_table,a0
-                    clr.l    d5
+search_keysequence: lea      input_table(pc),a0
+                    moveq    #0,d5
 lbC00B728:          move.l   (a0),a1
-                    lea      current_keysequence,a2
-                    clr.l    d4
+                    lea      current_keysequence(pc),a2
+                    moveq    #0,d4
 lbC00B732:          move.b   (a2)+,d1
                     cmp.b    (a1)+,d1
-                    bne      search_next_key_sequence
+                    bne.b    search_next_key_sequence
                     tst.b    (a1)
                     bmi      run_keysequence_routine
                     addq.w   #1,d4
                     cmp.w    d4,d5
-                    bhi.s    lbC00B732
+                    bhi.b    lbC00B732
                     move.w   d4,d5
                     bra      lbC00B732
 
@@ -8363,7 +8356,7 @@ search_next_key_sequence:
                     addq.l   #8,a0
                     tst.l    (a0)
                     bpl      lbC00B728
-                    lea      current_keysequence,a0
+                    lea      current_keysequence(pc),a0
                     tst.b    0(a0,d5.w)
                     beq      return
                     bra      reset_keysequence
@@ -8372,17 +8365,16 @@ run_keysequence_routine:
                     bsr      reset_keysequence
                     move.l   4(a0),a1
                     jsr      (a1)
-                    move.l   #36,d0
-                    move.l   #0,d2
-                    jsr      trigger_sample_select_channel
-                    rts
+                    moveq    #36,d0
+                    moveq    #0,d2
+                    jmp      trigger_sample_select_channel
 
 reset_keysequence:  move.l   #current_keysequence,keysequence_ptr
-                    move.l   #64,d7
-                    lea      current_keysequence,a6
+                    moveq    #64,d7
+                    lea      current_keysequence(pc),a6
 lbC00B7AA:          clr.w    (a6)+
                     subq.w   #1,d7
-                    bne.s    lbC00B7AA
+                    bne.b    lbC00B7AA
                     rts
 
 keysequence_ptr:    dc.l     current_keysequence
@@ -8409,29 +8401,29 @@ holocode_level_10:  dc.b     '25194'
                     dc.b     -1
 
 convert_input_table_to_keycodes: 
-                    lea      input_table,a0
+                    lea      input_table(pc),a0
 lbC00C004:          move.l   (a0),a1
 lbC00C006:          move.b   (a1),d0
-                    bsr      get_ascii_keycode
+                    bsr.b    get_ascii_keycode
                     move.b   d0,(a1)
                     addq.l   #1,a1
                     tst.b    (a1)
-                    bpl.s    lbC00C006
+                    bpl.b    lbC00C006
                     addq.l   #8,a0
                     tst.l    (a0)
-                    bpl.s    lbC00C004
+                    bpl.b    lbC00C004
                     rts
 
-get_ascii_keycode:  lea      keycode_ascii_letters,a5
-                    lea      ascii_keycodes_table,a6
-lbC00C028:          cmp.b    (a5)+,d0
-                    beq      lbC00C03E
+get_ascii_keycode:  lea      keycode_ascii_letters(pc),a5
+                    lea      ascii_keycodes_table(pc),a6
+.loop:              cmp.b    (a5)+,d0
+                    beq.b    .search_done
                     tst.b    (a5)
-                    beq      lbC00C03E
+                    beq.b    .search_done
                     add.l    #1,a6
-                    bra      lbC00C028
+                    bra      .loop
 
-lbC00C03E:          move.b   (a6),d0
+.search_done:       move.b   (a6),d0
                     rts
 
 keycode_ascii_letters:
@@ -8513,52 +8505,52 @@ player_2_invincible:
 jump_to_level:      tst.l    level_to_go
                     beq      return
                     addq.l   #4,sp
-                    move.l   level_to_go,a0
+                    move.l   level_to_go(pc),a0
                     clr.l    level_to_go
                     jmp      (a0)
 
 check_players_invincibility:
                     tst.w    player_1_invincible
-                    beq      player_1_not_invincible
+                    beq.b    player_1_not_invincible
                     move.w   #64,player_1_health
 player_1_not_invincible:
                     tst.w    player_2_invincible
-                    beq      player_2_not_invincible
+                    beq.b    player_2_not_invincible
                     move.w   #64,player_2_health
 player_2_not_invincible:
                     rts
 
-lbW00CEE2:          dc.w     $32
+lbW00CEE2:          dc.w     50
 
 display_pause:      clr.w    lbW0004C2
                     clr.b    key_pressed
                     move.w   #10,lbW0001E2
                     move.w   #50,lbW00CEE2
 lbC00CF00:          btst     #4,player_2_input
-                    bne.s    lbC00CF00
+                    bne.b    lbC00CF00
                     btst     #4,player_1_input
-                    bne.s    lbC00CF00
+                    bne.b    lbC00CF00
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
                     move.l   #608,d0
-                    jsr      copy_byte_array
+                    bsr      copy_byte_array
                     lea      bottom_bar_gfx,a0
                     lea      player_2_status_bar,a1
                     move.l   #608,d0
-                    jsr      copy_byte_array
+                    bsr      copy_byte_array
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a0
                     move.l   #304,d0
 lbC00CF56:          move.b   #$FF,(a0)+
                     move.b   #$FF,(a1)+
                     subq.w   #1,d0
-                    bne.s    lbC00CF56
+                    bne.b    lbC00CF56
 lbC00CF62:          lea      lbL099B34,a0
                     move.l   #304,d0
-                    jsr      clear_array_byte
+                    bsr      clear_array_byte
                     lea      lbL099D94,a0
                     move.l   #304,d0
-                    jsr      clear_array_byte
+                    bsr      clear_array_byte
                     move.l   #$19,d0
 lbC00CF8C:          btst     #4,player_2_input
                     bne      remove_pause
@@ -8566,24 +8558,24 @@ lbC00CF8C:          btst     #4,player_2_input
                     bne      remove_pause
                     cmp.b    #KEY_P,key_pressed
                     beq      remove_pause
-                    cmp.b    #255,$dff006
-                    bne.s    lbC00CF8C
-lbC00CFBA:          cmp.b    #254,$dff006
-                    bne.s    lbC00CFBA
+                    cmp.b    #255,CUSTOM+VHPOSR
+                    bne.b    lbC00CF8C
+lbC00CFBA:          cmp.b    #254,CUSTOM+VHPOSR
+                    bne.b    lbC00CFBA
                     btst     #5,player_2_input
-                    bne.s    lbC00CFDA
+                    bne.b    lbC00CFDA
                     btst     #5,player_1_input
-                    beq      lbC00CFE8
+                    beq.b    lbC00CFE8
 lbC00CFDA:          subq.w   #1,lbW00CEE2
-                    bne.s    lbC00CFE8
+                    bne.b    lbC00CFE8
                     jmp      trigger_game_over
 
 lbC00CFE8:          subq.w   #1,d0
-                    bne.s    lbC00CF8C
+                    bne.b    lbC00CF8C
                     lea      game_paused_pic,a0
                     lea      lbB099B40,a1
                     lea      lbL099DA0,a2
-                    move.l   #7,d0
+                    moveq    #7,d0
 lbC00D004:          move.l   (a0),(a1)
                     move.l   (a0)+,(a2)
                     move.l   (a0),4(a1)
@@ -8593,35 +8585,35 @@ lbC00D004:          move.l   (a0),(a1)
                     add.l    #38,a1
                     add.l    #38,a2
                     subq.w   #1,d0
-                    bne.s    lbC00D004
-                    move.l   #25,d0
+                    bne.b    lbC00D004
+                    moveq    #25,d0
 lbC00D02E:          btst     #4,player_2_input
-                    bne.s    remove_pause
+                    bne.b    remove_pause
                     btst     #4,player_1_input
-                    bne.s    remove_pause
+                    bne.b    remove_pause
                     cmp.b    #KEY_P,key_pressed
                     beq      remove_pause
-                    cmp.b    #$FF,$dff006
-                    bne.s    lbC00D02E
-lbC00D058:          cmp.b    #$FE,$dff006
-                    bne.s    lbC00D058
+                    cmp.b    #$FF,CUSTOM+VHPOSR
+                    bne.b    lbC00D02E
+lbC00D058:          cmp.b    #$FE,CUSTOM+VHPOSR
+                    bne.b    lbC00D058
                     btst     #5,player_2_input
-                    beq.s    lbC00D084
+                    beq.b    lbC00D084
                     btst     #5,player_1_input
-                    beq.s    lbC00D084
+                    beq.b    lbC00D084
                     subq.w   #1,lbW00CEE2
-                    bne.s    lbC00D084
+                    bne.b    lbC00D084
                     jmp      trigger_game_over
 
 lbC00D084:          subq.w   #1,d0
-                    bne.s    lbC00D02E
+                    bne.b    lbC00D02E
                     bra      lbC00CF62
 
 remove_pause:       clr.b    key_pressed
 lbC00D092:          btst     #4,player_2_input
-                    bne.s    lbC00D092
+                    bne.b    lbC00D092
                     btst     #4,player_1_input
-                    bne.s    lbC00D092
+                    bne.b    lbC00D092
                     lea      top_bar_gfx,a1
                     lea      player_1_status_bar,a0
                     move.l   #608,d0
@@ -8633,58 +8625,56 @@ lbC00D092:          btst     #4,player_2_input
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
-                    incdir   "src/main/gfx/"
 game_paused_pic:    incbin   "game_paused_96x7x1.raw"
 
 lbC00D144:          move.l   a0,-(sp)
-                    lea      lbW012A28,a0
-                    clr.w    $1A(a0)
+                    lea      lbW012A28(pc),a0
+                    clr.w    26(a0)
                     move.l   (sp)+,a0
                     rts
 
 lbC00D154:          tst.w    player_2_alive
-                    bpl      lbC00D168
+                    bpl.b    lbC00D168
                     move.l   #lbL00E9DE,lbL005D44
 lbC00D168:          tst.w    player_1_alive
-                    bpl      lbC00D17C
+                    bpl.b    lbC00D17C
                     move.l   #lbL00E9DE,lbL0064E4
 lbC00D17C:          rts
 
-lbC00D17E:          move.w   lbW0035D6,d0
-                    sub.w    #$50,d0
+lbC00D17E:          move.w   lbW0035D6(pc),d0
+                    sub.w    #80,d0
                     move.w   d0,d1
-                    add.w    #$1E0,d1
-                    move.w   lbW0035D2,d2
-                    sub.w    #$50,d2
+                    add.w    #480,d1
+                    move.w   lbW0035D2(pc),d2
+                    sub.w    #80,d2
                     move.w   d2,d3
-                    add.w    #$1A0,d3
-                    lea      lbL00D29A,a0
-                    bsr      lbC00D1B4
-                    lea      lbL00D2AA,a0
-                    bsr      lbC00D1B4
-                    rts
+                    add.w    #416,d3
+                    lea      lbL00D29A(pc),a0
+                    bsr.b    lbC00D1B4
+                    lea      lbL00D2AA(pc),a0
+                    ; no rts
 
 lbC00D1B4:          tst.l    0(a0)
                     beq      return
                     move.w   4(a0),d4
                     cmp.w    d0,d4
-                    bmi      lbC00D220
+                    bmi.b    lbC00D220
                     cmp.w    d1,d4
-                    bpl      lbC00D220
+                    bpl.b    lbC00D220
                     move.w   6(a0),d4
                     cmp.w    d2,d4
-                    bmi      lbC00D220
+                    bmi.b    lbC00D220
                     cmp.w    d3,d4
-                    bpl      lbC00D220
+                    bpl.b    lbC00D220
                     subq.w   #1,8(a0)
                     bpl      return
                     move.l   12(a0),a1
-                    move.w   $2C(a1),8(a0)
+                    move.w   44(a1),8(a0)
                     move.l   0(a0),a3
                     movem.l  d0-d3,-(sp)
-                    jsr      lbC00A718
+                    bsr      lbC00A718
                     tst.w    play_alien_spawning_sample
-                    beq.s    lbC00D21A
+                    beq.b    lbC00D21A
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.w   #36,sample_to_play
                     jsr      trigger_sample
@@ -8698,19 +8688,19 @@ lbC00D220:          clr.l    0(a0)
 lbL00D226:          dc.l     0
 
 lbC00D22A:          movem.l  d0-d7/a0-a6,-(sp)
-                    bsr.s    lbC00D236
+                    bsr.b    lbC00D236
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 lbC00D236:          lea      lbL00D29A(pc),a0
                     tst.l    0(a0)
-                    beq.s    lbC00D24C
+                    beq.b    lbC00D24C
                     lea      lbL00D2AA(pc),a0
                     tst.l    0(a0)
                     bne      return
-lbC00D24C:          cmp.l    lbL00D29A,a3
+lbC00D24C:          cmp.l    lbL00D29A(pc),a3
                     beq      return
-                    cmp.l    lbL00D2AA,a3
+                    cmp.l    lbL00D2AA(pc),a3
                     beq      return
                     move.l   a3,0(a0)
                     move.l   a3,d1
@@ -8720,13 +8710,13 @@ lbC00D24C:          cmp.l    lbL00D29A,a3
                     swap     d0
                     lsl.w    #3,d0
                     lsl.w    #4,d1
-                    move.l   lbL00D226,a3
+                    move.l   lbL00D226(pc),a3
                     move.l   a3,12(a0)
-                    add.w    $30(a3),d0
-                    add.w    $32(a3),d1
+                    add.w    48(a3),d0
+                    add.w    50(a3),d1
                     move.w   d0,4(a0)
                     move.w   d1,6(a0)
-                    move.w   #$14,8(a0)
+                    move.w   #20,8(a0)
                     rts
 
 lbL00D29A:          dcb.l    2,0
@@ -8734,57 +8724,56 @@ lbL00D29A:          dcb.l    2,0
 lbL00D2AA:          dcb.l    2,0
                     dc.l     50,0
 
-lbC00D2BA:          lea      lbW008C9C,a0
+lbC00D2BA:          lea      lbW008C9C(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008CF6,a0
+                    lea      lbW008CF6(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008D50,a0
+                    lea      lbW008D50(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008DAA,a0
+                    lea      lbW008DAA(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008E04,a0
+                    lea      lbW008E04(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008E5E,a0
+                    lea      lbW008E5E(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008EB8,a0
+                    lea      lbW008EB8(pc),a0
                     move.l   0(a0),a2
-                    bsr      lbC00A63A
-                    rts
+                    bra      lbC00A63A
 
 display_map_overview:
                     clr.w    lbW0004C2
                     move.w   #1,lbW0004D0
                     move.w   #1,lbW010CDE
                     lea      copper_main_palette,a0
-                    move.l   #lbL0226EA,a1
-                    jsr      lbC0108DA
+                    lea      lbL0226EA,a1
+                    bsr      lbC0108DA
                     move.l   #$20,d0
-                    jsr      lbC010AA4
+                    bsr      lbC010AA4
                     jsr      wait
                     lea      lbL0FE76C,a0
-                    move.l   #$2800,d0
-                    jsr      clear_array_long
+                    move.l   #(256*40),d0
+                    bsr      clear_array_long
                     bsr      set_map_overview_bps
                     bsr      load_map_overview
                     bsr      wait_raster
-                    move.l   #copperlist_overmap,$dff080
+                    move.l   #copperlist_overmap,CUSTOM+COP1LCH
                     lea      overmap_palette,a0
                     bsr      wait_raster
                     lea      lbL02266A,a1
                     move.l   #32,d0
-                    jsr      lbC010906
-                    lea      text_scanning,a0
-                    lea      font_struct,a1
-                    jsr      display_text
-                    move.b   $bfd800,d1
+                    bsr      lbC010906
+                    lea      text_scanning(pc),a0
+                    lea      font_struct(pc),a1
+                    bsr      display_text
+                    move.b   CIAB+CIATODLOW,d1
                     cmp.b    #$7F,d1
-                    bpl      lbC00D3CA
+                    bpl.b    lbC00D3CA
                     bsr      get_map_overview_player_pos
 lbC00D3CA:          jsr      wait
                     tst.w    self_destruct_initiated
@@ -8792,7 +8781,7 @@ lbC00D3CA:          jsr      wait
                     cmp.l    #1024,lbL000572
                     beq      exit_map_overview
                     lea      lbL0FCD7C,a0
-                    move.l   #1280,d0
+                    move.l   #(32*40),d0
                     jsr      clear_array_long
                     bsr      plot_map_overview_data
 
@@ -8800,53 +8789,51 @@ lbC00D3CA:          jsr      wait
                     bsr      display_elapsed_time
                     
                     btst     #6,player_2_input
-                    bne.s    lbC00D430
+                    bne.b    lbC00D430
                     btst     #6,player_1_input
-                    bne.s    lbC00D430
+                    bne.b    lbC00D430
                     cmp.b    #KEY_M,key_pressed
-                    bne.s    .loop
+                    bne.b    .loop
 
 lbC00D426:          cmp.b    #KEY_M,key_pressed
-                    beq.s    lbC00D426
+                    beq.b    lbC00D426
 
 lbC00D430:          btst     #6,player_2_input
-                    bne.s    lbC00D430
+                    bne.b    lbC00D430
                     btst     #6,player_1_input
-                    bne.s    lbC00D430
+                    bne.b    lbC00D430
 
 exit_map_overview:  bsr      wait_raster
                     lea      overmap_palette,a0
                     lea      lbL02266A,a1
-                    move.l   #32,d0
-                    jsr      lbC010AA4
+                    moveq    #32,d0
+                    bsr      lbC010AA4
                     jsr      wait
-                    jsr      lbC003954
+                    bsr      lbC003954
                     bsr      wait_raster
-                    move.l   #copperlist_main,$dff080
+                    move.l   #copperlist_main,CUSTOM+COP1LCH
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
-                    move.l   #32,d0
-                    jsr      lbC010906
-                    jsr      lbC00D67A
+                    moveq    #32,d0
+                    bsr      lbC010906
+                    bsr      lbC00D67A
                     clr.w    lbW0004D0
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
 display_elapsed_time:
                     bsr      lbC00D4D4
-                    jsr      calc_elapsed_time
-                    lea      text_time,a0
-                    lea      font_struct,a1
-                    jsr      display_text
-                    rts
+                    bsr      calc_elapsed_time
+                    lea      text_time(pc),a0
+                    lea      font_struct(pc),a1
+                    bra      display_text
 
-lbC00D4D4:          jsr      wait_blitter
-                    move.l   #$1000000,$dff040
-                    clr.w    $dff066
-                    move.l   #lbL0FE08C,$dff054
-                    move.w   #(12*64)+20,$dff058
-                    bsr      wait_blitter
-                    rts
+lbC00D4D4:          bsr      wait_blitter
+                    move.l   #$1000000,CUSTOM+BLTCON0
+                    clr.w    CUSTOM+BLTDMOD
+                    move.l   #lbL0FE08C,CUSTOM+BLTDPTH
+                    move.w   #(12*64)+20,CUSTOM+BLTSIZE
+                    bra      wait_blitter
 
 plot_map_overview_data:
                     lea      map_overview_planes,a5
@@ -8854,19 +8841,19 @@ plot_map_overview_data:
                     move.l   #248,d0
                     move.l   #202,d1
                     move.l   d0,d7
-.loop:              clr.l    d6
+.loop:              moveq    #0,d6
                     move.w   -(a0),d2
                     and.w    #$3F,d2
                     cmp.w    #3,d2
-                    bne.s    .door
-                    move.l   #(256*40),d6   ; different plane for doors
+                    bne.b    .door
+                    move.l   #(256*40),d6                   ; different plane for doors
 .door:              tst.w    d2
-                    beq.s    .no_block
+                    beq.b    .no_block
                     cmp.w    #3,d2
-                    beq.s    .wall
+                    beq.b    .wall
                     cmp.w    #1,d2
-                    bne.s    .no_block
-.wall:              move.l   d0,d4          ; four dots per tile
+                    bne.b    .no_block
+.wall:              move.l   d0,d4                          ; four dots per tile
                     move.l   d1,d5
                     move.l   a5,a4
                     mulu     #40,d5
@@ -8894,12 +8881,11 @@ plot_map_overview_data:
                     bset     d2,0(a4,d5.w)
                     bset     d2,40(a4,d5.w)
 .no_block:          subq.w   #2,d0
-                    bne.s    .loop
+                    bne.b    .loop
                     move.l   d7,d0
                     subq.w   #2,d1
-                    bne.s    .loop
-                    bsr      print_players_pos_on_map
-                    rts
+                    bne.b    .loop
+                    bra      print_players_pos_on_map
 
 text_scanning:      dc.w     100
                     dc.w     100
@@ -8908,78 +8894,73 @@ text_scanning:      dc.w     100
                     even
 
 get_map_overview_player_pos:
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
-                    bpl.s    lbC00D5C0
-                    lea      player_2_dats,a0
-lbC00D5C0:          move.w   start_pos_x,d0
-                    move.w   start_pos_y,d1
+                    bpl.b    lbC00D5C0
+                    lea      player_2_dats(pc),a0
+lbC00D5C0:          move.w   start_pos_x(pc),d0
+                    move.w   start_pos_y(pc),d1
                     move.w   PLAYER_POS_X(a0),d2
                     move.w   PLAYER_POS_Y(a0),d3
                     sub.w    d0,d2
                     tst.w    d2
-                    bpl.s    lbC00D5DC
+                    bpl.b    lbC00D5DC
                     neg.w    d2
 lbC00D5DC:          sub.w    d1,d3
                     tst.w    d3
-                    bpl.s    lbC00D5E4
+                    bpl.b    lbC00D5E4
                     neg.w    d3
 lbC00D5E4:          cmp.w    d2,d3
-                    bpl.s    lbC00D5EA
+                    bpl.b    lbC00D5EA
                     move.w   d2,d3
 lbC00D5EA:          ext.l    d3
                     lsr.l    #4,d3
                     cmp.w    #150,d3
-                    bmi.s    lbC00D5F8
+                    bmi.b    lbC00D5F8
                     move.w   #150,d3
 lbC00D5F8:          tst.l    d3
                     beq      return
                     move.l   d3,d0
                     move.l   d0,lbL000520
-                    bsr      display_map_overview_interference
-                    rts
-
+                    ; no rts
 display_map_overview_interference:
                     move.l   d0,-(sp)
-                    move.l   #74,d0
-                    move.l   #0,d2
+                    moveq    #74,d0
+                    moveq    #0,d2
                     jsr      trigger_sample_select_channel
                     move.l   (sp)+,d0
 .loop:              bsr      wait_line_44
-                    move.b   $bfd800,d1
+                    move.b   CIAB+CIATODLOW,d1
                     ext.w    d1
                     move.b   d1,diwstop_overmap
                     neg.w    d1
                     move.b   d1,diwstrt_overmap
                     subq.l   #1,d0
-                    bne.s    .loop
+                    bne.b    .loop
                     move.w   #$2B8E,diwstrt_overmap
                     move.w   #$2DB3,diwstop_overmap
-                    move.l   #75,d0
-                    move.l   #0,d2
-                    jsr      trigger_sample_select_channel
-                    rts
+                    moveq    #75,d0
+                    moveq    #0,d2
+                    jmp      trigger_sample_select_channel
 
-wait_line_44:       cmp.b    #255,$dff006
-                    bne.s    wait_line_44
-.wait:              cmp.b    #44,$dff006
-                    bne.s    .wait
+wait_line_44:       cmp.b    #255,CUSTOM+VHPOSR
+                    bne.b    wait_line_44
+.wait:              cmp.b    #44,CUSTOM+VHPOSR
+                    bne.b    .wait
                     rts
 
 lbC00D67A:          rts
 
 print_players_pos_on_map:
                     bsr      get_players_position
-                    lea      text_player_1,a0
-                    move.w   player_1_pos_x_map,d0
-                    move.w   player_1_pos_y_map,d1
+                    lea      text_player_1(pc),a0
+                    move.w   player_1_pos_x_map(pc),d0
+                    move.w   player_1_pos_y_map(pc),d1
                     bsr      print_player_pos_on_map
-                    lea      text_player_2,a0
-                    move.w   player_2_pos_x_map,d0
-                    move.w   player_2_pos_y_map,d1
-                    bsr      print_player_pos_on_map
-                    rts
-
+                    lea      text_player_2(pc),a0
+                    move.w   player_2_pos_x_map(pc),d0
+                    move.w   player_2_pos_y_map(pc),d1
+                    ; no rts
 print_player_pos_on_map:
                     tst.w    d0
                     beq      return
@@ -8987,8 +8968,8 @@ print_player_pos_on_map:
                     sub.w    #16,d1
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
-                    lea      on_map_font_struct,a1
-                    jmp      display_text
+                    lea      on_map_font_struct(pc),a1
+                    bra      display_text
 
 text_player_1:      dc.w     0,0
                     dc.b     '1'
@@ -9011,11 +8992,11 @@ on_map_font_struct: dc.l    lbL0FE744
                     dc.l    ascii_letters
 
 get_players_position:
-                    lea      player_1_dats,a0
-                    clr.l    d0
-                    clr.l    d1
+                    lea      player_1_dats(pc),a0
+                    moveq    #0,d0
+                    moveq    #0,d1
                     cmp.w    #-1,PLAYER_ALIVE(a0)
-                    beq.s    .p1_not_alive
+                    beq.b    .p1_not_alive
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     lsr.w    #3,d0
@@ -9024,11 +9005,11 @@ get_players_position:
                     add.w    #20,d1
 .p1_not_alive:      move.w   d0,player_1_pos_x_map
                     move.w   d1,player_1_pos_y_map
-                    lea      player_2_dats,a0
-                    clr.l    d0
-                    clr.l    d1
+                    lea      player_2_dats(pc),a0
+                    moveq    #0,d0
+                    moveq    #0,d1
                     cmp.w    #-1,PLAYER_ALIVE(a0)
-                    beq.s    .p2_not_alive
+                    beq.b    .p2_not_alive
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     lsr.w    #3,d0
@@ -9046,50 +9027,48 @@ player_2_pos_y_map: dc.w     0
 
 set_map_overview_bps:
                     move.l   #(256*40),d0
-                    move.l   #6,d1
+                    moveq    #6,d1
                     lea      map_overview_background_pic,a0
                     lea      overmap_bps,a1
                     bsr      set_bps
                     move.l   #304,d0
-                    move.l   #2,d1
+                    moveq    #2,d1
                     lea      top_bar_gfx,a0
                     lea      overmap_top_bar_bps,a1
                     bsr      set_bps
                     move.l   #304,d0
-                    move.l   #2,d1
+                    moveq    #2,d1
                     lea      bottom_bar_gfx,a0
                     lea      overmap_bottom_bar_bps,a1
-                    bsr      set_bps
-                    rts
+                    bra      set_bps
 
 load_map_overview:  lea      map_overview_background_pic,a0
-                    move.l   #720,d0
-                    jsr      clear_array_long
+                    move.l   #(18*40),d0
+                    bsr      clear_array_long
                     lea      pic_mapbkgnd,a0
                     lea      map_overview_background_pic,a1
-                    jsr      load_file
+                    bsr      load_file
                     lea      lbL0FBF6C,a0                           ; retrieve the palette
                     lea      lbL02266A,a1
-                    move.l   #16,d0
+                    moveq    #16,d0
 .copy_palette:      move.w   (a0)+,(a1)+
                     subq.l   #1,d0
-                    bne.s    .copy_palette
+                    bne.b    .copy_palette
                     lea      map_overview_overlay_palette,a0        ; overlay palette
-                    move.l   #16,d0
+                    moveq    #16,d0
 .copy_overlay_palette:
                     move.w   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.s    .copy_overlay_palette
+                    bne.b    .copy_overlay_palette
                     lea      overmap_palette+2,a0
-                    move.l   #32,d0
+                    moveq    #32,d0
 .clear_palette:     clr.w    (a0)
                     addq.l   #4,a0
                     subq.w   #1,d0
-                    bne.s    .clear_palette
+                    bne.b    .clear_palette
                     lea      lbL0FBF6C,a0
                     move.l   #(256*40),d0
-                    jsr      clear_array_long
-                    rts
+                    bra      clear_array_long
 
 map_overview_overlay_palette:
                     dc.w     $346,$457,$556,$568,$866,$679,$976,$B76,$78A,$C86
@@ -9107,29 +9086,29 @@ run_intex:          tst.w    self_destruct_initiated
                     jsr      trigger_sample
                     lea      copper_main_palette,a0
                     lea      lbL0226EA,a1
-                    jsr      lbC0108DA
-                    move.l   #$20,d0
+                    bsr      lbC0108DA
+                    move.l   #32,d0
                     move.w   #1,lbW010CDE
-                    jsr      lbC010AA4
+                    bsr      lbC010AA4
                     jsr      wait
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     lea      exe_intex,a0
                     lea      temp_buffer,a1
-                    jsr      load_exe
+                    bsr      load_exe
                     move.l   player_using_intex,a0
                     move.l   PLAYER_SHOTS(a0),intex_shots_fired
                     move.w   PLAYER_AMMOPACKS(a0),intex_ammopacks+2
                     move.w   PLAYER_HEALTH(a0),intex_health+2
                     move.l   PLAYER_CUR_WEAPON(a0),intex_cur_weapon
                     move.l   PLAYER_SCORE(a0),lbL000518
-                    clr.l    d0
-                    clr.l    d1
+                    moveq    #0,d0
+                    moveq    #0,d1
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
-                    add.w    #$20,d0
-                    add.w    #$10,d1
+                    add.w    #32,d0
+                    add.w    #16,d1
                     move.l   0(a0),a1
-                    clr.l    d2
+                    moveq    #0,d2
                     move.w   PLAYER_OWNEDWEAPONS(a0),d2
                     move.w   d2,lbW00DC04
                     lea      key_pressed,a2
@@ -9139,19 +9118,19 @@ run_intex:          tst.w    self_destruct_initiated
                     lea      lbC02325A,a6
                     move.l   PLAYER_CREDITS(a0),d7
                     tst.w    share_credits
-                    beq.s    lbC00DA06
+                    beq.b    lbC00DA06
                     cmp.l    #1,number_players
-                    beq.s    lbC00DA06
-                    move.l   player_1_credits,d7
-                    add.l    player_2_credits,d7
+                    beq.b    lbC00DA06
+                    move.l   player_1_credits(pc),d7
+                    add.l    player_2_credits(pc),d7
 lbC00DA06:          lea      cur_credits,a0
-                    ifne DEBUG
+                    ifne     DEBUG
                     move.l   #1000000000,d7
                     endif
                     move.l   d7,(a0)
                     lea      cur_credits,a0
                     jsr      temp_buffer                            ; run the prog
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00B6B2
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -9161,69 +9140,68 @@ lbC00DA06:          lea      cur_credits,a0
                     bsr      clear_array_long
                     lea      aliens_sprites_block,a0
                     lea      lbL1101C4,a1
-                    move.l   #5,d0
+                    moveq    #5,d0
                     move.l   #320,d1
                     move.l   #384,d2
                     bsr      lbC01176E
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   player_using_intex,a0
                     tst.l    level_to_go
-                    bne.s    lbC00DABA
+                    bne.b    lbC00DABA
                     tst.w    share_credits
-                    beq.s    lbC00DAB2
+                    beq.b    lbC00DAB2
                     cmp.l    #1,number_players
-                    beq.s    lbC00DAB2
+                    beq.b    lbC00DAB2
                     move.l   cur_credits,d7
                     lsr.l    #1,d7
                     move.l   d7,player_1_credits
                     move.l   d7,player_2_credits
-                    bra.s    lbC00DABA
+                    bra.b    lbC00DABA
 
 lbC00DAB2:          move.l   cur_credits,PLAYER_CREDITS(a0)
 lbC00DABA:          move.w   d1,d2
-                    tst.w    d1
-                    beq      lbC00DB44
+                    beq      .no_extra_life
                     move.w   d2,d1
                     and.w    #SUPPLY_MAP_OVERVIEW,d1
                     cmp.w    #SUPPLY_MAP_OVERVIEW,d1
-                    bne.s    lbC00DAD6                      ; did the player purchase the map service ?
+                    bne.b    .no_map                                ; did the player purchase the map service ?
                     move.w   #1,map_overview_on
-lbC00DAD6:          move.w   d2,d1
+.no_map:            move.w   d2,d1
                     and.w    #SUPPLY_AMMO_CHARGE,d1
                     cmp.w    #SUPPLY_AMMO_CHARGE,d1
-                    bne.s    lbC00DAFA
+                    bne.b    .max_ammo_packs
                     move.w   #32,PLAYER_AMMUNITIONS(a0)
                     addq.w   #2,PLAYER_AMMOPACKS(a0)
                     cmp.w    #4,PLAYER_AMMOPACKS(a0)
-                    bmi.s    lbC00DAFA
+                    bmi.b    .max_ammo_packs
                     move.w   #4,PLAYER_AMMOPACKS(a0)
-lbC00DAFA:          move.w   d2,d1
+.max_ammo_packs:    move.w   d2,d1
                     and.w    #SUPPLY_NRG_INJECT,d1
                     cmp.w    #SUPPLY_NRG_INJECT,d1
-                    bne.s    lbC00DB24
+                    bne.b    .no_extra_energy
                     move.w   PLAYER_HEALTH(a0),d3
-                    cmp.w    #$40,d3
-                    bpl      lbC00DB20
-                    add.w    #$14,d3
-                    cmp.w    #$41,d3
-                    bmi.s    lbC00DB20
-                    move.w   #$40,d3
-lbC00DB20:          move.w   d3,PLAYER_HEALTH(a0)
-lbC00DB24:          move.w   d2,d1
+                    cmp.w    #64,d3
+                    bpl.b    .max_health
+                    add.w    #20,d3
+                    cmp.w    #65,d3
+                    bmi.b    .max_health
+                    move.w   #64,d3
+.max_health:        move.w   d3,PLAYER_HEALTH(a0)
+.no_extra_energy    move.w   d2,d1
                     and.w    #SUPPLY_KEY_PACK,d1
                     cmp.w    #SUPPLY_KEY_PACK,d1
-                    bne.s    lbC00DB34
+                    bne.b    .no_key_pack
                     addq.w   #6,PLAYER_KEYS(a0)
-lbC00DB34:          move.w   d2,d1
+.no_key_pack:       move.w   d2,d1
                     and.w    #SUPPLY_EXTRA_LIFE,d1
                     cmp.w    #SUPPLY_EXTRA_LIFE,d1
-                    bne.s    lbC00DB44
+                    bne.b    .no_extra_life
                     addq.w   #1,PLAYER_LIVES(a0)
-lbC00DB44:          move.w   d0,PLAYER_OWNEDWEAPONS(a0)
+.no_extra_life:     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   lbW00DC04,d1
+                    move.w   lbW00DC04(pc),d1
                     cmp.w    d0,d1
-                    beq.s    lbC00DB8E
+                    beq.b    lbC00DB8E
                     move.l   player_using_intex,a0
                     not.w    d1
                     and.w    d1,d0
@@ -9232,27 +9210,27 @@ lbC00DB44:          move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     cmp.l    #player_1_dats,a0
-                    bne.s    lbC00DB80
+                    bne.b    lbC00DB80
                     jsr      player_1_select_weapon
-                    bra.s    lbC00DB86
+                    bra.b    lbC00DB86
 
 lbC00DB80:          jsr      player_2_select_weapon
 lbC00DB86:          movem.l  (sp)+,d0-d7/a0-a6
                     move.w   (sp)+,PLAYER_OWNEDWEAPONS(a0)
 lbC00DB8E:          movem.l  (sp)+,d0-d7/a0-a6
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   #40,d0
-                    move.l   #3,d2
+                    moveq    #40,d0
+                    moveq    #3,d2
                     jsr      trigger_sample_select_channel
                     movem.l  (sp)+,d0-d7/a0-a6
                     jsr      lbC003954
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
-                    move.l   #32,d0
+                    moveq    #32,d0
                     move.w   #1,lbW010CDE
                     bsr      lbC010906
                     bsr      wait_raster
-                    move.l   #copperlist_main,$dff080
+                    move.l   #copperlist_main,CUSTOM+COP1LCH
                     jsr      wait
                     jsr      lbC023210
                     clr.w    lbW0004D0
@@ -9262,9 +9240,9 @@ lbC00DB8E:          movem.l  (sp)+,d0-d7/a0-a6
 lbW00DC04:          dc.w     0
 
 set_main_copperlist:
-                    move.w   #$81C0,$dff096
-                    move.l   #copperlist_main,$dff080
-                    move.l   #copper_blank,$dff084
+                    move.w   #DMAF_SETCLR|DMAF_RASTER|DMAF_BLITTER|DMAF_COPPER,CUSTOM+DMACON
+                    move.l   #copperlist_main,CUSTOM+COP1LCH
+                    move.l   #copper_blank,CUSTOM+COP2LCH
                     rts
 
 lbC00DC62:          tst.l    flag_destruct_level
@@ -9282,63 +9260,62 @@ do_level_destruction:
                     move.w   #16,lbW00DF30
                     clr.w    lbW00DF2E
                     clr.l    lbL00DF52
-                    move.l   #16,d0
-                    move.l   #1,d1
+                    moveq    #16,d0
+                    moveq    #1,d1
                     bsr      lbC00DDB8
-                    move.l   #14,d0
-                    move.l   #2,d1
+                    moveq    #14,d0
+                    moveq    #2,d1
                     bsr      lbC00DDB8
-                    move.l   #12,d0
-                    move.l   #3,d1
+                    moveq    #12,d0
+                    moveq    #3,d1
                     move.l   cur_palette_ptr,a0
                     lea      lbW02276A,a1
                     lea      copper_main_palette,a2
                     move.w   #4,lbW010CDE
-                    move.l   #32,d0
-                    jsr      compute_palette_fading_directions
+                    moveq    #32,d0
+                    bsr      compute_palette_fading_directions
                     bsr      lbC00DDB8
-                    move.l   #10,d0
-                    move.l   #4,d1
+                    moveq    #10,d0
+                    moveq    #4,d1
                     bsr      lbC00DDB8
 
                     jsr      wait
 
-                    move.w   #$20,sprites_dma
+                    move.w   #DMAF_SPRITE,sprites_dma
                     lea      lbW02276A,a0
                     lea.l    level_palette2,a1
                     lea      copper_main_palette,a2
                     move.w   #2,lbW010CDE
-                    move.l   #32,d0
-                    jsr      compute_palette_fading_directions
+                    moveq    #32,d0
+                    bsr      compute_palette_fading_directions
                     lea      lbL0226EA,a0
-                    jsr      lbC0108DA
-                    move.l   #$40,d0
+                    bsr      lbC0108DA
+                    moveq    #64,d0
                     jsr      clear_array_byte
-                    move.w   #$96,d0
+                    move.w   #150,d0
                     move.w   #1,lbW00DF2E
                     move.l   #lbW013308,lbL00DF52
 lbC00DD6A:          move.w   d0,-(sp)
                     bsr      lbC00DE18
                     move.w   (sp)+,d0
                     subq.w   #1,d0
-                    bpl.s    lbC00DD6A
+                    bpl.b    lbC00DD6A
                     lea.l    level_palette2,a0
                     lea      lbL0226EA,a1
-                    jsr      lbC0108DA
+                    bsr      lbC0108DA
                     lea      copper_main_palette,a2
                     move.w   #3,lbW010CDE
-                    move.l   #32,d0
-                    jsr      compute_palette_fading_directions
+                    moveq    #32,d0
+                    bsr      compute_palette_fading_directions
 
 lbC00DDA2:          bsr      lbC00DE18
                     tst.w    some_variable
-                    beq.s    lbC00DDA2
-
-                    move.w   #$8020,sprites_dma
+                    beq.b    lbC00DDA2
+                    move.w   #DMAF_SETCLR|DMAF_SPRITE,sprites_dma
                     rts
 
 lbC00DDB8:          cmp.w    #1,lbW00DC72
-                    beq.s    lbC00DDE2
+                    beq.b    lbC00DDE2
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #lbW0231BA,lbL023200
                     clr.w    lbW023204
@@ -9355,26 +9332,25 @@ lbC00DDE2:          add.l    d1,map_pos_x
                     bsr      lbC00DE18
                     movem.l  (sp)+,d0/d1
                     subq.l   #1,d0
-                    bne.s    lbC00DDB8
+                    bne.b    lbC00DDB8
                     rts
 
-lbC00DE18:          cmp.b    #$FF,$dff006
-                    bne.s    lbC00DE18
-lbC00DE22:          cmp.b    #$2C,$dff006
-                    bne.s    lbC00DE22
-                    jsr      lbC00DE46
-                    jsr      scroll_map
-                    jsr      lbC011860
-                    jsr      lbC00167C
-                    rts
+lbC00DE18:          cmp.b    #$FF,CUSTOM+VHPOSR
+                    bne.b    lbC00DE18
+lbC00DE22:          cmp.b    #$2C,CUSTOM+VHPOSR
+                    bne.b    lbC00DE22
+                    bsr.b    lbC00DE46
+                    bsr      scroll_map
+                    bsr      lbC011860
+                    jmp      lbC00167C
 
 lbC00DE46:          subq.w   #1,lbW00DF30
                     bne      return
                     move.w   #10,lbW00DF30
-                    move.l   lbL00DF32,a0
+                    move.l   lbL00DF32(pc),a0
                     tst.l    (a0)
-                    bne.s    lbC00DE6E
-                    lea      lbL00DF36,a0
+                    bne.b    lbC00DE6E
+                    lea      lbL00DF36(pc),a0
                     move.l   a0,lbL00DF32
 lbC00DE6E:          addq.l   #4,lbL00DF32
                     move.l   (a0),a1
@@ -9388,7 +9364,7 @@ lbC00DE6E:          addq.l   #4,lbL00DF32
                     move.l   (sp)+,a1
                     add.w    lbW0035D6,d0
                     move.w   d0,-4(a1)
-                    move.w   #$E0,d0
+                    move.w   #224,d0
                     move.l   a1,-(sp)
                     bsr      rand
                     move.l   (sp)+,a1
@@ -9400,15 +9376,15 @@ lbC00DE6E:          addq.l   #4,lbL00DF32
                     clr.w    lbW00DC74
                     movem.l  d0-d7/a0-a6,-(sp)
 
-                    move.l   #2,d0
+                    moveq    #2,d0
                     jsr      rand
                     clr.l    lbL023200
-                    cmp.w    #0,d0
+                    tst.w    d0
                     beq      lbC00DEFE
                     cmp.w    #1,d0
-                    beq.s    lbC00DF0A
+                    beq.b    lbC00DF0A
                     cmp.w    #2,d0
-                    beq.s    lbC00DF16
+                    beq.b    lbC00DF16
 lbC00DEFE:          move.w   #10,sample_to_play
                     bra      lbC00DF22
 
@@ -9423,7 +9399,7 @@ lbC00DF22:          jsr      trigger_sample
                     rts
 
 lbW00DF2E:          dc.w     0
-lbW00DF30:          dc.w     $10
+lbW00DF30:          dc.w     16
 lbL00DF32:          dc.l     lbL00DF36
 lbL00DF36:          dc.l     lbW012B44
                     dc.l     lbW012C60
@@ -9439,12 +9415,12 @@ lbL00DF52:          dc.l     0
                     dc.l     lbW013778
                     dc.l     0
 
-lbC00DF6A:          lea      lbL00DF82,a0
-                    lea      lbW013890,a1
+lbC00DF6A:          lea      lbL00DF82(pc),a0
+                    lea      lbW013890(pc),a1
 lbC00DF76:          move.l   (a0)+,a2
-                    move.l   a1,$28(a2)
+                    move.l   a1,40(a2)
                     tst.l    (a0)
-                    bne.s    lbC00DF76
+                    bne.b    lbC00DF76
                     rts
 
 lbL00DF82:          dc.l     lbW013308
@@ -9461,16 +9437,16 @@ lbL00DF82:          dc.l     lbW013308
                     dc.l     lbW012A28
                     dc.l     0
 
-lbC00DFEE:          move.l   #$4B00,d0
+lbC00DFEE:          move.l   #19200,d0
 lbC00DFF4:          clr.l    (a0)+
                     subq.l   #1,d0
-                    bne.s    lbC00DFF4
+                    bne.b    lbC00DFF4
                     rts
 
 get_rnd_number:     movem.l  d2/d3,-(sp)
                     movem.l  (random_seed),d0/d1
                     and.b    #14,d0
-                    or.b     #$20,d0
+                    or.b     #32,d0
                     move.l   d0,d2
                     move.l   d1,d3
                     add.l    d2,d2
@@ -9490,8 +9466,8 @@ get_rnd_number:     movem.l  d2/d3,-(sp)
 
 rand:               addq.w   #1,d0
                     move.w   d0,d2
-                    beq.s    lbC00E062
-                    bsr.s    get_rnd_number
+                    beq.b    lbC00E062
+                    bsr.b    get_rnd_number
                     clr.w    d0
                     swap     d0
                     divu     d2,d0
@@ -9502,136 +9478,136 @@ lbC00E062:          rts
 random_seed:        dcb.l    2,0
 
 get_alien_rnd_speed:
-                    jsr      rand
+                    bsr.b    rand
                     addq.w   #1,d0
                     move.w   d0,cur_aliens_speed
                     rts
 
 cur_aliens_speed:   dc.w     0
 
-lbC00E08A:          cmp.w    #$8000,$168(a0)
-                    beq.s    lbC00E096
-                    subq.w   #1,$168(a0)
+lbC00E08A:          cmp.w    #$8000,360(a0)
+                    beq.b    lbC00E096
+                    subq.w   #1,360(a0)
 lbC00E096:          rts
 
 lbC00E098:          subq.w   #1,lbW0004E4
                     bpl      return
                     clr.w    PLAYER_AMMUNITIONS(a0)
                     move.w   #4,lbW0004E4
-                    move.w   #$2F,d0
+                    move.w   #47,d0
                     move.w   #1,d2
                     tst.w    lbW00057A
-                    bne.s    lbC00E0C2
+                    bne.b    lbC00E0C2
                     move.w   #2,d2
 lbC00E0C2:          jmp      trigger_sample_select_channel
 
-lbC00E0C8:          subq.w   #1,$168(a0)
-                    tst.w    $168(a0)
+lbC00E0C8:          subq.w   #1,360(a0)
+                    tst.w    360(a0)
                     bpl      return
                     cmp.w    #1,PLAYER_AMMOPACKS(a0)
-                    bpl.s    lbC00E136
-                    tst.w    $1A4(a0)
-                    bne.s    lbC00E13A
+                    bpl.b    lbC00E136
+                    tst.w    420(a0)
+                    bne.b    lbC00E13A
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #$3B,lbW02314E
-                    move.w   #$41,lbW02313A
+                    move.w   #59,lbW02314E
+                    move.w   #65,lbW02313A
                     cmp.l    #player_1_dats,a0
                     beq      lbC00E118
-                    move.w   #$42,lbW02313A
+                    move.w   #66,lbW02313A
 lbC00E118:          jsr      lbC02325A
                     tst.w    lbW02328A
                     beq      lbC00E12E
-                    move.w   #1,$1A4(a0)
+                    move.w   #1,420(a0)
 lbC00E12E:          movem.l  (sp)+,d0-d7/a0-a6
                     bra      lbC00E13A
 
-lbC00E136:          clr.w    $1A4(a0)
+lbC00E136:          clr.w    420(a0)
 lbC00E13A:          cmp.w    #2,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC00E14A
+                    bpl.b    lbC00E14A
                     tst.w    PLAYER_AMMOPACKS(a0)
                     beq      lbC00E098
 lbC00E14A:          addq.l   #1,PLAYER_SHOTS(a0)
-                    subq.w   #1,$18A(a0)
-                    bpl.s    lbC00E178
-                    move.w   $18E(a0),$18A(a0)
+                    subq.w   #1,394(a0)
+                    bpl.b    lbC00E178
+                    move.w   398(a0),394(a0)
                     subq.w   #1,PLAYER_AMMUNITIONS(a0)
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
-                    bpl.s    lbC00E178
+                    bpl.b    lbC00E178
                     tst.w    PLAYER_AMMOPACKS(a0)
                     beq      lbC00E098
                     subq.w   #1,PLAYER_AMMOPACKS(a0)
                     move.w   #32,PLAYER_AMMUNITIONS(a0)
-lbC00E178:          clr.l    d0
-                    move.w   $180(a0),d0
+lbC00E178:          moveq    #0,d0
+                    move.w   384(a0),d0
                     move.w   #1,d2
                     tst.w    lbW00057A
-                    bne.s    lbC00E18E
+                    bne.b    lbC00E18E
                     move.w   #2,d2
 lbC00E18E:          jsr      trigger_sample_select_channel
-                    move.w   $106(a0),$168(a0)
-                    move.l   $F4(a0),a2
+                    move.w   262(a0),360(a0)
+                    move.l   244(a0),a2
                     tst.l    (a2)
-                    bne.s    lbC00E1AA
-                    move.l   $F8(a0),a2
-                    move.l   a2,$F4(a0)
-lbC00E1AA:          addq.l   #4,$F4(a0)
+                    bne.b    lbC00E1AA
+                    move.l   248(a0),a2
+                    move.l   a2,244(a0)
+lbC00E1AA:          addq.l   #4,244(a0)
                     move.l   (a2),a3
-                    lea      lbW00E9F6,a2
+                    lea      lbW00E9F6(pc),a2
                     move.w   PLAYER_CUR_SPRITE(a0),d2
                     add.w    d2,d2
                     add.w    d2,d2
                     move.w   0(a2,d2.w),d4
                     move.w   2(a2,d2.w),d5
-                    move.l   $FC(a0),d1
+                    move.l   252(a0),d1
                     tst.l    lbW0039B4
-                    beq.s    lbC00E1DC
-                    cmp.w    #5,$102(a0)
-                    bne.s    lbC00E1DC
+                    beq.b    lbC00E1DC
+                    cmp.w    #5,258(a0)
+                    bne.b    lbC00E1DC
                     addq.l   #4,d1
 lbC00E1DC:          move.w   d4,d6
                     move.w   d5,d7
                     mulu     d1,d4
                     mulu     d1,d5
-                    cmp.w    #3,$102(a0)
-                    beq.s    lbC00E200
+                    cmp.w    #3,258(a0)
+                    beq.b    lbC00E200
                     add.w    d6,d6
                     add.w    d7,d7
-                    cmp.w    #4,$102(a0)
-                    beq.s    lbC00E200
-                    cmp.w    #6,$102(a0)
-                    bne.s    lbC00E21E
+                    cmp.w    #4,258(a0)
+                    beq.b    lbC00E200
+                    cmp.w    #6,258(a0)
+                    bne.b    lbC00E21E
 lbC00E200:          lea      lbL00EAA6(pc),a1
                     addq.w   #1,(a1)
                     cmp.w    #1,(a1)
-                    beq.s    lbC00E21E
+                    beq.b    lbC00E21E
                     cmp.w    #3,(a1)
-                    beq.s    lbC00E218
+                    beq.b    lbC00E218
                     add.w    d7,d4
                     sub.w    d6,d5
-                    bra.s    lbC00E21E
+                    bra.b    lbC00E21E
 
 lbC00E218:          sub.w    d7,d4
                     add.w    d6,d5
                     clr.w    (a1)
 lbC00E21E:          move.w   d4,4(a3)
                     move.w   d5,6(a3)
-                    move.w   $10A(a0),$10(a3)
-                    move.w   $10E(a0),$12(a3)
-                    move.l   a0,$14(a3)
+                    move.w   266(a0),16(a3)
+                    move.w   270(a0),18(a3)
+                    move.l   a0,20(a3)
                     lea      lbL00EAAA(pc),a2
-                    move.w   $102(a0),d3
+                    move.w   258(a0),d3
                     add.w    d3,d3
                     add.w    d3,d3
                     move.l   0(a2,d3.w),a2
                     move.l   0(a2,d2.w),a4
                     move.l   8(a3),a1
-                    move.l   a4,$28(a1)
+                    move.l   a4,40(a1)
                     lea      lbW00EA3E(pc),a2
-                    cmp.w    #2,$102(a0)
-                    bpl.s    lbC00E264
-                    add.l    #$20,a2
-lbC00E264:          move.l   $10(a0),a4
+                    cmp.w    #2,258(a0)
+                    bpl.b    lbC00E264
+                    add.l    #32,a2
+lbC00E264:          move.l   16(a0),a4
                     move.l   -4(a4),d1
                     move.l   0(a2,d2.w),d2
                     add.w    d2,d1
@@ -9740,7 +9716,7 @@ impact_none:        rts
 patch_reactor_up:   addq.w   #1,reactor_up_done
                     cmp.w    #6,reactor_up_done
                     bmi      impact_on_wall
-                    beq.s    .not_done
+                    beq.b    .not_done
                     tst.w    reactor_up_done
                     bne      impact_on_wall
 .not_done:          move.l   #map_reactor_up,reactor_to_patch
@@ -9749,7 +9725,7 @@ patch_reactor_up:   addq.w   #1,reactor_up_done
 patch_reactor_left: addq.w   #1,reactor_left_done
                     cmp.w    #6,reactor_left_done
                     bmi      impact_on_wall
-                    beq.s    .not_done
+                    beq.b    .not_done
                     tst.w    reactor_left_done
                     bne      impact_on_wall
 .not_done:          move.l   #map_reactor_left,reactor_to_patch
@@ -9758,7 +9734,7 @@ patch_reactor_left: addq.w   #1,reactor_left_done
 patch_reactor_down: addq.w   #1,reactor_down_done
                     cmp.w    #6,reactor_down_done
                     bmi      impact_on_wall
-                    beq.s    .not_done
+                    beq.b    .not_done
                     tst.w    reactor_down_done
                     bne      impact_on_wall
 .not_done:          move.l   #map_reactor_down,reactor_to_patch
@@ -9768,27 +9744,27 @@ patch_reactor_right:
                     addq.w   #1,reactor_right_done
                     cmp.w    #6,reactor_right_done
                     bmi      impact_on_wall
-                    beq.s    .not_done
+                    beq.b    .not_done
                     tst.w    reactor_right_done
                     bne      impact_on_wall
 .not_done:          move.l   #map_reactor_right,reactor_to_patch
                     bra      check_reactors
 
 check_reactors:     tst.w    reactor_up_done
-                    beq.s    patch_reactor
+                    beq.b    patch_reactor
                     tst.w    reactor_left_done
-                    beq.s    patch_reactor
+                    beq.b    patch_reactor
                     tst.w    reactor_down_done
-                    beq.s    patch_reactor
+                    beq.b    patch_reactor
                     tst.w    reactor_right_done
-                    beq.s    patch_reactor
+                    beq.b    patch_reactor
                     move.w   #1,lbW0004D8
                     move.w   #1,self_destruct_initiated
 
 patch_reactor:      movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   reactor_to_patch,a3
+                    move.l   reactor_to_patch(pc),a3
                     lea      patch_dat_reactors,a2
-                    jsr      patch_tiles
+                    bsr      patch_tiles
                     move.w   #11,sample_to_play
                     jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -9808,52 +9784,52 @@ impact_on_door:     movem.l  d0-d7/a0-a6,-(sp)
                     move.w   #4,sample_to_play
                     jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
-                    cmp.l    lbL00E4EC,a5
-                    beq.s    lbC00E520
+                    cmp.l    lbL00E4EC(pc),a5
+                    beq.b    lbC00E520
                     move.l   a5,lbL00E4EC
                     clr.w    lbW00E4EA
 
-lbC00E520:          move.w   $10(a3),d0
+lbC00E520:          move.w   16(a3),d0
                     add.w    d0,lbW00E4EA
                     addq.w   #1,lbW00E4F0
                     cmp.w    #1,lbW00E4F0
-                    bmi.s    lbC00E556
+                    bmi.b    lbC00E556
                     clr.w    lbW00E4F0
-                    move.l   $14(a3),a4
+                    move.l   20(a3),a4
                     subq.w   #1,PLAYER_AMMUNITIONS(a4)
                     cmp.w    #1,PLAYER_AMMUNITIONS(a4)
-                    bpl.s    lbC00E556
+                    bpl.b    lbC00E556
                     clr.w    PLAYER_AMMUNITIONS(a4)
 lbC00E556:          cmp.w    #300,lbW00E4EA
-                    bmi.s    lbC00E576
+                    bmi.b    lbC00E576
                     clr.w    lbW00E4EA
-                    move.l   $14(a3),a0
+                    move.l   20(a3),a0
                     ; temporary key
                     addq.w   #1,PLAYER_KEYS(a0)
                     move.l   a5,a3
-                    jsr      force_door
+                    bsr      force_door
 lbC00E576:          movem.l  (sp)+,d0-d7/a0-a6
 
 impact_on_wall:     move.l   8(a3),a1
                     cmp.l    #lbL00EC36,8(a1)
-                    beq.s    lbC00E5A0
+                    beq.b    lbC00E5A0
                     cmp.l    #lbL00EDCE,8(a1)
                     bmi      lbC00E6A8
                     cmp.l    #lbL00EE22,8(a1)
                     bhi      lbC00E6A8
-lbC00E5A0:          addq.w   #1,$18(a3)
+lbC00E5A0:          addq.w   #1,24(a3)
                     cmp.l    #lbL00EC36,8(a1)
-                    bne.s    lbC00E5BA
-                    cmp.w    #2,$18(a3)
+                    bne.b    lbC00E5BA
+                    cmp.w    #2,24(a3)
                     bpl      lbC00E6A8
-                    bra.s    lbC00E5C4
+                    bra.b    lbC00E5C4
 
-lbC00E5BA:          cmp.w    #6,$18(a3)
+lbC00E5BA:          cmp.w    #6,24(a3)
                     bpl      lbC00E6A8
 lbC00E5C4:          tst.w    4(a3)
-                    bmi.s    lbC00E5FE
+                    bmi.b    lbC00E5FE
                     tst.w    lbW00057A
-                    bne.s    lbC00E5E8
+                    bne.b    lbC00E5E8
                     movem.l  d0/d2,-(sp)
                     move.w   #46,d0
                     move.w   #1,d2
@@ -9863,63 +9839,63 @@ lbC00E5E8:          move.l   a5,a4
                     move.w   -2(a4),d4
                     and.w    #$3F,d4
                     cmp.w    #1,d4
-                    bne.s    lbC00E612
+                    bne.b    lbC00E612
                     neg.w    6(a3)
-                    bra.s    lbC00E612
+                    bra.b    lbC00E612
 
 lbC00E5FE:          move.l   a5,a4
                     move.w   2(a4),d4
                     and.w    #$3F,d4
                     cmp.w    #1,d4
-                    bne.s    lbC00E612
+                    bne.b    lbC00E612
                     neg.w    6(a3)
 lbC00E612:          tst.w    6(a3)
-                    bmi.s    lbC00E632
+                    bmi.b    lbC00E632
                     move.l   a5,a4
-                    add.l    #$F8,a4
+                    add.l    #248,a4
                     move.w   (a4),d4
                     and.w    #$3F,d4
                     cmp.w    #1,d4
-                    bne.s    lbC00E64A
+                    bne.b    lbC00E64A
                     neg.w    4(a3)
-                    bra.s    lbC00E64A
+                    bra.b    lbC00E64A
 
 lbC00E632:          move.l   a5,a4
-                    sub.l    #$F8,a4
+                    sub.l    #248,a4
                     move.w   (a4),d4
                     and.w    #$3F,d4
                     cmp.w    #1,d4
-                    bne.s    lbC00E64A
+                    bne.b    lbC00E64A
                     neg.w    4(a3)
 lbC00E64A:          neg.w    lbW0004D6
                     tst.w    4(a3)
-                    bne.s    lbC00E65E
+                    bne.b    lbC00E65E
                     move.w   lbW0004D6,4(a3)
 lbC00E65E:          tst.w    6(a3)
-                    bne.s    lbC00E66C
+                    bne.b    lbC00E66C
                     move.w   lbW0004D6,6(a3)
 lbC00E66C:          cmp.l    #lbL00EC36,8(a1)
                     beq      return
                     move.l   4(a3),d0
-                    lea      lbW00EA1E,a2
-                    lea      lbL00EDAA,a4
+                    lea      lbW00EA1E(pc),a2
+                    lea      lbL00EDAA(pc),a4
                     clr.w    d1
 lbC00E68A:          addq.w   #4,a4
                     addq.w   #1,d1
                     cmp.w    #8,d1
-                    beq.s    lbC00E698
+                    beq.b    lbC00E698
                     cmp.l    (a2)+,d0
-                    bne.s    lbC00E68A
+                    bne.b    lbC00E68A
 lbC00E698:          move.l   8(a3),a2
-                    move.l   (a4),$28(a2)
+                    move.l   (a4),40(a2)
                     move.w   #1,12(a3)
                     rts
 
-lbC00E6A8:          clr.w    $18(a3)
-                    move.w   #$7D00,0(a3)
+lbC00E6A8:          clr.w    24(a3)
+                    move.w   #32000,0(a3)
                     move.l   8(a3),a4
-                    move.w   #$7D00,0(a4)
-                    move.l   #lbL018CBA,$28(a4)
+                    move.w   #32000,0(a4)
+                    move.l   #lbL018CBA,40(a4)
                     rts
 
 patch_fire_door_left_btn:
@@ -9928,13 +9904,13 @@ patch_fire_door_left_btn:
                     move.l   a5,a3
                     lea      lbL020D92,a2
                     bsr      patch_tiles
-                    add.l    #6,a3
+                    addq.l   #6,a3
                     lea      lbL020E3A,a2
                     bsr      patch_tiles
-                    sub.l    #2,a3
+                    subq.l   #2,a3
                     lea      lbL020DE2,a2
                     jsr      patch_tiles
-                    add.l    #4,a3
+                    addq.l   #4,a3
                     lea      lbL020DBE,a2
                     bra      patch_tiles
 
@@ -9959,22 +9935,22 @@ lbL00E756:          dc.l     0
 patch_fire_door_left_btn_alarm:
                     move.w   #23,sample_to_play
                     jsr      trigger_sample
-                    cmp.l    lbL00E756,a5
-                    beq.s    lbC00E784
+                    cmp.l    lbL00E756(pc),a5
+                    beq.b    lbC00E784
                     tst.w    lbW002AC2
-                    beq.s    lbC00E784
+                    beq.b    lbC00E784
                     addq.w   #1,lbW002AC0
                     move.l   a5,lbL00E756
 lbC00E784:          move.l   a5,a3
                     lea      lbL020D92,a2
                     bsr      patch_tiles
-                    add.l    #6,a3
+                    addq.l   #6,a3
                     lea      lbL020E5E,a2
                     bsr      patch_tiles
-                    sub.l    #2,a3
+                    subq.l   #2,a3
                     lea      lbL020E0E,a2
                     jsr      patch_tiles
-                    add.l    #4,a3
+                    addq.l   #4,a3
                     lea      lbL020DBE,a2
                     bra      patch_tiles
 
@@ -9982,10 +9958,10 @@ patch_fire_door_right_btn_alarm:
                     move.l   a5,a3
                     move.w   #23,sample_to_play
                     jsr      trigger_sample
-                    cmp.l    lbL00E756,a5
-                    beq.s    lbC00E7EE
+                    cmp.l    lbL00E756(pc),a5
+                    beq.b    lbC00E7EE
                     tst.w    lbW002AC2
-                    beq.s    lbC00E7EE
+                    beq.b    lbC00E7EE
                     addq.w   #1,lbW002AC0
                     move.l   a5,lbL00E756
 lbC00E7EE:          lea      lbL020D92,a2
@@ -9996,58 +9972,58 @@ lbC00E7EE:          lea      lbL020D92,a2
                     subq.l   #2,a3
                     lea      lbL020E0E,a2
                     jsr      patch_tiles
-                    sub.l    #4,a3
+                    subq.l   #4,a3
                     lea      lbL020DBE,a2
                     bra      patch_tiles
 
-lbC00E83E:          cmp.l    #$200,lbL000572
+lbC00E83E:          cmp.l    #512,lbL000572
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
-                    jsr      lbC00516A
+                    bsr      lbC00516A
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   a5,a3
-                    jmp      lbC00516A
+                    bra      lbC00516A
 
-lbC00E864:          cmp.l    #$200,lbL000572
+lbC00E864:          cmp.l    #512,lbL000572
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
-                    jsr      lbC0051F8
+                    bsr      lbC0051F8
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   a5,a3
-                    jmp      lbC0051F8
+                    bra      lbC0051F8
 
-lbC00E88A:          cmp.l    #$200,lbL000572
+lbC00E88A:          cmp.l    #512,lbL000572
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
-                    jsr      lbC005286
+                    bsr      lbC005286
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   a5,a3
-                    jmp      lbC005286
+                    bra      lbC005286
 
-lbC00E8B0:          cmp.l    #$200,lbL000572
+lbC00E8B0:          cmp.l    #512,lbL000572
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
-                    jsr      lbC005314
+                    bsr      lbC005314
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   a5,a3
-                    jmp      lbC005314
+                    bra      lbC005314
 
 lbC00E8D8:          lea      lbL00E928(pc),a0
 lbC00E8DC:          move.l   (a0)+,a1
-                    move.w   #$7D00,0(a1)
-                    move.w   #$7D00,2(a1)
+                    move.w   #32000,0(a1)
+                    move.w   #32000,2(a1)
                     tst.l    (a0)
-                    bne.s    lbC00E8DC
+                    bne.b    lbC00E8DC
                     rts
 
 lbC00E8F0:          lea      lbL00E928(pc),a2
 lbC00E8F4:          move.l   (a2)+,a3
-                    cmp.w    #$7D00,0(a3)
-                    beq.s    lbC00E922
+                    cmp.w    #32000,0(a3)
+                    beq.b    lbC00E922
                     move.l   0(a3),d2
                     add.w    6(a3),d2
                     swap     d2
@@ -10060,7 +10036,7 @@ lbC00E8F4:          move.l   (a2)+,a3
                     bsr      calc_shot_impact
                     move.l   (sp)+,a2
 lbC00E922:          tst.l    (a2)
-                    bne.s    lbC00E8F4
+                    bne.b    lbC00E8F4
                     rts
 
 lbL00E928:          dc.l     lbW00E940
@@ -10068,31 +10044,31 @@ lbL00E928:          dc.l     lbW00E940
                     dc.l     lbW00E974
                     dc.l     lbW00E98E
                     dc.l     lbW00E9A8,0
-lbW00E940:          dcb.w    2,$7D00
+lbW00E940:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013308
                     dc.w     1,0,0,0
                     dc.l     player_1_dats
 lbW00E958:          dc.w     0
-lbW00E95A:          dcb.w    2,$7D00
+lbW00E95A:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013424
                     dc.w     1,0,0,0
                     dc.l     player_1_dats
 lbW00E972:          dc.w     0
-lbW00E974:          dcb.w    2,$7D00
+lbW00E974:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013540
                     dc.w     1,0,0,0
                     dc.l     player_1_dats
 lbW00E98C:          dc.w     0
-lbW00E98E:          dcb.w    2,$7D00
+lbW00E98E:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW01365C
                     dc.w     1,0,0,0
                     dc.l     player_1_dats
 lbW00E9A6:          dc.w     0
-lbW00E9A8:          dcb.w    2,$7D00
+lbW00E9A8:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013778
                     dc.w     1,0,0,0
@@ -10108,17 +10084,10 @@ lbL00E9DE:          dc.l     lbW00E940
                     dc.l     lbW00E974
                     dc.l     lbW00E98E
                     dc.l     lbW00E9A8,0
-lbW00E9F6:          dcb.w    3,0
-                    dc.w     $FFFF,1,$FFFF,1,0,1,1,0,1,$FFFF,1,$FFFF,0,$FFFF
-                    dc.w     $FFFF,0,0
-lbW00EA1E:          dc.w     0,$FFF8,8,$FFF8,8,0,8,8,0,8,$FFF8,8,$FFF8,0,$FFF8
-                    dc.w     $FFF8
-lbW00EA3E:          dcb.w    2,0
-                    dc.w     8,0,12,6,$10,12,12,12,8,14,6,10,4,8,6,6,10,8,2,14
-                    dc.w     8,10,2,4,6,7,12,2,10,6,14,13
-lbW00EA82:          dcb.w    2,0
-                    dc.w     6,$FFFA,6,$FFF6,10,$FFFA,6,4,6,2,$FFFE,$FFFA
-                    dc.w     $FFFE,$FFFA,$FFFE,$FFF6
+lbW00E9F6:          dc.w     0,0,0,-1,1,-1,1,0,1,1,0,1,-1,1,-1,0,-1,-1,0,0
+lbW00EA1E:          dc.w     0,-8,8,-8,8,0,8,8,0,8,-8,8,-8,0,-8,-8
+lbW00EA3E:          dc.w     0,0,8,0,12,6,$10,12,12,12,8,14,6,10,4,8,6,6,10,8,2,14,8,10,2,4,6,7,12,2,10,6,14,13
+lbW00EA82:          dc.w     0,0,6,-6,6,-10,10,-6,6,4,6,2,-2,-6,-2,-6,-2,-10
 lbL00EAA6:          dc.l     0
 lbL00EAAA:          dc.l     lbL00EDAA
                     dc.l     lbL00EACA
@@ -10138,21 +10107,21 @@ lbL00EACA:          dc.l     lbL00EAEE
                     dc.l     lbL00EB66
                     dc.l     lbL00EB7A
 lbL00EAEE:          dc.l     lbL017FCE,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB02:          dc.l     lbL017FFE,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB16:          dc.l     lbL01802E,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB2A:          dc.l     lbL01805E,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB3E:          dc.l     lbL01808E,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB52:          dc.l     lbL0180BE,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB66:          dc.l     lbL0180EE,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB7A:          dc.l     lbL01811E,0
-                    dc.l     lbW01389C,$7D00,-1
+                    dc.l     lbW01389C,32000,-1
 lbL00EB8E:          dc.l     lbL00EBB2
                     dc.l     lbL00EBB2
                     dc.l     lbL00EBBE
@@ -10162,14 +10131,14 @@ lbL00EB8E:          dc.l     lbL00EBB2
                     dc.l     lbL00EBEE
                     dc.l     lbL00EBFA
                     dc.l     lbL00EC06
-lbL00EBB2:          dc.l     lbL017B4E,$7D00,-1
-lbL00EBBE:          dc.l     lbL017B7E,$7D00,-1
-lbL00EBCA:          dc.l     lbL017BAE,$7D00,-1
-lbL00EBD6:          dc.l     lbL017BDE,$7D00,-1
-lbL00EBE2:          dc.l     lbL017C0E,$7D00,-1
-lbL00EBEE:          dc.l     lbL017C3E,$7D00,-1
-lbL00EBFA:          dc.l     lbL017C6E,$7D00,-1
-lbL00EC06:          dc.l     lbL017C9E,$7D00,-1
+lbL00EBB2:          dc.l     lbL017B4E,32000,-1
+lbL00EBBE:          dc.l     lbL017B7E,32000,-1
+lbL00EBCA:          dc.l     lbL017BAE,32000,-1
+lbL00EBD6:          dc.l     lbL017BDE,32000,-1
+lbL00EBE2:          dc.l     lbL017C0E,32000,-1
+lbL00EBEE:          dc.l     lbL017C3E,32000,-1
+lbL00EBFA:          dc.l     lbL017C6E,32000,-1
+lbL00EC06:          dc.l     lbL017C9E,32000,-1
 lbL00EC12:          dc.l     lbL00EC36
                     dc.l     lbL00EC36
                     dc.l     lbL00EC36
@@ -10196,14 +10165,14 @@ lbL00EC7A:          dc.l     lbL00EC9E
                     dc.l     lbL00ECDA
                     dc.l     lbL00ECE6
                     dc.l     lbL00ECF2
-lbL00EC9E:          dc.l     lbL017CCE,$7D00,-1
-lbL00ECAA:          dc.l     lbL017CFE,$7D00,-1
-lbL00ECB6:          dc.l     lbL017D2E,$7D00,-1
-lbL00ECC2:          dc.l     lbL017D5E,$7D00,-1
-lbL00ECCE:          dc.l     lbL017D8E,$7D00,-1
-lbL00ECDA:          dc.l     lbL017DBE,$7D00,-1
-lbL00ECE6:          dc.l     lbL017DEE,$7D00,-1
-lbL00ECF2:          dc.l     lbL017E1E,$7D00,-1
+lbL00EC9E:          dc.l     lbL017CCE,32000,-1
+lbL00ECAA:          dc.l     lbL017CFE,32000,-1
+lbL00ECB6:          dc.l     lbL017D2E,32000,-1
+lbL00ECC2:          dc.l     lbL017D5E,32000,-1
+lbL00ECCE:          dc.l     lbL017D8E,32000,-1
+lbL00ECDA:          dc.l     lbL017DBE,32000,-1
+lbL00ECE6:          dc.l     lbL017DEE,32000,-1
+lbL00ECF2:          dc.l     lbL017E1E,32000,-1
 lbL00ECFE:          dc.l     lbL00ED22
                     dc.l     lbL00ED22
                     dc.l     lbL00ED2E
@@ -10213,14 +10182,14 @@ lbL00ECFE:          dc.l     lbL00ED22
                     dc.l     lbL00ED5E
                     dc.l     lbL00ED6A
                     dc.l     lbL00ED76
-lbL00ED22:          dc.l     lbL01814E,$7D00,-1
-lbL00ED2E:          dc.l     lbL01817E,$7D00,-1
-lbL00ED3A:          dc.l     lbL0181AE,$7D00,-1
-lbL00ED46:          dc.l     lbL0181DE,$7D00,-1
-lbL00ED52:          dc.l     lbL01820E,$7D00,-1
-lbL00ED5E:          dc.l     lbL01823E,$7D00,-1
-lbL00ED6A:          dc.l     lbL01826E,$7D00,-1
-lbL00ED76:          dc.l     lbL01829E,$7D00,-1
+lbL00ED22:          dc.l     lbL01814E,32000,-1
+lbL00ED2E:          dc.l     lbL01817E,32000,-1
+lbL00ED3A:          dc.l     lbL0181AE,32000,-1
+lbL00ED46:          dc.l     lbL0181DE,32000,-1
+lbL00ED52:          dc.l     lbL01820E,32000,-1
+lbL00ED5E:          dc.l     lbL01823E,32000,-1
+lbL00ED6A:          dc.l     lbL01826E,32000,-1
+lbL00ED76:          dc.l     lbL01829E,32000,-1
 lbL00ED82:          dc.l     lbL018D06
                     dc.l     lbL018D06
                     dc.l     lbL018D06
@@ -10240,43 +10209,43 @@ lbL00EDAA:          dc.l     lbL00EDCE
                     dc.l     lbL00EE0A
                     dc.l     lbL00EE16
                     dc.l     lbL00EE22
-lbL00EDCE:          dc.l     lbL01880E,$7D00,-1
-lbL00EDDA:          dc.l     lbL01889E,$7D00,-1
-lbL00EDE6:          dc.l     lbL01886E,$7D00,-1
-lbL00EDF2:          dc.l     lbL01883E,$7D00,-1
-lbL00EDFE:          dc.l     lbL01880E,$7D00,-1
-lbL00EE0A:          dc.l     lbL01889E,$7D00,-1
-lbL00EE16:          dc.l     lbL01886E,$7D00,-1
-lbL00EE22:          dc.l     lbL01883E,$7D00,-1
+lbL00EDCE:          dc.l     lbL01880E,32000,-1
+lbL00EDDA:          dc.l     lbL01889E,32000,-1
+lbL00EDE6:          dc.l     lbL01886E,32000,-1
+lbL00EDF2:          dc.l     lbL01883E,32000,-1
+lbL00EDFE:          dc.l     lbL01880E,32000,-1
+lbL00EE0A:          dc.l     lbL01889E,32000,-1
+lbL00EE16:          dc.l     lbL01886E,32000,-1
+lbL00EE22:          dc.l     lbL01883E,32000,-1
 
 lbC00EE2E:          movem.l  d0-d7/a0-a6,-(sp)
                     bsr      get_raster_pos
                     move.l   d0,old_raster_pos
                     tst.w    lbW0004C2
-                    beq.s    lbC00EE50
-                    jsr      lbC00D154
-                    jsr      lbC00FB16
+                    beq.b    lbC00EE50
+                    bsr      lbC00D154
+                    bsr      lbC00FB16
 lbC00EE50:          bsr      lbC00EE5A
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 lbC00EE5A:          bsr      get_raster_pos
-                    move.l   old_raster_pos,d1
+                    move.l   old_raster_pos(pc),d1
                     cmp.w    d0,d1
-                    bls.s    lbC00EE6C
-                    add.w    #$136,d0
+                    bls.b    lbC00EE6C
+                    add.w    #310,d0
 lbC00EE6C:          sub.w    d1,d0
                     cmp.w    #12,d0
-                    bmi.s    lbC00EE5A
+                    bmi.b    lbC00EE5A
                     rts
 
 old_raster_pos:     dc.l     0
 
-get_raster_pos:     move.l   $dff004,d0
+get_raster_pos:     move.l   CUSTOM+VPOSR,d0
                     asr.l    #8,d0
                     and.l    #$1FF,d0
                     rts
-
+; 32000 32000
 lbC00EE8A:          move.l   #$7D007D00,lbW013304
                     move.l   #$7D007D00,lbW013420
                     move.l   #$7D007D00,lbW01353C
@@ -10290,15 +10259,15 @@ lbC00EE8A:          move.l   #$7D007D00,lbW013304
                     rts
 
 lbC00EEDC:          tst.l    flag_jump_to_gameover
-                    bne.s    lbC00EF2A
-                    lea      player_1_dats,a0
+                    bne.b    lbC00EF2A
+                    lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
-                    bpl      lbC00EF14
-                    lea      player_2_dats,a0
+                    bpl.b    lbC00EF14
+                    lea      player_2_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
-                    bpl      lbC00EF14
-                    jsr      lbC00F58E
-                    jsr      run_gameover
+                    bpl.b    lbC00EF14
+                    bsr      lbC00F58E
+                    bsr.b    run_gameover_exe
                     addq.l   #4,sp
                     jmp      loop_from_gameover
 
@@ -10306,20 +10275,20 @@ lbC00EF14:          add.l    #30000,player_1_score
                     add.l    #30000,player_2_score
                     rts
 
-lbC00EF2A:          jsr      lbC00F58E
-                    jsr      run_gameover
+lbC00EF2A:          bsr      lbC00F58E
+                    bsr.b    run_gameover_exe
                     addq.l   #4,sp
-                    jsr      lbC00F58E
+                    bsr      lbC00F58E
                     jmp      loop_from_gameover
 
-run_gameover:       jsr      lbC023D72
-                    move.w   #15,$dff096
-                    jsr      start_main_tune
+
+run_gameover_exe:   jsr      lbC023D72
+                    move.w   #DMAF_AUD0|DMAF_AUD1|DMAF_AUD2|DMAF_AUD3,CUSTOM+DMACON
+                    bsr      start_main_tune
                     lea      exe_gameover,a0
                     lea      temp_buffer,a1
-                    jsr      load_exe
-                    jsr      temp_buffer
-                    rts
+                    bsr      load_exe
+                    jmp      temp_buffer
 
 display_briefing_1: move.w   #1,select_briefing
                     jsr      stop_sound
@@ -10342,32 +10311,32 @@ display_briefing_3: clr.w    select_briefing
 
 display_briefing_4: clr.w    select_briefing
                     lea      text_briefing_level_4,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_5: clr.w    select_briefing
                     lea      text_briefing_level_5,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_6: clr.w    select_briefing
                     lea      text_briefing_level_6,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_7: clr.w    select_briefing
                     lea      text_briefing_level_7,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_8: clr.w    select_briefing
                     lea      text_briefing_level_8,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_9: clr.w    select_briefing
                     lea      text_briefing_level_9,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_10:
                     clr.w    select_briefing
                     lea      text_briefing_level_10,a0
-                    bra.s    start_briefing
+                    bra.b    start_briefing
 
 display_briefing_11:
                     clr.w    select_briefing
@@ -10377,7 +10346,7 @@ display_briefing_11:
 display_briefing_12:
                     clr.w    select_briefing
                     lea      text_briefing_level_12,a0
-              ;      bra      start_briefing
+                    ; no rts
 
 start_briefing:     movem.l  d0-d7/a0-a6,-(sp)
                     lea      leveltune,a0
@@ -10391,21 +10360,21 @@ start_briefing:     movem.l  d0-d7/a0-a6,-(sp)
                     jsr      lbC023210
                     bsr      set_copper_blank
                     moveq    #2,d0
-                    lea      player_1_dats,a1
+                    lea      player_1_dats(pc),a1
                     tst.w    PLAYER_ALIVE(a1)
-                    bmi.s    run_briefing_single
-                    lea      player_2_dats,a1
+                    bmi.b    run_briefing_single
+                    lea      player_2_dats(pc),a1
                     tst.w    PLAYER_ALIVE(a1)
-                    bmi.s    run_briefing_single
-                    bra.s    run_briefing
+                    bmi.b    run_briefing_single
+                    bra.b    run_briefing
 
 run_briefing_single:
-                    subq.l   #1,d0                  ; only 1 player made it
+                    subq.l   #1,d0                              ; only 1 player made it
 run_briefing:       movem.l  d0/a0,-(sp)
-                    lea      exe_briefingcore,a0
+                    lea      exe_briefingcore(pc),a0
                     tst.w    select_briefing
-                    beq.s    .core
-                    lea      exe_briefingstart,a0
+                    beq.b    .core
+                    lea      exe_briefingstart(pc),a0
 .core:
                     lea      temp_buffer,a1
                     jsr      load_exe
@@ -10419,7 +10388,7 @@ exe_return_palette: dc.l     0
 select_briefing:    dc.w     0
 
 start_main_tune:    tst.w    music_enabled
-                    bne.s    lbC00F1AA
+                    bne.b    lbC00F1AA
                     jsr      stop_sound
                     bsr      load_main_tune
                     jsr      start_music
@@ -10428,22 +10397,21 @@ lbC00F1AA:          rts
 
 load_main_tune:     lea      soundmon_title,a0
                     lea      bpsong,a1
-                    jsr      load_file
-                    rts
+                    bra      load_file
 
 run_menu:           move.w   #1,music_enabled
                     move.w   #DEBUG,map_overview_on
                     clr.w    lbW0004E2
-                    lea      exe_menu,a0
+                    lea      exe_menu(pc),a0
                     lea      temp_buffer,a1
-                    jsr      load_exe
-                    lea      player_1_dats,a0
-                    lea      player_2_dats,a0
+                    bsr      load_exe
+                    lea      player_1_dats(pc),a0
+                    lea      player_2_dats(pc),a0
                     move.l   number_players,d5
                     cmp.w    #1,d5
-                    bne.s    lbC00F244
+                    bne.b    lbC00F244
                     moveq    #0,d1
-lbC00F244:          clr.l    d7
+lbC00F244:          moveq    #0,d7
                     move.w   share_credits,d7
                     move.l   reg_vbr,a1
                     jsr      temp_buffer                    ; run the prog
@@ -10455,49 +10423,49 @@ lbC00F244:          clr.l    d7
                     
                     ; init players credits & scores here
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      player_1_dats,a0
+                    lea      player_1_dats(pc),a0
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
                     movem.l  (sp)+,d0-d7/a0-a6
                     
                     move.w   d1,share_credits
                     tst.w    d7
-                    beq      start_game_selected
+                    beq.b    start_game_selected
                     ; run the story exe when no input
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   #copper_blank,$dff080
-                    lea      exe_story,a0
+                    move.l   #copper_blank,CUSTOM+COP1LCH
+                    lea      exe_story(pc),a0
                     lea      temp_buffer,a1
-                    jsr      load_exe
+                    bsr      load_exe
                     jsr      temp_buffer
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     movem.l  (sp)+,d0-d7/a0-a6
                     bra      run_menu
 
 start_game_selected:
                     clr.w    music_enabled
                     jsr      stop_sound
-                    lea      player_1_dats,a0
-                    move.l   d2,$16C(a0)
+                    lea      player_1_dats(pc),a0
+                    move.l   d2,364(a0)
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-                    lea      player_2_dats,a0
-                    move.l   d3,$16C(a0)
+                    lea      player_2_dats(pc),a0
+                    move.l   d3,364(a0)
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-                    movem.l  d0-d7/a0-a6,-(sp)
-                    cmp.w    #2,d4
-                    bpl      lbC00F378
-lbC00F378:          movem.l  (sp)+,d0-d7/a0-a6
+;                    movem.l  d0-d7/a0-a6,-(sp)
+;                    cmp.w    #2,d4
+;                    bpl      lbC00F378
+;lbC00F378:          movem.l  (sp)+,d0-d7/a0-a6
                     move.l   d6,number_players
                     cmp.w    #2,d4
                     rts
 
 load_exe:           pea      (a1)
-                    jsr      load_file
+                    bsr      load_file
                     move.l   (a7)+,a1
                     lea      (a1),a0
                     move.l   a0,-(sp)
@@ -10505,67 +10473,66 @@ load_exe:           pea      (a1)
                     move.l   (sp)+,a0
                     rts
 
-wait_raster:        cmp.b    #255,$dff006
-                    bne.s    wait_raster
-.wait:              cmp.b    #44,$dff006
-                    bne.s    .wait
+wait_raster:        cmp.b    #255,CUSTOM+VHPOSR
+                    bne.b    wait_raster
+.wait:              cmp.b    #44,CUSTOM+VHPOSR
+                    bne.b    .wait
                     rts
 
 set_copper_blank:   bsr      wait_raster
-                    move.l   #copper_blank,$dff080
+                    move.l   #copper_blank,CUSTOM+COP1LCH
                     rts
 
 hold_briefing_screen:
                     lea      top_bar_gfx,a0
-                    move.l   #$260,d0
+                    move.l   #608,d0
                     jsr      clear_array_byte
                     lea      bottom_bar_gfx,a0
-                    move.l   #$260,d0
+                    move.l   #608,d0
                     jsr      clear_array_byte
-                    move.l   exe_return_palette,a0
+                    move.l   exe_return_palette(pc),a0
                     lea      lbL02266A,a1
-                    move.l   #32,d0
+                    moveq    #32,d0
                     jsr      lbC010F16
                     move.w   #1000,d0
 wait_user_input_after_briefing:
-                    jsr      wait_raster
-                    btst     #7,$bfe001
-                    beq.s    lbC00F4A6
-                    btst     #6,$bfe001
-                    beq.s    lbC00F4A6
+                    bsr      wait_raster
+                    btst     #CIAB_GAMEPORT1,CIAA
+                    beq.b    lbC00F4A6
+                    btst     #CIAB_GAMEPORT0,CIAA
+                    beq.b    lbC00F4A6
                     subq.w   #1,d0
-                    bne.s    wait_user_input_after_briefing
+                    bne.b    wait_user_input_after_briefing
 lbC00F4A6:          lea      lbL02266A,a0
                     lea      lbW02276A,a1
-                    move.l   exe_return_palette,a2
-                    move.l   #32,d0
+                    move.l   exe_return_palette(pc),a2
+                    moveq    #32,d0
                     move.w   #2,lbW010CDE
-                    jsr      compute_palette_fading_directions
+                    bsr      compute_palette_fading_directions
                     jsr      wait
 lbC00F4D2:          lea      lbW02276A,a0
                     lea      copper_main_palette,a1
-                    move.l   #32,d0
-                    jsr      copy_palette_to_copper
+                    moveq    #32,d0
+                    bsr      copy_palette_to_copper
                     bsr      clear_bitplanes_nbr
-                    move.l   #copperlist_main,$dff080
-                    move.l   #copper_blank,$dff084
+                    move.l   #copperlist_main,CUSTOM+COP1LCH
+                    move.l   #copper_blank,CUSTOM+COP2LCH
                     move.w   #76,d0
                     move.w   #2,d2
-                    jsr      trigger_sample_select_channel
-                    rts
+                    jmp      trigger_sample_select_channel
 
 lbC00F51C:          jsr      stop_sound
-                    move.l   #76,d0
-                    move.l   #0,d2
+                    moveq    #76,d0
+                    moveq    #0,d2
                     jsr      trigger_sample_select_channel
-                    move.l   #76,d0
-                    move.l   #1,d2
+                    moveq    #76,d0
+                    moveq    #1,d2
                     jsr      trigger_sample_select_channel
-                    move.l   #76,d0
-                    move.l   #2,d2
+                    moveq    #76,d0
+                    moveq    #2,d2
                     jsr      trigger_sample_select_channel
-                    move.l   #76,d0
-                    move.l   #3,d2
+                    moveq    #76,d0
+                    moveq    #3,d2
                     jsr      trigger_sample_select_channel
                     lea      leveltune,a0
                     lea      bpsong,a1
@@ -10573,57 +10540,57 @@ lbC00F51C:          jsr      stop_sound
 lbC00F57A:          move.w   (a0)+,(a1)+
                     dbf      d0,lbC00F57A
                     jsr      start_music
-                    lea      exe_return_palette,a0
+                    lea      exe_return_palette(pc),a0
                     rts
 
 lbC00F58E:          lea      copper_main_palette,a0
                     lea      lbL0226EA,a1
-                    jsr      lbC0108DA
-                    move.l   #$20,d0
+                    bsr      lbC0108DA
+                    move.l   #32,d0
                     move.w   #1,lbW010CDE
-                    jsr      lbC010AA4
+                    bsr      lbC010AA4
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
-                    move.l   #$260,d0
-                    jsr      copy_byte_array
+                    move.l   #608,d0
+                    bsr      copy_byte_array
                     lea      bottom_bar_gfx,a0
                     lea      player_2_status_bar,a1
-                    move.l   #$260,d0
-                    jsr      copy_byte_array
+                    move.l   #608,d0
+                    bsr      copy_byte_array
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a1
-                    move.l   #8,d0
+                    moveq    #8,d0
 lbC00F5F6:          move.l   a0,a2
-                    move.l   #$13,d1
+                    moveq    #19,d1
 lbC00F5FE:          clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.s    lbC00F5FE
+                    bne.b    lbC00F5FE
                     move.l   a0,a2
-                    add.l    #$130,a2
-                    move.l   #$13,d1
+                    add.l    #304,a2
+                    moveq    #19,d1
 lbC00F612:          clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.s    lbC00F612
+                    bne.b    lbC00F612
                     move.l   a1,a2
-                    move.l   #$13,d1
+                    moveq    #19,d1
 lbC00F620:          clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.s    lbC00F620
+                    bne.b    lbC00F620
                     move.l   a1,a2
-                    add.l    #$130,a2
-                    move.l   #19,d1
+                    add.l    #304,a2
+                    moveq    #19,d1
 lbC00F634:          clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.s    lbC00F634
+                    bne.b    lbC00F634
                     jsr      wait_raster
                     jsr      wait_raster
                     add.l    #38,a0
                     add.l    #38,a1
                     subq.l   #1,d0
-                    bne.s    lbC00F5F6
+                    bne.b    lbC00F5F6
                     jsr      wait
-                    move.l   #copperlist_main,$dff080
-                    move.l   #copper_blank,$dff084
+                    move.l   #copperlist_main,CUSTOM+COP1LCH
+                    move.l   #copper_blank,CUSTOM+COP2LCH
                     rts
 
 clear_bitplanes_nbr:
@@ -10636,28 +10603,27 @@ set_bitplanes_nbr:  bsr      wait_raster
                     rts
 
 init_main_copperlist:
-                    bset     #1,$bfe001
+                    bset     #CIAB_LED,CIAA
                     lea      copper_main_palette,a0
-                    move.l   #32,d0
+                    moveq    #32,d0
                     bsr      clear_copper_palette
                     lea      top_bar_gfx,a0
                     lea      main_top_bar_bps,a1
                     move.l   #304,d0
-                    move.l   #2,d1
+                    moveq    #2,d1
                     bsr      set_bps
                     lea      bottom_bar_gfx,a0
                     lea      main_bottom_bar_bps,a1
-                    move.l   #$130,d0
-                    move.l   #2,d1
+                    move.l   #304,d0
+                    moveq    #2,d1
                     bsr      set_bps
-                    jsr      load_level_tunes
-                    rts
+                    bra      load_level_tunes
 
 lbC00F6F0:          movem.l  d0-d7/a0-a6,-(sp)
                     lea      ascii_MSG15,a1
-                    bsr.s    lbC00F70A
+                    bsr.b    lbC00F70A
                     lea      lbB099DB5,a1
-                    bsr.s    lbC00F70A
+                    bsr.b    lbC00F70A
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
@@ -10702,19 +10668,19 @@ lbC00F70A:          clr.b    0(a1)
                     clr.b    269(a1)
                     rts
 
-load_level_tunes:   move.w   #$4000,$dff09a
+load_level_tunes:   move.w   #INTF_INTEN,CUSTOM+INTENA
                     lea      soundmon_boss,a0
                     lea      bosstune,a1
-                    jsr      load_file
+                    bsr      load_file
                     lea      soundmon_level,a0
                     lea      leveltune,a1
-                    jsr      load_file
-                    move.w   #$C000,$dff09a
+                    bsr      load_file
+                    move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     rts
 
-display_text:       lea      $dff000,a6
-                    clr.l    d0
-                    clr.l    d1
+display_text:       lea      CUSTOM,a6
+                    moveq    #0,d0
+                    moveq    #0,d1
                     move.w   (a0)+,d0
                     move.w   (a0)+,d1
                     move.l   d0,d7
@@ -10731,55 +10697,55 @@ next_letter:        move.l   (a1),a2
                     addq.l   #4,d2
                     mulu     d1,d2
                     add.l    d2,a2
-                    clr.l    d4
+                    moveq    #0,d4
                     move.b   (a0)+,d2
                     cmp.b    #' ',d2
                     beq      space_letter
                     move.l   36(a1),a3
 search_letter:      cmp.b    (a3)+,d2
-                    beq.s    display_letter
+                    beq.b    display_letter
                     addq.l   #2,d4
                     tst.b    (a3)
-                    bne.s    search_letter
+                    bne.b    search_letter
                     bra      return_text
 
 display_letter:     move.l   32(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
-                    move.l   #$1000000,$40(a6)
-                    move.l   #letter_buffer,$54(a6)
-                    move.w   #2,$66(a6)
-                    move.w   #(16*64)+1,$58(a6)
+                    move.l   #$1000000,BLTCON0(a6)
+                    move.l   #letter_buffer,BLTDPTH(a6)
+                    move.w   #2,BLTDMOD(a6)
+                    move.w   #(16*64)+1,BLTSIZE(a6)
                     WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   28(a1),d5
                     move.l   #letter_buffer,d4
-                    move.l   #-1,$44(a6)
-                    move.l   #$dfc0000,$40(a6)
+                    move.l   #-1,BLTAFWM(a6)
+                    move.l   #$DFC0000,BLTCON0(a6)
                     move.l   24(a1),d6
                     addq.w   #2,d6
-                    move.w   d6,$64(a6)
-                    move.w   #2,$66(a6)
-                    move.w   #2,$62(a6)
+                    move.w   d6,BLTAMOD(a6)
+                    move.w   #2,BLTDMOD(a6)
+                    move.w   #2,BLTBMOD(a6)
                     move.l   a3,d6
 blit_letter_mask:          
                     WAIT_BLIT
-                    move.l   d6,$50(a6)
-                    move.l   d4,$4C(a6)
-                    move.l   d4,$54(a6)
-                    move.w   #(16*64)+1,$58(a6)
+                    move.l   d6,BLTAPTH(a6)
+                    move.l   d4,BLTBPTH(a6)
+                    move.l   d4,BLTDPTH(a6)
+                    move.w   #(16*64)+1,BLTSIZE(a6)
                     add.l    d5,d6
                     subq.w   #1,d2
-                    bne.s    blit_letter_mask
+                    bne.b    blit_letter_mask
                     WAIT_BLIT
-                    move.l   #$ffff0000,$44(a6)
-                    move.w   d3,$dff042
-                    or.w     #$fe2,d3
-                    move.w   d3,$40(a6)
-                    clr.w    $62(a6)
-                    move.w   26(a1),$64(a6)
-                    move.w   14(a1),$66(a6)
-                    move.w   14(a1),$60(a6)
+                    move.l   #$FFFF0000,BLTAFWM(a6)
+                    move.w   d3,BLTCON1(a6)
+                    or.w     #$FE2,d3
+                    move.w   d3,BLTCON0(a6)
+                    clr.w    BLTBMOD(a6)
+                    move.w   26(a1),BLTAMOD(a6)
+                    move.w   14(a1),BLTDMOD(a6)
+                    move.w   14(a1),BLTCMOD(a6)
                     move.l   8(a1),d5
                     move.l   4(a1),d2
                     move.l   28(a1),d3
@@ -10789,15 +10755,15 @@ blit_letter_mask:
                     addq.w   #2,d6
 blit_letter_on_screen:          
                     WAIT_BLIT
-                    move.l   d4,$4C(a6)
-                    move.l   a3,$50(a6)
-                    move.l   a2,$48(a6)
-                    move.l   a2,$54(a6)
-                    move.w   d6,$58(a6)
+                    move.l   d4,BLTBPTH(a6)
+                    move.l   a3,BLTAPTH(a6)
+                    move.l   a2,BLTCPTH(a6)
+                    move.l   a2,BLTDPTH(a6)
+                    move.w   d6,BLTSIZE(a6)
                     add.l    d2,a2
                     add.l    d3,a3
                     subq.b   #1,d5
-                    bne.s    blit_letter_on_screen
+                    bne.b    blit_letter_on_screen
 space_letter:       add.l    16(a1),d0
                     tst.b    (a0)
                     bmi      return_text
@@ -10822,59 +10788,59 @@ font_struct:        dc.l    lbL0FBF6C
                     dc.l    font_pic
                     dc.l    ascii_letters
 
-lbC00FA4C:          move.l   #$40,lbW00FE14
+lbC00FA4C:          move.l   #64,lbW00FE14
                     move.l   #4,lbW00FE18
                     move.l   #4,lbW00FE1C
-                    move.l   #$20,lbW00FE20
+                    move.l   #32,lbW00FE20
                     move.l   #0,lbW00FE24
-                    move.l   #$40,lbW00FE50
+                    move.l   #64,lbW00FE50
                     move.l   #4,lbW00FE54
                     move.l   #4,lbW00FE58
-                    move.l   #$20,lbW00FE5C
+                    move.l   #32,lbW00FE5C
                     move.l   #0,lbW00FE60
-                    move.l   #$40,lbL00FE00
-                    move.l   #$8E,lbL00FE04
-                    move.l   #$C4,lbL00FE08
-                    move.l   #$20,lbL00FE0C
-                    move.l   #$107,lbL00FE10
-                    move.l   #$40,lbL00FE3C
-                    move.l   #$8E,lbL00FE40
-                    move.l   #$C4,lbL00FE44
-                    move.l   #$20,lbL00FE48
-                    move.l   #$107,lbL00FE4C
+                    move.l   #64,lbL00FE00
+                    move.l   #142,lbL00FE04
+                    move.l   #196,lbL00FE08
+                    move.l   #32,lbL00FE0C
+                    move.l   #263,lbL00FE10
+                    move.l   #64,lbL00FE3C
+                    move.l   #142,lbL00FE40
+                    move.l   #196,lbL00FE44
+                    move.l   #32,lbL00FE48
+                    move.l   #263,lbL00FE4C
                     rts
 
-lbC00FB16:          lea      player_1_dats,a0
+lbC00FB16:          lea      player_1_dats(pc),a0
                     move.w   PLAYER_HEALTH(a0),lbW00FE16
                     move.w   PLAYER_LIVES(a0),lbW00FE1A
                     cmp.w    #4,lbW00FE1A
-                    bmi.s    lbC00FB3E
+                    bmi.b    lbC00FB3E
                     move.w   #4,lbW00FE1A
 lbC00FB3E:          move.w   PLAYER_AMMOPACKS(a0),lbW00FE1E
                     move.w   PLAYER_AMMUNITIONS(a0),lbW00FE22
                     move.w   PLAYER_KEYS(a0),lbW00FE26
                     cmp.w    #6,lbW00FE26
-                    bmi.s    lbC00FB68
+                    bmi.b    lbC00FB68
                     move.w   #6,lbW00FE26
 lbC00FB68:          
-                    lea      player_2_dats,a0
+                    lea      player_2_dats(pc),a0
                     move.w   PLAYER_HEALTH(a0),lbW00FE52
                     move.w   PLAYER_LIVES(a0),lbW00FE56
                     cmp.w    #4,lbW00FE56
-                    bmi.s    lbC00FB90
+                    bmi.b    lbC00FB90
                     move.w   #4,lbW00FE56
 lbC00FB90:          move.w   PLAYER_AMMOPACKS(a0),lbW00FE5A
                     move.w   PLAYER_AMMUNITIONS(a0),lbW00FE5E
                     move.w   PLAYER_KEYS(a0),lbW00FE62
                     cmp.w    #6,lbW00FE62
-                    bmi.s    lbC00FBBA
+                    bmi.b    lbC00FBBA
                     move.w   #6,lbW00FE62
 lbC00FBBA:          
                     clr.w    lbW00FEA8
                     clr.w    lbW00FEAA
-lbC00FBC6:          move.l   lbL00FC0E,a0
+lbC00FBC6:          move.l   lbL00FC0E(pc),a0
                     tst.l    (a0)
-                    bpl.s    lbC00FBDE
+                    bpl.b    lbC00FBDE
                     move.l   #lbL00FC12,lbL00FC0E
                     lea      lbL00FC12(pc),a0
 lbC00FBDE:          addq.l   #8,lbL00FC0E
@@ -10885,7 +10851,7 @@ lbC00FBDE:          addq.l   #8,lbL00FC0E
                     cmp.w    #5,lbW00FEAA
                     beq      return
                     tst.w    lbW00FEA8
-                    beq.s    lbC00FBC6
+                    beq.b    lbC00FBC6
                     rts
 
 lbL00FC0E:          dc.l    lbL00FC12
@@ -10911,94 +10877,94 @@ lbL00FC12:          dc.l    lbC00FC68
                     dc.l    lbL099D94
                     dc.l    -1
 
-lbC00FC68:          lea      lbL00FDEC,a0
-                    move.l   lbW00FE14,(a0)
-                    lea      lbL00FE00,a1
-                    move.l   #$18,d1
+lbC00FC68:          lea      lbL00FDEC(pc),a0
+                    move.l   lbW00FE14(pc),(a0)
+                    lea      lbL00FE00(pc),a1
+                    moveq    #24,d1
                     bra      lbC00FDB8
 
-lbC00FC84:          lea      lbL00FDF8,a0
-                    move.l   lbW00FE20,(a0)
-                    lea      lbL00FE0C,a1
-                    move.l   #$C8,d1
+lbC00FC84:          lea      lbL00FDF8(pc),a0
+                    move.l   lbW00FE20(pc),(a0)
+                    lea      lbL00FE0C(pc),a1
+                    move.l   #200,d1
                     bra      lbC00FDB8
 
-lbC00FCA0:          lea      lbL00FDF4,a0
-                    lea      lbL00FE08,a1
-                    lea      lbL00FE78,a2
-                    move.l   lbW00FE1C,d0
+lbC00FCA0:          lea      lbL00FDF4(pc),a0
+                    lea      lbL00FE08(pc),a1
+                    lea      lbL00FE78(pc),a2
+                    move.l   lbW00FE1C(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
+                    moveq    #0,d1
                     bra      lbC00FDB8
 
-lbC00FCC6:          lea      lbL00FDF0,a0
-                    lea      lbL00FE04,a1
-                    lea      lbL00FE64,a2
-                    move.l   lbW00FE18,d0
+lbC00FCC6:          lea      lbL00FDF0(pc),a0
+                    lea      lbL00FE04(pc),a1
+                    lea      lbL00FE64(pc),a2
+                    move.l   lbW00FE18(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
+                    moveq    #0,d1
                     bra      lbC00FDB8
 
-lbC00FCEC:          lea      lbL00FDFC,a0
-                    lea      lbL00FE10,a1
-                    lea      lbL00FE8C,a2
-                    move.l   lbW00FE24,d0
+lbC00FCEC:          lea      lbL00FDFC(pc),a0
+                    lea      lbL00FE10(pc),a1
+                    lea      lbL00FE8C(pc),a2
+                    move.l   lbW00FE24(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
+                    moveq    #0,d1
                     bra      lbC00FDB8
 
-lbC00FD12:          lea      lbL00FE28,a0
-                    move.l   lbW00FE50,(a0)
-                    lea      lbL00FE3C,a1
-                    move.l   #$18,d1
+lbC00FD12:          lea      lbL00FE28(pc),a0
+                    move.l   lbW00FE50(pc),(a0)
+                    lea      lbL00FE3C(pc),a1
+                    moveq    #24,d1
                     bra      lbC00FDB8
 
-lbC00FD2E:          lea      lbL00FE34,a0
-                    move.l   lbW00FE5C,(a0)
-                    lea      lbL00FE48,a1
-                    move.l   #$C8,d1
-                    bra.s    lbC00FDB8
+lbC00FD2E:          lea      lbL00FE34(pc),a0
+                    move.l   lbW00FE5C(pc),(a0)
+                    lea      lbL00FE48(pc),a1
+                    move.l   #200,d1
+                    bra.b    lbC00FDB8
 
-lbC00FD48:          lea      lbL00FE30,a0
-                    lea      lbL00FE44,a1
-                    lea      lbL00FE78,a2
-                    move.l   lbW00FE58,d0
+lbC00FD48:          lea      lbL00FE30(pc),a0
+                    lea      lbL00FE44(pc),a1
+                    lea      lbL00FE78(pc),a2
+                    move.l   lbW00FE58(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
-                    bra.s    lbC00FDB8
+                    moveq    #0,d1
+                    bra.b    lbC00FDB8
 
-lbC00FD6C:          lea      lbL00FE2C,a0
-                    lea      lbL00FE40,a1
-                    lea      lbL00FE64,a2
-                    move.l   lbW00FE54,d0
+lbC00FD6C:          lea      lbL00FE2C(pc),a0
+                    lea      lbL00FE40(pc),a1
+                    lea      lbL00FE64(pc),a2
+                    move.l   lbW00FE54(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
-                    bra      lbC00FDB8
+                    moveq    #0,d1
+                    bra.b    lbC00FDB8
 
-lbC00FD92:          lea      lbL00FE38,a0
-                    lea      lbL00FE4C,a1
-                    lea      lbL00FE8C,a2
-                    move.l   lbW00FE60,d0
+lbC00FD92:          lea      lbL00FE38(pc),a0
+                    lea      lbL00FE4C(pc),a1
+                    lea      lbL00FE8C(pc),a2
+                    move.l   lbW00FE60(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a2,d0.l),(a0)
-                    clr.l    d1
-                    bra      lbC00FDB8
+                    moveq    #0,d1
+                    ; no rts
 
 lbC00FDB8:          move.l   (a0),d0
                     cmp.l    (a1),d0
                     beq      return
-                    bmi.s    lbC00FDDA
+                    bmi.b    lbC00FDDA
                     move.w   #1,lbW00FEA8
                     move.l   (a1),d0
                     add.l    d1,d0
@@ -11019,19 +10985,19 @@ lbL00FDF0:          dc.l     0
 lbL00FDF4:          dc.l     0
 lbL00FDF8:          dc.l     0
 lbL00FDFC:          dc.l     0
-lbL00FE00:          dc.l     $40
-lbL00FE04:          dc.l     $8E
-lbL00FE08:          dc.l     $C4
-lbL00FE0C:          dc.l     $20
-lbL00FE10:          dc.l     $11E
+lbL00FE00:          dc.l     64
+lbL00FE04:          dc.l     142
+lbL00FE08:          dc.l     196
+lbL00FE0C:          dc.l     32
+lbL00FE10:          dc.l     286
 lbW00FE14:          dc.w     0
-lbW00FE16:          dc.w     $40
+lbW00FE16:          dc.w     64
 lbW00FE18:          dc.w     0
 lbW00FE1A:          dc.w     4
 lbW00FE1C:          dc.w     0
 lbW00FE1E:          dc.w     4
 lbW00FE20:          dc.w     0
-lbW00FE22:          dc.w     $20
+lbW00FE22:          dc.w     32
 lbW00FE24:          dc.w     0
 lbW00FE26:          dc.w     6
 lbL00FE28:          dc.l     0
@@ -11039,19 +11005,19 @@ lbL00FE2C:          dc.l     0
 lbL00FE30:          dc.l     0
 lbL00FE34:          dc.l     0
 lbL00FE38:          dc.l     0
-lbL00FE3C:          dc.l     $40
-lbL00FE40:          dc.l     $8E
-lbL00FE44:          dc.l     $C4
-lbL00FE48:          dc.l     $20
-lbL00FE4C:          dc.l     $11E
+lbL00FE3C:          dc.l     64
+lbL00FE40:          dc.l     142
+lbL00FE44:          dc.l     196
+lbL00FE48:          dc.l     32
+lbL00FE4C:          dc.l     286
 lbW00FE50:          dc.w     0
-lbW00FE52:          dc.w     $40
+lbW00FE52:          dc.w     64
 lbW00FE54:          dc.w     0
 lbW00FE56:          dc.w     4
 lbW00FE58:          dc.w     0
 lbW00FE5A:          dc.w     4
 lbW00FE5C:          dc.w     0
-lbW00FE5E:          dc.w     $20
+lbW00FE5E:          dc.w     32
 lbW00FE60:          dc.w     0
 lbW00FE62:          dc.w     6
 lbL00FE64:          dc.l     $7F,$82,$86,$8A,$8F
@@ -11061,7 +11027,7 @@ lbW00FEA8:          dc.w     0
 lbW00FEAA:          dc.w     0
 lbL00FEAC:          dc.l     0
 
-lbC00FEB0:          move.l   lbL00FEAC,a1
+lbC00FEB0:          move.l   lbL00FEAC(pc),a1
                     move.l   d0,d1
                     lsr.w    #3,d1
                     and.w    #7,d0
@@ -11071,19 +11037,19 @@ lbC00FEB0:          move.l   lbL00FEAC,a1
                     bclr     d2,d4
                     add.l    d1,a1
                     and.b    d4,0(a1)
-                    and.b    d4,$26(a1)
-                    and.b    d4,$4C(a1)
-                    and.b    d4,$72(a1)
-                    and.b    d4,$98(a1)
-                    and.b    d4,$BE(a1)
-                    and.b    d4,$E4(a1)
-                    and.b    d4,$10A(a1)
+                    and.b    d4,38(a1)
+                    and.b    d4,76(a1)
+                    and.b    d4,114(a1)
+                    and.b    d4,152(a1)
+                    and.b    d4,190(a1)
+                    and.b    d4,228(a1)
+                    and.b    d4,266(a1)
                     rts
 
 lbC00FEEC:          lea      lbW00FF66(pc),a0
-                    move.l   lbL00FEAC,a1
+                    move.l   lbL00FEAC(pc),a1
                     tst.b    0(a0,d0.l)
-                    beq.s    lbC00FF30
+                    beq.b    lbC00FF30
                     move.l   d0,d1
                     lsr.w    #3,d1
                     and.w    #7,d0
@@ -11093,13 +11059,13 @@ lbC00FEEC:          lea      lbW00FF66(pc),a0
                     bset     d2,d4
                     add.l    d1,a1
                     or.b     d4,0(a1)
-                    or.b     d4,$26(a1)
-                    or.b     d4,$4C(a1)
-                    or.b     d4,$72(a1)
-                    or.b     d4,$98(a1)
-                    or.b     d4,$BE(a1)
-                    or.b     d4,$E4(a1)
-                    or.b     d4,$10A(a1)
+                    or.b     d4,38(a1)
+                    or.b     d4,76(a1)
+                    or.b     d4,114(a1)
+                    or.b     d4,152(a1)
+                    or.b     d4,190(a1)
+                    or.b     d4,228(a1)
+                    or.b     d4,266(a1)
                     rts
 
 lbC00FF30:          move.l   d0,d1
@@ -11111,13 +11077,13 @@ lbC00FF30:          move.l   d0,d1
                     bclr     d2,d4
                     add.l    d1,a1
                     and.b    d4,0(a1)
-                    and.b    d4,$26(a1)
-                    and.b    d4,$4C(a1)
-                    and.b    d4,$72(a1)
-                    and.b    d4,$98(a1)
-                    and.b    d4,$BE(a1)
-                    and.b    d4,$E4(a1)
-                    and.b    d4,$10A(a1)
+                    and.b    d4,38(a1)
+                    and.b    d4,76(a1)
+                    and.b    d4,114(a1)
+                    and.b    d4,152(a1)
+                    and.b    d4,190(a1)
+                    and.b    d4,228(a1)
+                    and.b    d4,266(a1)
                     rts
 
 lbW00FF66:          dcb.w    12,0
@@ -11140,82 +11106,80 @@ lbC0100AA:          move.w   d2,6(a1)
                     addq.l   #8,a1
                     add.l    d0,d2
                     subq.w   #1,d1
-                    bne.s    lbC0100AA
+                    bne.b    lbC0100AA
                     rts
 
 lbC0100C0:          rts
 
-set_blank_copper:   move.l   #copper_blank,$dff080
-                    move.l   #$200,$dff100
-                    clr.l    $dff180
-                    clr.l    $dff184
+set_blank_copper:   move.l   #copper_blank,CUSTOM+COP1LCH
+                    move.l   #$200,CUSTOM+BPLCON0
+                    clr.l    CUSTOM+COLOR00
+                    clr.l    CUSTOM+COLOR02
 return:             rts
 
 kill_system:        move.l   a0,-(sp)
-                    move.w   #$4000,$dff09a
-                    move.w   $dff01c,old_intreq
-                    move.w   #$7FFF,$dff09a
-                    move.w   #$8030,$dff09a
+                    move.w   #INTF_INTEN,CUSTOM+INTENA
+                    move.w   CUSTOM+INTENAR,old_intena
+                    move.w   #INTF_ALL,CUSTOM+INTENA
+                    move.w   #INTF_SETCLR|INTF_VERTB|INTF_COPER,CUSTOM+INTENA
                     move.l   reg_vbr,a0
                     move.l   $6C(a0),old_lev3irq
                     move.l   #lev3irq,$6C(a0)
-                    move.w   #-1,$dff034
-                    move.w   #$C000,$dff09a
+                    move.w   #-1,CUSTOM+POTGO
+                    move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     move.l   (sp)+,a0
                     rts
 
 restore_system:     move.l   a0,-(sp)
-                    move.w   #$4000,$dff09a
+                    move.w   #INTF_INTEN,CUSTOM+INTENA
                     move.l   reg_vbr,a0
                     move.l   old_lev3irq,$6C(a0)
-                    move.w   old_intreq,d0
-                    or.w     #$8000,d0
-                    move.w   d0,$dff09a
-                    move.w   #$C000,$dff09a
-                    move.w   #$81C0,$dff096
+                    move.w   old_intena,d0
+                    or.w     #INTF_SETCLR,d0
+                    move.w   d0,CUSTOM+INTENA
+                    move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
+                    move.w   #DMAF_SETCLR|DMAF_RASTER|DMAF_BLITTER|DMAF_COPPER,CUSTOM+DMACON
                     movem.l  (sp)+,a0
                     rts
 
-load_file:          jsr      restore_system
+load_file:          bsr.b    restore_system
                     movem.l  a0/a1,-(sp)
-                    move.l   4,a6
-                    lea      doslibrary_MSG,a1
+                    move.l   4.w,a6
+                    lea      doslibrary_MSG(pc),a1
                     jsr      _LVOOldOpenLibrary(a6)
                     move.l   d0,DOSBase
-                    beq      lbC010398
+                    beq      err_dos_lib
                     movem.l  (sp)+,a0/a1
                     move.l   a1,-(sp)
                     move.l   d2,-(sp)
                     move.l   a0,d1
-                    move.l   #$3ED,d2
-                    move.l   DOSBase,a6
+                    move.l   #MODE_OLDFILE,d2
+                    move.l   DOSBase(pc),a6
                     jsr      _LVOOpen(a6)
                     move.l   (sp)+,d2
                     move.l   d0,file_handle
-                    beq.s    err_open_file
+                    beq.b    err_open_file
                     move.l   (sp)+,a1
                     movem.l  d2/d3,-(sp)
-                    move.l   file_handle,d1
+                    move.l   file_handle(pc),d1
                     move.l   a1,d2
-                    move.l   #$7D000,d3
-                    move.l   DOSBase,a6
+                    move.l   #512000,d3
+                    move.l   DOSBase(pc),a6
                     jsr      _LVORead(a6)
                     movem.l  (sp)+,d2/d3
-                    move.l   file_handle,d1
-                    move.l   DOSBase,a6
+                    move.l   file_handle(pc),d1
+                    move.l   DOSBase(pc),a6
                     jsr      _LVOClose(a6)
-                    bra.s    file_loaded
-
-err_open_file:      move.w   #$F0,d0
-                    jsr      error_flash
-file_loaded:        move.l   4,a6
-                    move.l   DOSBase,a1
+                    move.l   4.w,a6
+                    move.l   DOSBase(pc),a1
                     jsr      _LVOCloseLibrary(a6)
                     bra      kill_system
 
-lbC010398:          move.w   #$F00,d0
-                    jsr      error_flash
-                    bra      kill_system
+err_open_file:      move.w   #$F0,d0
+                    jmp      error_flash
+
+err_dos_lib:        move.w   #$F00,d0
+                    jmp      error_flash
 
 doslibrary_MSG:     dc.b     'dos.library',0
                     even
@@ -11230,8 +11194,8 @@ lbC010432:          movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a2,a6
                     bsr      lbC0105AE
                     tst.l    d6
-                    bne.s    lbC01044E
-                    bsr.s    lbC010464
+                    bne.b    lbC01044E
+                    bsr.b    lbC010464
                     move.l   d1,4(sp)
 lbC01044E:          move.l   d0,(sp)
                     moveq    #0,d1
@@ -11243,55 +11207,55 @@ lbC01044E:          move.l   d0,(sp)
                     rts
 
 lbC010464:          bsr      lbC010506
-                    bne.s    lbC0104DA
-                    move.l   $144(a0),d7
+                    bne.b    lbC0104DA
+                    move.l   324(a0),d7
                     move.l   d7,-(sp)
-                    lea      $138(a0),a2
-                    bsr.s    lbC0104DC
-                    bne.s    lbC0104D6
+                    lea      312(a0),a2
+                    bsr.b    lbC0104DC
+                    bne.b    lbC0104D6
 lbC010478:          move.l   d1,d2
                     move.l   d1,d4
                     move.l   a5,a3
                     move.l   d7,d6
                     lsr.l    #8,d6
                     lsr.l    #1,d6
-                    bne.s    lbC010488
+                    bne.b    lbC010488
                     move.l   a6,a3
-lbC010488:          bsr.s    lbC0104DC
-                    bne.s    lbC0104D6
+lbC010488:          bsr.b    lbC0104DC
+                    bne.b    lbC0104D6
                     addq.l   #1,d2
                     move.l   d1,d5
-                    beq.s    lbC01049A
+                    beq.b    lbC01049A
                     cmp.l    d1,d2
-                    bne.s    lbC01049A
+                    bne.b    lbC01049A
                     subq.l   #1,d6
-                    bne.s    lbC010488
+                    bne.b    lbC010488
 lbC01049A:          move.l   d4,d1
                     sub.l    d4,d2
                     move.l   a3,a0
                     bsr      lbC0106C8
-                    bne.s    lbC0104D6
+                    bne.b    lbC0104D6
 lbC0104A6:          bsr      lbC010676
-                    bne.s    lbC0104D6
+                    bne.b    lbC0104D6
                     move.l   12(a0),d0
                     sub.l    d0,d7
-                    lea      $18(a0),a0
+                    lea      24(a0),a0
                     ror.l    #2,d0
-                    bra.s    lbC0104BC
+                    bra.b    lbC0104BC
 
 lbC0104BA:          move.l   (a0)+,(a5)+
 lbC0104BC:          dbra     d0,lbC0104BA
                     clr.w    d0
                     rol.l    #2,d0
-                    bra.s    lbC0104C8
+                    bra.b    lbC0104C8
 
 lbC0104C6:          move.b   (a0)+,(a5)+
 lbC0104C8:          dbra     d0,lbC0104C6
                     subq.l   #1,d2
-                    bne.s    lbC0104A6
+                    bne.b    lbC0104A6
                     move.l   d5,d1
                     move.l   d7,d0
-                    bne.s    lbC010478
+                    bne.b    lbC010478
 lbC0104D6:          move.l   (sp)+,d1
                     tst.l    d0
 lbC0104DA:          rts
@@ -11299,12 +11263,12 @@ lbC0104DA:          rts
 lbC0104DC:          move.l   d2,-(sp)
                     move.l   a6,a0
                     move.l   8(a0),d0
-                    bne.s    lbC0104F6
-                    move.l   $1F8(a0),d1
-                    beq.s    lbC010500
+                    bne.b    lbC0104F6
+                    move.l   504(a0),d1
+                    beq.b    lbC010500
                     bsr      lbC010672
-                    bne.s    lbC010500
-                    lea      $138(a0),a2
+                    bne.b    lbC010500
+                    lea      312(a0),a2
 lbC0104F6:          move.l   -(a2),d1
                     moveq    #1,d0
                     sub.l    d0,8(a0)
@@ -11322,82 +11286,83 @@ lbC010512:          lea      lbW01069A(pc),a1
                     move.l   a4,(sp)
                     bsr      lbC0105F6
                     beq      lbC0105A8
-                    lsl.w    #2,d0
+                    add.w    d0,d0
+                    add.w    d0,d0
 lbC010524:          lea      lbL01069E(pc),a1
                     move.w   d1,(a1)+
                     move.w   d0,(a1)+
                     move.l   0(a0,d0.w),d1
-                    beq.s    lbC010580
+                    beq.b    lbC010580
                     bsr      lbC010672
-                    bne.s    lbC0105A8
-                    move.l   #$E1,d0
+                    bne.b    lbC0105A8
+                    move.l   #225,d0
                     moveq    #2,d2
                     cmp.l    (a0),d2
-                    bne.s    lbC0105A8
+                    bne.b    lbC0105A8
                     moveq    #2,d2
                     cmp.b    #3,d6
-                    beq.s    lbC010552
+                    beq.b    lbC010552
                     tst.b    (a4)
-                    bne.s    lbC010552
+                    bne.b    lbC010552
                     moveq    #-3,d2
-lbC010552:          cmp.l    $1FC(a0),d2
-                    bne.s    lbC010576
-                    lea      $1B0(a0),a1
+lbC010552:          cmp.l    508(a0),d2
+                    bne.b    lbC010576
+                    lea      432(a0),a1
                     lea      lbL0106A6(pc),a2
                     moveq    #0,d2
                     move.b   (a1)+,d2
                     subq.b   #1,d2
 lbC010566:          move.b   (a1)+,d0
-                    bsr.s    lbC0105E2
+                    bsr.b    lbC0105E2
                     cmp.b    (a2)+,d0
                     dbne     d2,lbC010566
-                    bne.s    lbC010576
+                    bne.b    lbC010576
                     tst.b    (a2)
-                    beq.s    lbC010598
-lbC010576:          move.w   #$1F0,d0
+                    beq.b    lbC010598
+lbC010576:          move.w   #496,d0
                     tst.l    0(a0,d0.w)
-                    bne.s    lbC010524
-lbC010580:          move.l   #$CC,d0
+                    bne.b    lbC010524
+lbC010580:          move.l   #204,d0
                     cmp.b    #3,d6
-                    beq.s    lbC0105A8
+                    beq.b    lbC0105A8
                     tst.b    (a4)
-                    bne.s    lbC0105A8
-                    move.l   #$CD,d0
-                    bra.s    lbC0105A8
+                    bne.b    lbC0105A8
+                    move.l   #205,d0
+                    bra.b    lbC0105A8
 
 lbC010598:          tst.b    (a4)
                     bne      lbC010512
                     lea      lbW0106A2(pc),a1
-                    move.w   $1F2(a0),(a1)
+                    move.w   498(a0),(a1)
                     moveq    #0,d0
 lbC0105A8:          move.l   (sp)+,a4
                     tst.l    d0
                     rts
 
 lbC0105AE:          move.l   a4,a0
-                    bsr.s    lbC0105E0
-                    cmp.b    #$44,d0
-                    bne.s    lbC0105DE
-                    bsr.s    lbC0105E0
-                    cmp.b    #$46,d0
-                    bne.s    lbC0105DE
+                    bsr.b    lbC0105E0
+                    cmp.b    #'D',d0
+                    bne.b    lbC0105DE
+                    bsr.b    lbC0105E0
+                    cmp.b    #'F',d0
+                    bne.b    lbC0105DE
                     move.b   (a0)+,d0
-                    sub.b    #$30,d0
-                    blt.s    lbC0105DE
-                    cmp.b    #$33,d0
-                    bgt.s    lbC0105DE
-                    cmp.b    #$3A,(a0)+
-                    bne.s    lbC0105DE
+                    sub.b    #'0',d0
+                    blt.b    lbC0105DE
+                    cmp.b    #'3',d0
+                    bgt.b    lbC0105DE
+                    cmp.b    #'9'+1,(a0)+
+                    bne.b    lbC0105DE
                     lea      lbW0106A4(pc),a0
                     move.b   d0,1(a0)
                     addq.w   #4,a4
 lbC0105DE:          rts
 
 lbC0105E0:          move.b   (a0)+,d0
-lbC0105E2:          cmp.b    #$61,d0
-                    blt.s    lbC0105F2
-                    cmp.b    #$7A,d0
-                    bgt.s    lbC0105F2
+lbC0105E2:          cmp.b    #'a',d0
+                    blt.b    lbC0105F2
+                    cmp.b    #'z',d0
+                    bgt.b    lbC0105F2
                     and.b    #$DF,d0
 lbC0105F2:          tst.b    d0
                     rts
@@ -11410,25 +11375,25 @@ lbC0105F6:          movem.l  d1/a0/a1,-(sp)
                     clr.b    (a1)
 lbC010606:          addq.l   #1,d1
                     tst.b    (a4)
-                    beq.s    lbC010614
-                    cmp.b    #$2F,(a4)+
-                    bne.s    lbC010606
+                    beq.b    lbC010614
+                    cmp.b    #'/',(a4)+
+                    bne.b    lbC010606
                     subq.w   #1,a4
 lbC010614:          tst.l    d1
-                    beq.s    lbC010642
+                    beq.b    lbC010642
 lbC010618:          mulu     #13,d1
                     move.b   (a0)+,d0
-                    bsr.s    lbC0105E2
+                    bsr.b    lbC0105E2
                     move.b   d0,(a1)+
                     add.w    d0,d1
                     and.l    #$7FF,d1
                     cmp.l    a0,a4
-                    bne.s    lbC010618
+                    bne.b    lbC010618
                     cmp.b    #$2F,(a4)
-                    bne.s    lbC010636
+                    bne.b    lbC010636
                     addq.w   #1,a4
 lbC010636:          clr.b    (a1)+
-                    divu     #$48,d1
+                    divu     #72,d1
                     clr.w    d1
                     swap     d1
                     addq.w   #6,d1
@@ -11436,33 +11401,33 @@ lbC010642:          move.l   d1,d0
                     movem.l  (sp)+,d1/a0/a1
                     rts
 
-lbC01064A:          move.w   #$370,d1
-                    bsr.s    lbC010672
-                    bne.s    lbC010670
-                    move.l   #$E1,d0
+lbC01064A:          move.w   #880,d1
+                    bsr.b    lbC010672
+                    bne.b    lbC010670
+                    move.l   #225,d0
                     moveq    #2,d2
                     cmp.l    (a0),d2
-                    bne.s    lbC010670
+                    bne.b    lbC010670
                     moveq    #1,d2
-                    cmp.l    $1FC(a0),d2
-                    bne.s    lbC010670
+                    cmp.l    508(a0),d2
+                    bne.b    lbC010670
                     lea      lbW01069C(pc),a1
-                    move.w   $13E(a0),(a1)
+                    move.w   318(a0),(a1)
                     moveq    #0,d0
 lbC010670:          rts
 
-lbC010672:          bsr.s    lbC0106C6
-                    bne.s    lbC010680
-lbC010676:          bsr.s    lbC010682
-                    beq.s    lbC010680
-                    move.l   #$195,d0
+lbC010672:          bsr.b    lbC0106C6
+                    bne.b    lbC010680
+lbC010676:          bsr.b    calc_checksum
+                    beq.b    lbC010680
+                    move.l   #405,d0
 lbC010680:          rts
 
-lbC010682:          movem.l  d1/a0,-(sp)
+calc_checksum:      movem.l  d1/a0,-(sp)
                     moveq    #0,d0
-                    move.w   #$7F,d1
-lbC01068C:          add.l    (a0)+,d0
-                    dbf      d1,lbC01068C
+                    move.w   #128-1,d1
+.loop:              add.l    (a0)+,d0
+                    dbf      d1,.loop
                     neg.l    d0
                     movem.l  (sp)+,d1/a0
                     rts
@@ -11482,42 +11447,42 @@ clear_copper_palette:
                     clr.w    2(a0)
                     addq.l   #4,a0
                     subq.w   #1,d0
-                    bne.s    clear_copper_palette
+                    bne.b    clear_copper_palette
                     rts
 
 compute_palette_fading_directions:
-                    move.w   #$4000,$dff09a
+                    move.w   #INTF_INTEN,CUSTOM+INTENA
                     movem.l  d0-d7/a0-a6,-(sp)
-                    clr.l    d1
-                    clr.l    d2
-                    clr.l    d3
-                    clr.l    d4
-                    clr.l    d5
-                    clr.l    d6
-                    clr.l    d7
-                    move.l   #0,a3
-                    move.l   #0,a4
-                    move.l   #0,a5
-                    move.l   #0,a6
+                    moveq    #0,d1
+                    moveq    #0,d2
+                    moveq    #0,d3
+                    moveq    #0,d4
+                    moveq    #0,d5
+                    moveq    #0,d6
+                    moveq    #0,d7
+                    move.l   d1,a3
+                    move.l   d1,a4
+                    move.l   d1,a5
+                    move.l   d1,a6
                     move.w   #1,lbW010CDC
                     move.w   d0,lbW010CE2
                     move.l   a1,lbL010CE4
                     move.l   a2,lbL010CE8
                     move.l   a0,a2
-                    lea      palette_fading_directions,a3
-                    move.w   lbW010CE2,d0
+                    lea      palette_fading_directions(pc),a3
+                    move.w   lbW010CE2(pc),d0
 lbC010736:          move.w   (a2),d1
                     move.w   (a1),d2
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bmi.s    lbC01074C
-                    bhi.s    lbC010752
+                    bmi.b    lbC01074C
+                    bhi.b    lbC010752
                     clr.b    (a3)+
-                    bra.s    lbC010756
+                    bra.b    lbC010756
 
 lbC01074C:          move.b   #-1,(a3)+
-                    bra.s    lbC010756
+                    bra.b    lbC010756
 
 lbC010752:          move.b   #1,(a3)+
 lbC010756:          move.w   (a2),d1
@@ -11525,13 +11490,13 @@ lbC010756:          move.w   (a2),d1
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bmi.s    lbC01076C
-                    bhi.s    lbC010772
+                    bmi.b    lbC01076C
+                    bhi.b    lbC010772
                     clr.b    (a3)+
-                    bra.s    lbC010776
+                    bra.b    lbC010776
 
 lbC01076C:          move.b   #-1,(a3)+
-                    bra.s    lbC010776
+                    bra.b    lbC010776
 
 lbC010772:          move.b   #1,(a3)+
 lbC010776:          move.w   (a2)+,d1
@@ -11539,28 +11504,28 @@ lbC010776:          move.w   (a2)+,d1
                     and.w    #$F,d1
                     and.w    #$F,d2
                     cmp.w    d1,d2
-                    bmi.s    lbC01078C
-                    bhi.s    lbC010792
+                    bmi.b    lbC01078C
+                    bhi.b    lbC010792
                     clr.b    (a3)+
-                    bra.s    lbC010796
+                    bra.b    lbC010796
 
 lbC01078C:          move.b   #-1,(a3)+
-                    bra.s    lbC010796
+                    bra.b    lbC010796
 
 lbC010792:          move.b   #1,(a3)+
 lbC010796:          subq.b   #1,d0
-                    bne.s    lbC010736
+                    bne.b    lbC010736
 
-                    move.l   lbL010CE8,a2
-                    move.w   lbW010CE2,d0
+                    move.l   lbL010CE8(pc),a2
+                    move.w   lbW010CE2(pc),d0
                     addq.l   #2,a2
 lbC0107A8:          move.w   (a0)+,(a2)
                     addq.l   #4,a2
                     subq.b   #1,d0
-                    bne.s    lbC0107A8
+                    bne.b    lbC0107A8
                     clr.w    some_variable
                     movem.l  (sp)+,d0-d7/a0-a6
-                    move.w   #$C000,$dff09a
+                    move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     rts
 
 palette_fade:       cmp.w    #1,lbW010CDC
@@ -11576,31 +11541,31 @@ palette_fade:       cmp.w    #1,lbW010CDC
                     moveq    #0,d5
                     moveq    #0,d6
                     moveq    #0,d7
-                    move.l   #0,a0
-                    move.l   #0,a1
-                    move.l   #0,a2
-                    move.l   #0,a3
-                    move.l   #0,a4
-                    move.l   #0,a5
-                    move.l   #0,a6
-                    move.w   lbW010CE0,d0
-                    cmp.w    lbW010CDE,d0
+                    move.l   d0,a0
+                    move.l   d0,a1
+                    move.l   d0,a2
+                    move.l   d0,a3
+                    move.l   d0,a4
+                    move.l   d0,a5
+                    move.l   d0,a6
+                    move.w   lbW010CE0(pc),d0
+                    cmp.w    lbW010CDE(pc),d0
                     bmi      return3
                     clr.w    lbW010CE0
-                    move.w   lbW010CE2,d0
-                    move.l   lbL010CE8,a0
-                    move.l   lbL010CE4,a1
-                    lea      palette_fading_directions,a3
+                    move.w   lbW010CE2(pc),d0
+                    move.l   lbL010CE8(pc),a0
+                    move.l   lbL010CE4(pc),a1
+                    lea      palette_fading_directions(pc),a3
                     addq.l   #2,a0
 lbC01084C:          move.w   (a0),d1
                     move.w   (a1),d2
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bne.s    lbC010862
+                    bne.b    lbC010862
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.s    lbC010870
+                    bra.b    lbC010870
 
 lbC010862:          move.b   (a3)+,d3
                     lsr.w    #8,d1
@@ -11613,10 +11578,10 @@ lbC010870:          move.w   (a0),d1
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bne.s    lbC010886
+                    bne.b    lbC010886
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.s    lbC010894
+                    bra.b    lbC010894
 
 lbC010886:          move.b   (a3)+,d3
                     lsr.w    #4,d1
@@ -11629,10 +11594,10 @@ lbC010894:          move.w   (a0),d1
                     and.w    #$f,d1
                     and.w    #$f,d2
                     cmp.w    d1,d2
-                    bne.s    lbC0108AA
+                    bne.b    lbC0108AA
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.s    lbC0108B4
+                    bra.b    lbC0108B4
 
 lbC0108AA:          move.b   (a3)+,d3
                     add.b    d3,d1
@@ -11640,21 +11605,20 @@ lbC0108AA:          move.b   (a3)+,d3
                     or.w     d1,(a0)
 lbC0108B4:          addq.l   #4,a0
                     subq.b   #1,d0
-                    bne.s    lbC01084C
+                    bne.b    lbC01084C
                     divu     #3,d7
-                    cmp.w    lbW010CE2,d7
-                    bne.s    lbC0108D4
+                    cmp.w    lbW010CE2(pc),d7
+                    bne.b    lbC0108D4
                     move.w   #1,some_variable
                     clr.w    lbW010CDC
-lbC0108D4:          bsr      lbC010ECE
-                    rts
+lbC0108D4:          bra      lbC010ECE
 
 lbC0108DA:          movem.l  d0/a0,-(sp)
-                    move.l   #32,d0
+                    moveq    #32,d0
                     lea      lbL0226EA,a0
 lbC0108EA:          clr.w    (a0)+
                     subq.w   #1,d0
-                    bne.s    lbC0108EA
+                    bne.b    lbC0108EA
                     movem.l  (sp)+,d0/a0
                     rts
 
@@ -11663,20 +11627,19 @@ copy_palette_to_copper:
 lbC0108F8:          move.w   (a0)+,(a1)
                     addq.l   #4,a1
                     subq.b   #2,d0
-                    bne.s    lbC0108F8
-                    bsr      lbC010ECE
-                    rts
+                    bne.b    lbC0108F8
+                    bra      lbC010ECE
 
 lbC010906:          move.w   #2,lbW010CDC
-                    lea      lbL010E0E,a4
-                    moveq    #$30,d2
+                    lea      lbL010E0E(pc),a4
+                    moveq    #48,d2
 lbC010916:          clr.l    (a4)+
                     subq.l   #1,d2
                     bne      lbC010916
                     move.l   d0,d7
                     move.l   a1,a2
-                    clr.l    d6
-                    lea      lbL010D4E,a3
+                    moveq    #0,d6
+                    lea      lbL010D4E(pc),a3
 lbC01092A:          move.w   (a2),d6
                     and.w    #$F00,d6
                     divu     #15,d6
@@ -11695,7 +11658,7 @@ lbC01092A:          move.w   (a2),d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne      lbC01092A
+                    bne.b    lbC01092A
                     move.l   d1,d4
                     subq.l   #2,a0
                     subq.l   #2,a1
@@ -11718,18 +11681,18 @@ lbC01097E:          cmp.w    #2,lbW010CDC
                     moveq    #0,d5
                     moveq    #0,d6
                     moveq    #0,d7
-                    move.w   lbW010CE0,d0
-                    cmp.w    lbW010CDE,d0
+                    move.w   lbW010CE0(pc),d0
+                    cmp.w    lbW010CDE(pc),d0
                     bmi      return3
                     clr.w    lbW010CE0
-                    move.l   lbL010CE8,a0
-                    move.l   lbL010CE4,a1
-                    clr.l    d0
-                    move.w   lbW010CE2,d0
+                    move.l   lbL010CE8(pc),a0
+                    move.l   lbL010CE4(pc),a1
+                    moveq    #0,d0
+                    move.w   lbW010CE2(pc),d0
                     move.l   d0,d6
                     mulu     #3,d6
-                    lea      lbL010D4E,a2
-                    lea      lbL010E0E,a3
+                    lea      lbL010D4E(pc),a2
+                    lea      lbL010E0E(pc),a3
                     move.l   d6,d7
                     move.l   d0,d1
 lbC0109EC:          addq.l   #4,a0
@@ -11747,8 +11710,8 @@ lbC0109EC:          addq.l   #4,a0
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A14:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010A14:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F0,d2
@@ -11763,12 +11726,12 @@ lbC010A14:          add.l    #2,a2
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A46:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010A46:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
-                    and.w    #15,d2
-                    and.w    #15,d3
+                    and.w    #$F,d2
+                    and.w    #$F,d3
                     cmp.w    d2,d3
                     beq      lbC010A78
                     move.w   (a2),d3
@@ -11779,41 +11742,40 @@ lbC010A46:          add.l    #2,a2
                     and.w    #$FFF0,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A78:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010A78:          addq.l   #2,a2
+                    addq.l   #2,a3
                     subq.w   #1,d1
                     bne      lbC0109EC
                     cmp.l    d6,d7
                     bne      lbC010A9E
                     move.w   #1,some_variable
                     clr.w    lbW010CDC
-lbC010A9E:          bsr      lbC010ECE
-                    rts
+lbC010A9E:          bra      lbC010ECE
 
-lbC010AA4:          clr.l    d1
-                    clr.l    d2
-                    clr.l    d3
-                    clr.l    d4
-                    clr.l    d5
-                    clr.l    d6
-                    clr.l    d7
-                    move.l   #0,a2
-                    move.l   #0,a3
-                    move.l   #0,a4
-                    move.l   #0,a5
-                    move.l   #0,a6
-                    move.w   #$4000,$dff09a
+lbC010AA4:          moveq    #0,d1
+                    moveq    #0,d2
+                    moveq    #0,d3
+                    moveq    #0,d4
+                    moveq    #0,d5
+                    moveq    #0,d6
+                    moveq    #0,d7
+                    move.l   d1,a2
+                    move.l   d1,a3
+                    move.l   d1,a4
+                    move.l   d1,a5
+                    move.l   d1,a6
+                    move.w   #INTF_INTEN,CUSTOM+INTENA
                     move.w   #3,lbW010CDC
-                    lea      lbL010E0E,a4
-                    move.l   #$30,d2
+                    lea      lbL010E0E(pc),a4
+                    moveq    #48,d2
 lbC010AEC:          clr.l    (a4)+
                     subq.l   #1,d2
-                    bne      lbC010AEC
+                    bne.b    lbC010AEC
                     move.l   d0,d7
                     move.l   a0,a2
-                    add.l    #2,a2
-                    clr.l    d6
-                    lea      lbL010D4E,a3
+                    addq.l   #2,a2
+                    moveq    #0,d6
+                    lea      lbL010D4E(pc),a3
 lbC010B06:          move.w   (a2),d6
                     and.w    #$F00,d6
                     divu     #15,d6
@@ -11826,17 +11788,17 @@ lbC010B06:          move.w   (a2),d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
-                    add.l    #4,a2
+                    addq.l   #4,a2
                     lsl.w    #8,d6
                     and.w    #$F00,d6
                     divu     #15,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne      lbC010B06
-                    lea      lbL010E0E,a3
+                    bne.b    lbC010B06
+                    lea      lbL010E0E(pc),a3
                     move.l   a0,a2
-                    add.l    #2,a2
+                    addq.l   #2,a2
                     move.l   d0,d4
 lbC010B50:          move.w   (a2),d7
                     and.w    #$F00,d7
@@ -11849,24 +11811,24 @@ lbC010B50:          move.w   (a2),d7
                     and.w    #15,d7
                     lsl.w    #8,d7
                     move.w   d7,(a3)+
-                    add.l    #4,a2
-                    sub.l    #1,d4
+                    addq.l   #4,a2
+                    subq.l   #1,d4
                     bne      lbC010B50
-                    lea      lbL010D4E,a2
-                    lea      lbL010E0E,a3
+                    lea      lbL010D4E(pc),a2
+                    lea      lbL010E0E(pc),a3
                     move.l   d1,d4
-                    sub.l    #2,a0
+                    subq.l   #2,a0
                     move.w   d0,lbW010CE2
                     move.l   a0,lbL010CE8
                     clr.w    some_variable
-                    move.w   #$C000,$dff09a
+                    move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     rts
 
 lbC010BAC:          cmp.w    #3,lbW010CDC
                     bne      return3
                     tst.w    some_variable
                     bne      return3
-                    add.w    #1,lbW010CE0
+                    addq.w   #1,lbW010CE0
                     moveq    #0,d0
                     moveq    #0,d1
                     moveq    #0,d2
@@ -11875,29 +11837,28 @@ lbC010BAC:          cmp.w    #3,lbW010CDC
                     moveq    #0,d5
                     moveq    #0,d6
                     moveq    #0,d7
-                    move.l   #0,a0
-                    move.l   #0,a1
-                    move.l   #0,a2
-                    move.l   #0,a3
-                    move.l   #0,a4
-                    move.l   #0,a5
-                    move.l   #0,a6
-                    move.w   lbW010CE0,d0
-                    cmp.w    lbW010CDE,d0
+                    move.l   d0,a0
+                    move.l   d0,a1
+                    move.l   d0,a2
+                    move.l   d0,a3
+                    move.l   d0,a4
+                    move.l   d0,a5
+                    move.l   d0,a6
+                    move.w   lbW010CE0(pc),d0
+                    cmp.w    lbW010CDE(pc),d0
                     bmi      return3
                     clr.w    lbW010CE0
-                    clr.l    d0
-                    move.w   lbW010CE2,d0
-                    move.l   lbL010CE8,a0
+                    moveq    #0,d0
+                    move.w   lbW010CE2(pc),d0
+                    move.l   lbL010CE8(pc),a0
                     move.l   d0,d1
-                    clr.l    d7
-                    lea      lbL010D4E,a2
-                    lea      lbL010E0E,a3
+                    moveq    #0,d7
+                    lea      lbL010D4E(pc),a2
+                    lea      lbL010E0E(pc),a3
 lbC010C38:          addq.l   #4,a0
                     move.w   (a0),d2
                     and.w    #$F00,d2
-                    tst.w    d2
-                    beq      lbC010C58
+                    beq.b    lbC010C58
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11905,12 +11866,11 @@ lbC010C38:          addq.l   #4,a0
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010C58:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010C58:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F0,d2
-                    tst.w    d2
-                    beq      lbC010C84
+                    beq.b    lbC010C84
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11919,12 +11879,11 @@ lbC010C58:          add.l    #2,a2
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010C84:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010C84:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
-                    and.w    #15,d2
-                    tst.w    d2
-                    beq      lbC010CB0
+                    and.w    #$F,d2
+                    beq.b    lbC010CB0
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11933,16 +11892,15 @@ lbC010C84:          add.l    #2,a2
                     and.w    #$FFF0,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010CB0:          add.l    #2,a2
-                    add.l    #2,a3
+lbC010CB0:          addq.l   #2,a2
+                    addq.l   #2,a3
                     subq.w   #1,d1
-                    bne      lbC010C38
+                    bne.b    lbC010C38
                     tst.l    d7
-                    bne      lbC010CD6
+                    bne.b    lbC010CD6
                     move.w   #1,some_variable
                     clr.w    lbW010CDC
-lbC010CD6:          bsr      lbC010ECE
-                    rts
+lbC010CD6:          bra      lbC010ECE
 
 lbW010CDC:          dc.w     0
 lbW010CDE:          dc.w     2
@@ -11951,12 +11909,12 @@ lbW010CE2:          dc.w     0
 lbL010CE4:          dc.l     0
 lbL010CE8:          dc.l     0
 palette_fading_directions:
-                    dcb.l    24,0
+                    dcb.b    96,0
 
 return3:            rts
 
-lbL010D4E:          dcb.l    48,0
-lbL010E0E:          dcb.l    48,0
+lbL010D4E:          dcb.w    96,0
+lbL010E0E:          dcb.w    96,0
 
 lbC010ECE:          lea      copper_main_palette,a0
                     lea      lbW09A20C,a1
@@ -11971,25 +11929,25 @@ clear_array_byte:   move.l   d1,-(sp)
                     moveq    #0,d1
 lbC00F9C4:          move.b   d1,(a0)+
                     subq.l   #1,d0
-                    bne.s    lbC00F9C4
+                    bne.b    lbC00F9C4
                     move.l   (sp)+,d1
                     rts
 
 clear_array_long:   lsr.l    #2,d0
 lbC010EFC:          clr.l    (a0)+
                     subq.l   #1,d0
-                    bne.s    lbC010EFC
+                    bne.b    lbC010EFC
                     rts
 
 copy_byte_array:    move.b   (a0)+,(a1)+
                     subq.l   #1,d0
-                    bne.s    copy_byte_array
+                    bne.b    copy_byte_array
                     rts
 
 lbC010F16:          move.w   2(a0),(a1)+
                     addq.l   #4,a0
                     subq.w   #1,d0
-                    bne.s    lbC010F16
+                    bne.b    lbC010F16
                     rts
 
 lbC010F22:          lea      player_1_status_pic,a0
@@ -12000,9 +11958,9 @@ lbC010F22:          lea      player_1_status_pic,a0
                     move.l   #bottom_bar_gfx,d1
                     move.l   #player_2_status_pic+37,d2
                     move.l   #lbB099C89,d3
-                    move.l   #$13,d7
+                    moveq    #19,d7
                     tst.w    lbW0004E2
-                    beq.s    lbC010F96
+                    beq.b    lbC010F96
                     lea      player_1_status_bar,a0
                     lea      top_bar_gfx,a1
                     lea      lbB099569,a2
@@ -12011,47 +11969,47 @@ lbC010F22:          lea      player_1_status_pic,a0
                     move.l   #bottom_bar_gfx,d1
                     move.l   #lbB0997C9,d2
                     move.l   #lbB099C89,d3
-                    move.l   #19,d7
+                    moveq    #19,d7
 lbC010F96:          move.l   #2,number_frames_to_wait
                     jsr      sleep_frames
                     move.b   0(a0),0(a1)
-                    move.b   $26(a0),$26(a1)
-                    move.b   $4C(a0),$4C(a1)
-                    move.b   $72(a0),$72(a1)
-                    move.b   $98(a0),$98(a1)
-                    move.b   $BE(a0),$BE(a1)
-                    move.b   $E4(a0),$E4(a1)
-                    move.b   $10A(a0),$10A(a1)
+                    move.b   38(a0),38(a1)
+                    move.b   76(a0),76(a1)
+                    move.b   114(a0),114(a1)
+                    move.b   152(a0),152(a1)
+                    move.b   190(a0),190(a1)
+                    move.b   228(a0),228(a1)
+                    move.b   266(a0),266(a1)
                     add.l    #304,a0
                     add.l    #304,a1
                     move.b   0(a0),0(a1)
-                    move.b   $26(a0),$26(a1)
-                    move.b   $4C(a0),$4C(a1)
-                    move.b   $72(a0),$72(a1)
-                    move.b   $98(a0),$98(a1)
-                    move.b   $BE(a0),$BE(a1)
-                    move.b   $E4(a0),$E4(a1)
-                    move.b   $10A(a0),$10A(a1)
+                    move.b   38(a0),38(a1)
+                    move.b   76(a0),76(a1)
+                    move.b   114(a0),114(a1)
+                    move.b   152(a0),152(a1)
+                    move.b   190(a0),190(a1)
+                    move.b   228(a0),228(a1)
+                    move.b   266(a0),266(a1)
                     sub.l    #304,a0
                     sub.l    #304,a1
                     move.b   0(a2),0(a3)
-                    move.b   $26(a2),$26(a3)
-                    move.b   $4C(a2),$4C(a3)
-                    move.b   $72(a2),$72(a3)
-                    move.b   $98(a2),$98(a3)
-                    move.b   $BE(a2),$BE(a3)
-                    move.b   $E4(a2),$E4(a3)
-                    move.b   $10A(a2),$10A(a3)
+                    move.b   38(a2),38(a3)
+                    move.b   76(a2),76(a3)
+                    move.b   114(a2),114(a3)
+                    move.b   152(a2),152(a3)
+                    move.b   190(a2),190(a3)
+                    move.b   228(a2),228(a3)
+                    move.b   266(a2),266(a3)
                     add.l    #304,a2
                     add.l    #304,a3
                     move.b   0(a2),0(a3)
-                    move.b   $26(a2),$26(a3)
-                    move.b   $4C(a2),$4C(a3)
-                    move.b   $72(a2),$72(a3)
-                    move.b   $98(a2),$98(a3)
-                    move.b   $BE(a2),$BE(a3)
-                    move.b   $E4(a2),$E4(a3)
-                    move.b   $10A(a2),$10A(a3)
+                    move.b   38(a2),38(a3)
+                    move.b   76(a2),76(a3)
+                    move.b   114(a2),114(a3)
+                    move.b   152(a2),152(a3)
+                    move.b   190(a2),190(a3)
+                    move.b   228(a2),228(a3)
+                    move.b   266(a2),266(a3)
                     sub.l    #304,a2
                     sub.l    #304,a3
                     exg      d0,a0
@@ -12059,43 +12017,43 @@ lbC010F96:          move.l   #2,number_frames_to_wait
                     exg      d2,a2
                     exg      d3,a3
                     move.b   0(a0),0(a1)
-                    move.b   $26(a0),$26(a1)
-                    move.b   $4C(a0),$4C(a1)
-                    move.b   $72(a0),$72(a1)
-                    move.b   $98(a0),$98(a1)
-                    move.b   $BE(a0),$BE(a1)
-                    move.b   $E4(a0),$E4(a1)
-                    move.b   $10A(a0),$10A(a1)
+                    move.b   38(a0),38(a1)
+                    move.b   76(a0),76(a1)
+                    move.b   114(a0),114(a1)
+                    move.b   152(a0),152(a1)
+                    move.b   190(a0),190(a1)
+                    move.b   228(a0),228(a1)
+                    move.b   266(a0),266(a1)
                     add.l    #304,a0
                     add.l    #304,a1
                     move.b   0(a0),0(a1)
-                    move.b   $26(a0),$26(a1)
-                    move.b   $4C(a0),$4C(a1)
-                    move.b   $72(a0),$72(a1)
-                    move.b   $98(a0),$98(a1)
-                    move.b   $BE(a0),$BE(a1)
-                    move.b   $E4(a0),$E4(a1)
-                    move.b   $10A(a0),$10A(a1)
+                    move.b   38(a0),38(a1)
+                    move.b   76(a0),76(a1)
+                    move.b   114(a0),114(a1)
+                    move.b   152(a0),152(a1)
+                    move.b   190(a0),190(a1)
+                    move.b   228(a0),228(a1)
+                    move.b   266(a0),266(a1)
                     sub.l    #304,a0
                     sub.l    #304,a1
                     move.b   0(a2),0(a3)
-                    move.b   $26(a2),$26(a3)
-                    move.b   $4C(a2),$4C(a3)
-                    move.b   $72(a2),$72(a3)
-                    move.b   $98(a2),$98(a3)
-                    move.b   $BE(a2),$BE(a3)
-                    move.b   $E4(a2),$E4(a3)
-                    move.b   $10A(a2),$10A(a3)
+                    move.b   38(a2),38(a3)
+                    move.b   76(a2),76(a3)
+                    move.b   114(a2),114(a3)
+                    move.b   152(a2),152(a3)
+                    move.b   190(a2),190(a3)
+                    move.b   228(a2),228(a3)
+                    move.b   266(a2),266(a3)
                     add.l    #304,a2
                     add.l    #304,a3
                     move.b   0(a2),0(a3)
-                    move.b   $26(a2),$26(a3)
-                    move.b   $4C(a2),$4C(a3)
-                    move.b   $72(a2),$72(a3)
-                    move.b   $98(a2),$98(a3)
-                    move.b   $BE(a2),$BE(a3)
-                    move.b   $E4(a2),$E4(a3)
-                    move.b   $10A(a2),$10A(a3)
+                    move.b   38(a2),38(a3)
+                    move.b   76(a2),76(a3)
+                    move.b   114(a2),114(a3)
+                    move.b   152(a2),152(a3)
+                    move.b   190(a2),190(a3)
+                    move.b   228(a2),228(a3)
+                    move.b   266(a2),266(a3)
                     sub.l    #304,a2
                     sub.l    #304,a3
                     exg      d0,a0
@@ -12111,15 +12069,15 @@ lbC010F96:          move.l   #2,number_frames_to_wait
                     subq.l   #2,d2
                     subq.l   #2,d3
                     tst.w    lbW0004E2
-                    bne.s    lbC0111B4
-                    jsr      lbC00F6F0
+                    bne.b    lbC0111B4
+                    bsr      lbC00F6F0
 lbC0111B4:          subq.l   #1,d7
                     bne      lbC010F96
                     move.w   #1,lbW0004E2
                     rts
 
-lbC0111C4:          tst.l    $10(a0)
-                    bne.s    lbC0111E6
+lbC0111C4:          tst.l    16(a0)
+                    bne.b    lbC0111E6
                     move.l   12(a0),d0
 lbC0111CE:          move.l   8(a0),a1
                     move.w   6(a0),d1
@@ -12129,77 +12087,77 @@ lbC0111CE:          move.l   8(a0),a1
                     move.w   d0,2(a1)
                     rts
 
-lbC0111E6:          move.l   $10(a0),a1
-                    move.l   a1,$14(a0)
-                    move.w   6(a1),$18(a0)
+lbC0111E6:          move.l   16(a0),a1
+                    move.l   a1,20(a0)
+                    move.w   6(a1),24(a0)
                     move.l   (a1),d0
-                    bra      lbC0111CE
+                    bra.b    lbC0111CE
 
 lbC0111FA:          move.w   -4(a0),d0
                     sub.w    lbW0035D6,d0
-                    cmp.w    #$FFE0,d0
-                    bpl.s    lbC01120E
+                    cmp.w    #-32,d0
+                    bpl.b    lbC01120E
                     move.w   #320,d0
 lbC01120E:          cmp.w    #320,d0
-                    bmi.s    lbC011218
+                    bmi.b    lbC011218
                     move.w   #320,d0
 lbC011218:          move.w   d0,(a0)
                     move.w   -2(a0),d0
                     sub.w    lbW0035D2,d0
-                    cmp.w    #$FFF0,d0
-                    bpl.s    lbC01122E
+                    cmp.w    #-16,d0
+                    bpl.b    lbC01122E
                     move.w   #256,d0
 lbC01122E:          cmp.w    #598,d0
-                    bmi.s    lbC011238
+                    bmi.b    lbC011238
                     move.w   #598,d0
 lbC011238:          move.w   d0,2(a0)
                     move.l   a0,-(sp)
-                    bsr      lbC011272
+                    bsr.b    lbC011272
                     move.l   (sp)+,a0
                     move.l   8(a0),a1
                     move.w   2(a1),d0
                     swap     d0
                     move.w   6(a1),d0
                     add.l    #272,d0
-                    move.w   d0,$26(a1)
+                    move.w   d0,38(a1)
                     swap     d0
-                    move.w   d0,$22(a1)
-                    move.l   (a0),$1C(a0)
-                    add.w    #$10,$1C(a0)
-                    add.l    #$1C,a0
-
+                    move.w   d0,34(a1)
+                    move.l   (a0),28(a0)
+                    add.w    #16,28(a0)
+                    add.l    #28,a0
+                    ; no rts
 lbC011272:          move.l   8(a0),a1
-                    tst.l    $10(a0)
+                    tst.l    16(a0)
                     bne      lbC011314
 lbC01127E:          and.w    #$80,14(a1)
                     move.w   0(a0),d0
-                    add.w    #$8F,d0
+                    add.w    #143,d0
                     btst     #0,d0
-                    beq.s    lbC011298
+                    beq.b    lbC011298
                     or.w     #1,14(a1)
 lbC011298:          lsr.w    #1,d0
                     move.b   d0,11(a1)
                     move.w   2(a0),d0
-                    cmp.w    #$F4,d0
-                    bne.s    lbC0112AC
-                    move.w   #$F5,d0
-lbC0112AC:          add.w    #$23,d0
+                    cmp.w    #244,d0
+                    bne.b    lbC0112AC
+                    move.w   #245,d0
+lbC0112AC:          add.w    #35,d0
                     move.w   d0,d1
                     add.w    4(a0),d1
-                    cmp.w    #$100,d1
-                    bmi.s    lbC0112C6
-                    sub.w    #$100,d1
+                    cmp.w    #256,d1
+                    bmi.b    lbC0112C6
+                    sub.w    #256,d1
                     or.b     #2,15(a1)
 lbC0112C6:          move.b   d1,14(a1)
-                    cmp.w    #$100,d0
-                    bmi.s    lbC0112DA
-                    sub.w    #$100,d0
+                    cmp.w    #256,d0
+                    bmi.b    lbC0112DA
+                    sub.w    #256,d0
                     or.b     #4,15(a1)
 lbC0112DA:          move.b   d0,10(a1)
                     tst.w    6(a0)
-                    beq.s    lbC011312
-                    move.w   10(a1),$1A(a1)
-                    move.w   14(a1),$1E(a1)
+                    beq.b    lbC011312
+                    move.w   10(a1),26(a1)
+                    move.w   14(a1),30(a1)
                     move.w   2(a1),d0
                     swap     d0
                     move.w   6(a1),d0
@@ -12209,32 +12167,32 @@ lbC0112DA:          move.b   d0,10(a1)
                     add.l    d1,d1
                     addq.l   #8,d1
                     add.l    d1,d0
-                    move.w   d0,$16(a1)
+                    move.w   d0,22(a1)
                     swap     d0
-                    move.w   d0,$12(a1)
+                    move.w   d0,18(a1)
 lbC011312:          rts
 
-lbC011314:          subq.w   #1,$18(a0)
+lbC011314:          subq.w   #1,24(a0)
                     bpl      lbC01127E
-                    addq.l   #8,$14(a0)
-lbC011320:          move.l   $14(a0),a2
+                    addq.l   #8,20(a0)
+lbC011320:          move.l   20(a0),a2
                     move.l   (a2),d0
-                    tst.l    d0
-                    bmi.s    lbC01133E
-                    move.w   6(a2),$18(a0)
+                    ;tst.l    d0
+                    bmi.b    lbC01133E
+                    move.w   6(a2),24(a0)
                     move.w   d0,6(a1)
                     swap     d0
                     move.w   d0,2(a1)
                     bra      lbC01127E
 
-lbC01133E:          move.l   $10(a0),$14(a0)
-                    bra.s    lbC011320
+lbC01133E:          move.l   16(a0),20(a0)
+                    bra.b    lbC011320
 
-lbC011346:          cmp.l    $10(a5),a6
-                    beq.s    lbC011358
-                    move.l   a6,$10(a5)
-                    move.l   a6,$14(a5)
-                    clr.w    $18(a5)
+lbC011346:          cmp.l    16(a5),a6
+                    beq.b    lbC011358
+                    move.l   a6,16(a5)
+                    move.l   a6,20(a5)
+                    clr.w    24(a5)
 lbC011358:          rts
 
 set_timer_bps:      lea      sprite_1_2_bps,a0
@@ -12256,7 +12214,7 @@ set_timer_bps:      lea      sprite_1_2_bps,a0
                     rts
 
 lbW0113AA:          dc.w     0
-lbW0113AC:          dc.w     $130
+lbW0113AC:          dc.w     304
 lbL0113AE:          dc.l     0
 lbW0113B2:          dcb.w    3,0
 lbW0113B8:          dcb.w    2,0
@@ -12273,13 +12231,13 @@ lbC011622:          move.l   (a0),a5
                     move.w   (a1)+,6(a5)
                     move.w   (a1)+,8(a5)
                     move.w   (a1)+,10(a5)
-                    move.l   a2,$10(a5)                 ; picture used for the sprites
+                    move.l   a2,16(a5)                  ; picture used for the sprites
                     move.l   a3,12(a5)                  ; some dest buffer
-                    move.w   d0,$14(a5)                 ; width
-                    move.l   d1,$16(a5)                 ; plane size
+                    move.w   d0,20(a5)                  ; width
+                    move.l   d1,22(a5)                  ; plane size
                     addq.l   #8,a0
                     tst.l    (a0)                       ; loop until -1
-                    bpl.s    lbC011622
+                    bpl.b    lbC011622
                     rts
 
 lbC01165A:          move.l   (a0),a5
@@ -12287,84 +12245,84 @@ lbC01165A:          move.l   (a0),a5
                     move.w   (a1)+,2(a5)
                     move.w   (a1)+,4(a5)
                     move.w   (a1)+,6(a5)
-                    move.w   (a1)+,$28(a5)
-                    move.w   (a1)+,$2A(a5)
-                    move.w   (a1)+,$2C(a5)
-                    move.w   (a1)+,$2E(a5)
-                    move.l   a2,$10(a5)
-                    move.w   d0,$14(a5)
-                    move.l   d1,$16(a5)
+                    move.w   (a1)+,40(a5)
+                    move.w   (a1)+,42(a5)
+                    move.w   (a1)+,44(a5)
+                    move.w   (a1)+,46(a5)
+                    move.l   a2,16(a5)
+                    move.w   d0,20(a5)
+                    move.l   d1,22(a5)
                     addq.l   #8,a0
                     tst.l    (a0)
-                    bpl.s    lbC01165A
+                    bpl.b    lbC01165A
                     rts
 
 lbC011690:          clr.w    lbW0113B8
                     lea      lbL0113BC(pc),a1
-                    clr.l    d3
+                    moveq    #0,d3
                     move.w   #294,d2
 lbC0116A0:          move.w   d3,(a1)+
                     add.w    d0,d3
                     subq.w   #1,d2
-                    bne.s    lbC0116A0
+                    bne.b    lbC0116A0
                     addq.l   #4,a0
                     move.l   a0,-(sp)
 lbC0116AC:          move.l   (a0),a1
-                    clr.w    $14(a1)
+                    clr.w    20(a1)
                     move.l   8(a1),a2
-                    move.l   a2,$16(a1)
-                    move.w   6(a2),$1A(a1)
+                    move.l   a2,22(a1)
+                    move.w   6(a2),26(a1)
                     move.l   a1,a2
                     move.l   a1,a3
-                    move.l   #70,d7
+                    moveq    #70,d7
                     add.l    d7,a2
                     move.l   a2,a4
                     lsr.w    #1,d7
 lbC0116D0:          move.w   (a3)+,(a2)+
                     subq.w   #1,d7
-                    bne.s    lbC0116D0
+                    bne.b    lbC0116D0
                     move.l   8(a1),a2
-                    move.w   6(a2),$1A(a1)
+                    move.w   6(a2),26(a1)
                     addq.l   #4,a0
                     tst.l    (a0)
-                    bne.s    lbC0116AC
+                    bne.b    lbC0116AC
                     move.l   (sp)+,a0
 lbC0116E8:          move.l   (a0)+,a1
                     move.l   a1,a2
                     add.l    #140,a2
-                    move.l   #70,d0
+                    moveq    #70,d0
 lbC0116F8:          move.w   (a1)+,(a2)+
                     subq.w   #1,d0
-                    bne.s    lbC0116F8
+                    bne.b    lbC0116F8
                     tst.l    (a0)
-                    bne.s    lbC0116E8
+                    bne.b    lbC0116E8
                     rts
 
 lbC011704:          bsr      lbC011710
                     addq.l   #8,a2
                     tst.l    (a2)
-                    bpl.s    lbC011704
+                    bpl.b    lbC011704
                     rts
 
 lbC011710:          move.l   (a2),a3
                     move.l   d0,d2
-                    lea      $dff000,a6
-                    clr.l    d7
+                    lea      CUSTOM,a6
+                    moveq    #0,d7
                     move.w   4(a3),d7
                     lsr.w    #3,d7
                     move.w   d7,d6
                     sub.w    d7,d2
-                    move.w   d2,$22(a3)
-                    move.w   $14(a3),d7
+                    move.w   d2,34(a3)
+                    move.w   20(a3),d7
                     sub.w    d6,d7
-                    move.w   d7,$20(a3)
+                    move.w   d7,32(a3)
                     move.w   d6,d7
                     lsr.w    #1,d6
                     move.w   6(a3),d5
                     lsl.w    #6,d5
                     add.w    d6,d5
-                    move.w   d5,$1A(a3)
-                    move.w   $14(a3),d6
+                    move.w   d5,26(a3)
+                    move.w   20(a3),d6
                     move.w   2(a3),d7
                     ext.l    d7
                     mulu     d6,d7
@@ -12374,48 +12332,48 @@ lbC011710:          move.l   (a2),a3
                     add.l    d6,d7
                     move.l   d7,d6
                     add.l    12(a3),d6
-                    move.l   d6,$24(a3)
-                    add.l    $10(a3),d7
-                    move.l   d7,$1C(a3)
+                    move.l   d6,36(a3)
+                    add.l    16(a3),d7
+                    move.l   d7,28(a3)
                     rts
 
 lbC01176E:          
                     WAIT_BLIT
-                    lea      $dff000,a6
-                    move.w   #$8400,$96(a6)
-                    move.l   #-1,$44(a6)
-                    move.l   #$dfc0000,$40(a6)
+                    lea      CUSTOM,a6
+                    move.w   #DMAF_SETCLR|DMAF_BLITHOG,DMACON(a6)
+                    move.l   #-1,BLTAFWM(a6)
+                    move.l   #$DFC0000,BLTCON0(a6)
                     move.l   d1,d3
                     lsr.w    #3,d3
                     mulu     d2,d3
                     lsl.w    #6,d2
                     lsr.w    #4,d1
                     add.w    d1,d2
-                    clr.l    $62(a6)
-                    clr.w    $66(a6)
-lbC0117A8:          move.l   a0,$50(a6)
-                    move.l   a1,$4C(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d2,$58(a6)
+                    clr.l    BLTBMOD(a6)
+                    clr.w    BLTDMOD(a6)
+lbC0117A8:          move.l   a0,BLTAPTH(a6)
+                    move.l   a1,BLTBPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d2,BLTSIZE(a6)
                     WAIT_BLIT
                     add.l    d3,a0
                     subq.b   #1,d0
-                    bne.s    lbC0117A8
-                    move.w   #$400,$96(a6)
+                    bne.b    lbC0117A8
+                    move.w   #DMAF_BLITHOG,DMACON(a6)
                     rts
 
 wait_blitter:       
                     WAIT_BLIT
                     rts
 
-lbC0117DC:          clr.l    d1
+lbC0117DC:          moveq    #0,d1
                     move.w   lbW0035D2,d1
                     add.l    #-12,d1
                     move.l   d1,d3
                     lsr.w    #4,d1
                     add.w    d1,d1
                     add.w    d1,d1
-                    and.w    #15,d3
+                    and.w    #$F,d3
                     add.w    d3,d3
                     add.w    d3,d3
                     lsr.w    #1,d1
@@ -12423,7 +12381,7 @@ lbC0117DC:          clr.l    d1
                     move.w   0(a6,d1.w),d6
                     lsr.w    #2,d3
                     add.w    d3,d6
-                    clr.l    d0
+                    moveq    #0,d0
                     move.w   lbW0035D6,d0
                     add.w    #15,d0
                     move.l   d0,d5
@@ -12434,8 +12392,8 @@ lbC0117DC:          clr.l    d1
                     move.w   d5,d7
                     lsl.w    #4,d7
                     or.w     d7,d5
-                    and.w    #15,d5
-                    move.w   #15,d7
+                    and.w    #$F,d5
+                    move.w   #$F,d7
                     sub.w    d5,d7
                     move.w   lbW0035D6,d2
                     move.w   lbW0035D2,d3
@@ -12449,18 +12407,18 @@ lbC01183E:          move.l   (a0)+,a1
                     add.w    d6,2(a1)
                     add.w    d7,(a1)
                     tst.l    (a0)
-                    bne.s    lbC01183E
+                    bne.b    lbC01183E
                     rts
 
-lbC011860:          clr.l    d1
-                    clr.l    d3
-                    clr.l    d6
+lbC011860:          moveq    #0,d1
+                    moveq    #0,d3
+                    moveq    #0,d6
                     move.w   lbW0035D2,d1
                     add.l    #-12,d1
                     move.l   d1,d3
                     lsr.w    #4,d1
                     add.w    d1,d1
-                    and.w    #15,d3
+                    and.w    #$F,d3
                     lea      lbL0025D2,a6
                     move.w   #288,d6
                     sub.w    0(a6,d1.w),d6
@@ -12475,9 +12433,9 @@ lbC011860:          clr.l    d1
                     sub.w    d1,d0
                     and.w    #$FFF0,d0
                     move.w   d0,-(sp)
-                    lea      lbL01232C,a0
+                    lea      lbL01232C(pc),a0
                     bsr      lbC0117DC
-                    lea      lbL012328,a0
+                    lea      lbL012328(pc),a0
                     move.l   #$303C,d3
                     clr.w    lbW0113B2
                     move.l   #temp_buffer,d0
@@ -12486,23 +12444,23 @@ lbC011860:          clr.l    d1
                     bsr      lbC011936
                     clr.w    lbW0113AA
                     move.w   (sp)+,lbW0113AC
-                    sub.w    #$10,lbW0113AC
+                    sub.w    #16,lbW0113AC
                     tst.w    lbW0113AC
-                    bpl.s    lbC011906
+                    bpl.b    lbC011906
                     clr.w    lbW0113AC
-lbC011906:          lea      lbL01232C,a0
+lbC011906:          lea      lbL01232C(pc),a0
 lbC01190C:          move.l   (a0)+,a4
                     add.l    d2,a4
-                    move.l   (a4),$8C(a4)
-                    sub.w    #$120,$8E(a4)
+                    move.l   (a4),140(a4)
+                    sub.w    #288,142(a4)
                     tst.l    (a0)
-                    bne.s    lbC01190C
-                    move.w   #$FFFF,lbW0113B2
-                    add.l    #$8C,d2
-                    lea      lbL012328,a0
+                    bne.b    lbC01190C
+                    move.w   #-1,lbW0113B2
+                    add.l    #140,d2
+                    lea      lbL012328(pc),a0
                     bra      lbC011962
 
-lbC011936:          clr.l    d2
+lbC011936:          moveq    #0,d2
                     move.w   lbW0035D6,d2
                     add.w    #15,d2
                     lsr.w    #4,d2
@@ -12510,164 +12468,164 @@ lbC011936:          clr.l    d2
                     move.l   d2,lbL0113AE
                     add.l    d2,d0
                     add.l    d2,d1
-                    clr.l    d2
+                    moveq    #0,d2
                     not.w    lbW0113B8
-                    beq.s    lbC011962
+                    beq.b    lbC011962
                     exg      d0,d1
-                    move.l   #$46,d2
+                    moveq    #70,d2
 lbC011962:          
                     WAIT_BLIT
                     lea      lbL0113BC(pc),a5
-                    lea      $dff000,a6
-                    move.w   #$8400,$96(a6)
-                    move.l   #-1,$44(a6)
-                    move.l   #$9F00000,$40(a6)
+                    lea      CUSTOM,a6
+                    move.w   #DMAF_SETCLR|DMAF_BLITHOG,DMACON(a6)
+                    move.l   #-1,BLTAFWM(a6)
+                    move.l   #$9F00000,BLTCON0(a6)
                     addq.l   #4,a0
                     tst.w    lbW0113B2
-                    beq.s    lbC0119A0
+                    beq.b    lbC0119A0
 lbC011996:          addq.l   #4,a0
                     tst.l    (a0)
-                    bne.s    lbC011996
+                    bne.b    lbC011996
                     bra      lbC011B0E
 
 lbC0119A0:          move.l   (a0)+,a2
                     add.l    d2,a2
-                    move.l   $10(a2),d6
+                    move.l   16(a2),d6
                     beq      lbC011A54
-                    move.w   $1E(a2),d5
-                    move.w   $26(a2),$66(a6)
-                    move.w   $26(a2),$64(a6)
-                    move.l   $2C(a2),d4
+                    move.w   30(a2),d5
+                    move.w   38(a2),BLTDMOD(a6)
+                    move.w   38(a2),BLTAMOD(a6)
+                    move.l   44(a2),d4
                     move.l   d6,d7
                     add.l    #61740,d7
                     cmp.l    #map_overview_background_pic,d4
-                    bpl.s    lbC0119D6
+                    bpl.b    lbC0119D6
                     add.l    #61740,d7
-lbC0119D6:          move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+lbC0119D6:          move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT
-lbC011A54:          clr.l    $10(a2)
-                    add.l    #$8C,a2
-                    move.l   $10(a2),d6
+lbC011A54:          clr.l    16(a2)
+                    add.l    #140,a2
+                    move.l   16(a2),d6
                     beq      lbC011B04
-                    move.w   $1E(a2),d5
-                    move.w   $26(a2),$66(a6)
-                    move.w   $26(a2),$64(a6)
-                    move.l   $2C(a2),d4
+                    move.w   30(a2),d5
+                    move.w   38(a2),BLTDMOD(a6)
+                    move.w   38(a2),BLTAMOD(a6)
+                    move.l   44(a2),d4
                     move.l   d6,d7
                     add.l    #61740,d7
                     cmp.l    #map_overview_background_pic,d4
-                    bpl.s    lbC011A90
+                    bpl.b    lbC011A90
                     add.l    #61740,d7
-lbC011A90:          move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+lbC011A90:          move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
-                    move.l   d7,$50(a6)
-                    move.l   d6,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d7,BLTAPTH(a6)
+                    move.l   d6,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
-lbC011B04:          clr.l    $10(a2)
+lbC011B04:          clr.l    16(a2)
                     tst.l    (a0)
                     bne      lbC0119A0
-lbC011B0E:          move.w   lbW0113AA,d1
-                    cmp.w    lbW0113AC,d1
+lbC011B0E:          move.w   lbW0113AA(pc),d1
+                    cmp.w    lbW0113AC(pc),d1
                     beq      lbC011DF4
-                    clr.l    d7
-lbC011B20:          clr.l    d6
+                    moveq    #0,d7
+lbC011B20:          moveq    #0,d6
                     move.l   -(a0),a2
                     move.l   a2,a4
-                    move.l   0(a2),$46(a2)
+                    move.l   0(a2),70(a2)
                     tst.w    lbW0113B2
-                    beq.s    lbC011B3E
+                    beq.b    lbC011B3E
                     add.l    d2,a2
-                    move.l   -$76(a2),a3
+                    move.l   -118(a2),a3
                     bra      lbC011B98
 
-lbC011B3E:          cmp.l    #lbL018CFA,$16(a2)
-                    bne.s    lbC011B4E
-                    move.w   #$7D00,-4(a2)
-lbC011B4E:          tst.l    $28(a2)
-                    beq.s    lbC011B6A
-                    move.l   $28(a2),d4
-                    clr.l    $28(a2)
+lbC011B3E:          cmp.l    #lbL018CFA,22(a2)
+                    bne.b    lbC011B4E
+                    move.w   #32000,-4(a2)
+lbC011B4E:          tst.l    40(a2)
+                    beq.b    lbC011B6A
+                    move.l   40(a2),d4
+                    clr.l    40(a2)
                     move.l   d4,8(a2)
                     subq.l   #8,d4
-                    move.l   d4,$16(a2)
-                    clr.w    $1A(a2)
-lbC011B6A:          subq.w   #1,$1A(a2)
-                    bpl.s    lbC011B8C
-                    addq.l   #8,$16(a2)
-                    move.l   $16(a2),a3
+                    move.l   d4,22(a2)
+                    clr.w    26(a2)
+lbC011B6A:          subq.w   #1,26(a2)
+                    bpl.b    lbC011B8C
+                    addq.l   #8,22(a2)
+                    move.l   22(a2),a3
                     tst.l    (a3)
                     bpl      lbC011B86
                     move.l   8(a2),a3
-                    move.l   a3,$16(a2)
-lbC011B86:          move.w   6(a3),$1A(a2)
-lbC011B8C:          move.l   $16(a2),$5C(a2)
+                    move.l   a3,22(a2)
+lbC011B86:          move.w   6(a3),26(a2)
+lbC011B8C:          move.l   22(a2),92(a2)
                     add.l    d2,a2
-                    move.l   $16(a2),a3
+                    move.l   22(a2),a3
 lbC011B98:          tst.l    4(a2)
                     bmi      lbC011DFE
                     move.l   (a3),a3
-                    move.l   d0,$2C(a2)
+                    move.l   d0,44(a2)
                     move.l   d0,a1
-                    move.l   $1A(a3),$1E(a2)
-                    move.l   $1E(a3),$22(a2)
-                    move.w   $22(a3),$26(a2)
+                    move.l   26(a3),30(a2)
+                    move.l   30(a3),34(a2)
+                    move.w   34(a3),38(a2)
                     move.w   0(a2),d7
-                    move.l   $24(a3),a4
-                    clr.l    $10(a2)
+                    move.l   36(a3),a4
+                    clr.l    16(a2)
                     move.w   d7,d6
                     add.w    4(a3),d6
-                    sub.w    #$150,d6
-                    bmi.s    lbC011C02
-                    cmp.w    #$140,d7
+                    sub.w    #336,d6
+                    bmi.b    lbC011C02
+                    cmp.w    #320,d7
                     bpl      lbC011DEC
                     move.w   4(a3),d5
                     sub.w    d6,d5
@@ -12676,18 +12634,18 @@ lbC011B98:          tst.l    4(a2)
                     lsr.w    #4,d6
                     sub.w    d5,d6
                     add.w    d6,d6
-                    add.w    d6,$26(a2)
-                    add.w    d6,$24(a2)
-                    move.w   $1A(a3),d1
+                    add.w    d6,38(a2)
+                    add.w    d6,36(a2)
+                    move.w   26(a3),d1
                     and.w    #$FFC0,d1
                     add.w    d5,d1
                     move.w   d1,ALIEN_POS_X(a2)
 lbC011C02:          clr.w    d5
                     move.w   d7,d6
-                    bpl.s    lbC011C4A
+                    bpl.b    lbC011C4A
                     move.w   d7,d1
                     add.w    4(a3),d1
-                    cmp.w    #$10,d1
+                    cmp.w    #16,d1
                     bmi      lbC011DEC
                     neg.w    d6
                     move.w   d6,d1
@@ -12695,12 +12653,12 @@ lbC011C02:          clr.w    d5
                     sub.w    d6,ALIEN_POS_X(a2)
                     add.w    d6,d6
                     ext.l    d6
-                    add.l    d6,$20(a2)
+                    add.l    d6,32(a2)
                     add.l    d6,a4
-                    add.w    d6,$26(a2)
-                    add.w    d6,$24(a2)
-                    move.w   #15,d6
-                    and.w    #15,d1
+                    add.w    d6,38(a2)
+                    add.w    d6,36(a2)
+                    move.w   #$F,d6
+                    and.w    #$F,d1
                     sub.w    d1,d6
                     move.w   #320,d7
                     add.w    d6,d7
@@ -12712,8 +12670,8 @@ lbC011C4A:          lsr.w    #3,d7
                     add.w    10(a3),d7
                     move.w   d7,d6
                     add.w    6(a3),d6
-                    sub.w    lbW0113AC,d6
-                    bmi.s    lbC011C80
+                    sub.w    lbW0113AC(pc),d6
+                    bmi.b    lbC011C80
                     cmp.w    6(a3),d6
                     bpl      lbC011DEC
                     move.w   ALIEN_POS_X(a2),d1
@@ -12722,9 +12680,9 @@ lbC011C4A:          lsr.w    #3,d7
                     sub.w    d6,d1
                     lsl.w    #6,d1
                     or.w     d1,ALIEN_POS_X(a2)
-lbC011C80:          sub.w    lbW0113AA,d7
+lbC011C80:          sub.w    lbW0113AA(pc),d7
                     tst.w    d7
-                    bpl.s    lbC011CD0
+                    bpl.b    lbC011CD0
                     move.w   d7,d6
                     neg.w    d6
                     cmp.w    6(a3),d6
@@ -12736,30 +12694,30 @@ lbC011C80:          sub.w    lbW0113AA,d7
                     sub.w    d6,d1
                     lsl.w    #6,d1
                     or.w     d1,ALIEN_POS_X(a2)
-                    move.w   $14(a3),d1
+                    move.w   20(a3),d1
                     mulu     d6,d1
                     ext.l    d1
-                    add.l    d1,$20(a2)
+                    add.l    d1,32(a2)
                     add.l    d1,a4
                     move.w   d7,d1
-                    move.w   lbW0113AA,d7
+                    move.w   lbW0113AA(pc),d7
                     ext.l    d7
                     add.w    d7,d7
                     sub.w    d5,d7
                     move.w   0(a5,d7.w),d7
                     add.l    d7,a1
-                    bra.s    lbC011CE2
+                    bra.b    lbC011CE2
 
-lbC011CD0:          add.w    lbW0113AA,d7
+lbC011CD0:          add.w    lbW0113AA(pc),d7
                     ext.l    d7
                     add.w    d7,d7
                     sub.w    d5,d7
                     move.w   0(a5,d7.w),d7
                     add.l    d7,a1
 lbC011CE2:          tst.w    (a2)
-                    bpl.s    lbC011CF4
+                    bpl.b    lbC011CF4
                     cmp.w    #1,2(a2)
-                    bpl.s    lbC011CF4
+                    bpl.b    lbC011CF4
                     add.l    #-42,a1
 lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
@@ -12770,101 +12728,101 @@ lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     and.w    #$FFC0,d6
                     tst.w    d6
                     beq      lbC011DEC
-                    move.l   a1,$10(a2)
+                    move.l   a1,16(a2)
                     move.w   0(a2),d6
                     swap     d6
                     lsr.l    #4,d6
-                    move.w   d6,$42(a6)
-                    or.w     #$fca,d6
-                    move.w   d6,$40(a6)
-                    move.l   #$ffff0000,$44(a6)
-                    move.w   $26(a2),$60(a6)
-                    move.w   $26(a2),$66(a6)
-                    move.w   $24(a2),$62(a6)
-                    move.w   $24(a2),$64(a6)
-                    move.l   $20(a2),d1
-                    move.l   $16(a3),d4
-                    move.l   a1,$48(a6)
-                    move.l   a1,$54(a6)
-                    move.l   d1,$4C(a6)
-                    move.l   a4,$50(a6)
-                    move.w   d5,$58(a6)
+                    move.w   d6,BLTCON1(a6)
+                    or.w     #$FCA,d6
+                    move.w   d6,BLTCON0(a6)
+                    move.l   #$FFFF0000,BLTAFWM(a6)
+                    move.w   38(a2),BLTCMOD(a6)
+                    move.w   38(a2),BLTDMOD(a6)
+                    move.w   36(a2),BLTBMOD(a6)
+                    move.w   36(a2),BLTAMOD(a6)
+                    move.l   32(a2),d1
+                    move.l   22(a3),d4
+                    move.l   a1,BLTCPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.l   d1,BLTBPTH(a6)
+                    move.l   a4,BLTAPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   a1,$48(a6)
-                    move.l   a1,$54(a6)
-                    move.l   d1,$4C(a6)
-                    move.l   a4,$50(a6)
-                    move.w   d5,$58(a6)
+                    move.l   a1,BLTCPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.l   d1,BLTBPTH(a6)
+                    move.l   a4,BLTAPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   a1,$48(a6)
-                    move.l   a1,$54(a6)
-                    move.l   d1,$4C(a6)
-                    move.l   a4,$50(a6)
-                    move.w   d5,$58(a6)
+                    move.l   a1,BLTCPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.l   d1,BLTBPTH(a6)
+                    move.l   a4,BLTAPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   a1,$48(a6)
-                    move.l   a1,$54(a6)
-                    move.l   d1,$4C(a6)
-                    move.l   a4,$50(a6)
-                    move.w   d5,$58(a6)
+                    move.l   a1,BLTCPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.l   d1,BLTBPTH(a6)
+                    move.l   a4,BLTAPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   a1,$48(a6)
-                    move.l   a1,$54(a6)
-                    move.l   d1,$4C(a6)
-                    move.l   a4,$50(a6)
-                    move.w   d5,$58(a6)
+                    move.l   a1,BLTCPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.l   d1,BLTBPTH(a6)
+                    move.l   a4,BLTAPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
 lbC011DEC:          tst.l    -4(a0)
                     bne      lbC011B20
-lbC011DF4:          move.w   #$400,$dff096
+lbC011DF4:          move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
 lbC011DFE:          move.l   d0,a1
-                    tst.w    $30(a4)
-                    beq.s    lbC011E56
+                    tst.w    48(a4)
+                    beq.b    lbC011E56
                     tst.w    8(a3)
-                    bpl.s    lbC011E3E
-                    clr.l    $42(a4)
-                    move.l   #lbL00051C,$32(a4)
-                    move.l   #lbL00051C,$36(a4)
-                    move.l   #lbL00051C,$3A(a4)
-                    move.l   #lbL00051C,$3E(a4)
+                    bpl.b    lbC011E3E
+                    clr.l    66(a4)
+                    move.l   #lbL00051C,50(a4)
+                    move.l   #lbL00051C,54(a4)
+                    move.l   #lbL00051C,58(a4)
+                    move.l   #lbL00051C,62(a4)
                     move.l   #lbW013890,8(a4)
                     clr.w    lbW00ACE2
 lbC011E3E:          cmp.w    #-2,6(a3)
-                    bne.s    lbC011E56
+                    bne.b    lbC011E56
                     clr.w    $1A(a4)
-                    move.l   #lbL101098,a1
-                    add.l    lbL0113AE,a1
+                    lea      lbL101098,a1
+                    add.l    lbL0113AE(pc),a1
 lbC011E56:          move.l   (a3),a3
-                    move.l   $32(a4),a5
-                    move.w   $28(a3),(a5)
-                    move.l   $36(a4),a5
-                    move.w   $2A(a3),(a5)
-                    move.l   $3A(a4),a5
-                    move.w   $2C(a3),(a5)
-                    move.l   $3E(a4),a5
-                    move.w   $2E(a3),(a5)
-                    clr.l    d7
+                    move.l   50(a4),a5
+                    move.w   40(a3),(a5)
+                    move.l   54(a4),a5
+                    move.w   42(a3),(a5)
+                    move.l   58(a4),a5
+                    move.w   44(a3),(a5)
+                    move.l   62(a4),a5
+                    move.w   46(a3),(a5)
+                    moveq    #0,d7
                     lea      lbL0113BC(pc),a5
                     and.l    #$FFF0FFF0,(a2)
-                    move.l   $1A(a3),ALIEN_POS_X(a2)
-                    move.l   ALIEN_POS_X(a3),$22(a2)
-                    move.w   $22(a3),$26(a2)
+                    move.l   26(a3),ALIEN_POS_X(a2)
+                    move.l   ALIEN_POS_X(a3),34(a2)
+                    move.w   34(a3),38(a2)
                     move.w   0(a2),d7
                     move.w   d7,d6
                     add.w    4(a3),d6
-                    sub.w    #$140,d6
-                    bmi.s    lbC011ED6
-                    cmp.w    #$130,d7
+                    sub.w    #320,d6
+                    bmi.b    lbC011ED6
+                    cmp.w    #304,d7
                     bpl      lbC012078
                     move.w   4(a3),d5
                     sub.w    d6,d5
@@ -12873,18 +12831,18 @@ lbC011E56:          move.l   (a3),a3
                     lsr.w    #4,d6
                     sub.w    d5,d6
                     add.w    d6,d6
-                    add.w    d6,$26(a2)
-                    add.w    d6,$24(a2)
-                    move.w   $1A(a3),d1
+                    add.w    d6,38(a2)
+                    add.w    d6,36(a2)
+                    move.w   26(a3),d1
                     and.w    #$FFC0,d1
                     add.w    d5,d1
                     move.w   d1,ALIEN_POS_X(a2)
 lbC011ED6:          clr.w    d5
                     move.w   d7,d6
-                    bpl.s    lbC011F1C
+                    bpl.b    lbC011F1C
                     move.w   d7,d1
                     add.w    4(a3),d1
-                    cmp.w    #$10,d1
+                    cmp.w    #16,d1
                     bmi      lbC012078
                     neg.w    d6
                     move.w   d6,d1
@@ -12892,13 +12850,13 @@ lbC011ED6:          clr.w    d5
                     sub.w    d6,ALIEN_POS_X(a2)
                     add.w    d6,d6
                     ext.l    d6
-                    add.l    d6,$20(a2)
-                    add.w    d6,$26(a2)
-                    add.w    d6,$24(a2)
-                    move.w   #15,d6
-                    and.w    #15,d1
+                    add.l    d6,32(a2)
+                    add.w    d6,38(a2)
+                    add.w    d6,36(a2)
+                    move.w   #$F,d6
+                    and.w    #$F,d1
                     sub.w    d1,d6
-                    move.w   #$140,d7
+                    move.w   #320,d7
                     add.w    d6,d7
                     move.w   #2,d5
                     add.w    #1,d7
@@ -12908,8 +12866,8 @@ lbC011F1C:          lsr.w    #3,d7
                     add.w    10(a3),d7
                     move.w   d7,d6
                     add.w    6(a3),d6
-                    sub.w    lbW0113AC,d6
-                    bmi.s    lbC011F52
+                    sub.w    lbW0113AC(pc),d6
+                    bmi.b    lbC011F52
                     cmp.w    6(a3),d6
                     bpl      lbC012078
                     move.w   ALIEN_POS_X(a2),d1
@@ -12918,9 +12876,9 @@ lbC011F1C:          lsr.w    #3,d7
                     sub.w    d6,d1
                     lsl.w    #6,d1
                     or.w     d1,ALIEN_POS_X(a2)
-lbC011F52:          sub.w    lbW0113AA,d7
+lbC011F52:          sub.w    lbW0113AA(pc),d7
                     tst.w    d7
-                    bpl.s    lbC011FA0
+                    bpl.b    lbC011FA0
                     move.w   d7,d6
                     neg.w    d6
                     cmp.w    6(a3),d6
@@ -12932,10 +12890,10 @@ lbC011F52:          sub.w    lbW0113AA,d7
                     sub.w    d6,d1
                     lsl.w    #6,d1
                     or.w     d1,ALIEN_POS_X(a2)
-                    move.w   $14(a3),d1
+                    move.w   20(a3),d1
                     mulu     d6,d1
                     ext.l    d1
-                    add.l    d1,$20(a2)
+                    add.l    d1,32(a2)
                     move.w   d7,d1
                     move.w   lbW0113AA,d7
                     ext.l    d7
@@ -12943,7 +12901,7 @@ lbC011F52:          sub.w    lbW0113AA,d7
                     sub.w    d5,d7
                     move.w   0(a5,d7.w),d7
                     add.l    d7,a1
-                    bra.s    lbC011FB2
+                    bra.b    lbC011FB2
 
 lbC011FA0:          add.w    lbW0113AA,d7
                     ext.l    d7
@@ -12952,10 +12910,10 @@ lbC011FA0:          add.w    lbW0113AA,d7
                     move.w   0(a5,d7.w),d7
                     add.l    d7,a1
 lbC011FB2:          tst.w    (a2)
-                    bpl.s    lbC011FC4
+                    bpl.b    lbC011FC4
                     cmp.w    #1,2(a2)
-                    bpl.s    lbC011FC4
-                    add.l    #$FFFFFFD6,a1
+                    bpl.b    lbC011FC4
+                    add.l    #-42,a1
 lbC011FC4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
@@ -12965,97 +12923,97 @@ lbC011FC4:          move.w   ALIEN_POS_X(a2),d5
                     and.w    #$FFC0,d6
                     tst.w    d6
                     beq      lbC011DEC
-                    move.w   $26(a2),$66(a6)
-                    move.w   $24(a2),$64(a6)
-                    move.l   $20(a2),d1
-                    move.l   $16(a3),d4
-                    move.l   #$9F00000,$40(a6)
-                    move.l   #-1,$44(a6)
-                    move.l   d1,$50(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.w   38(a2),BLTDMOD(a6)
+                    move.w   36(a2),BLTAMOD(a6)
+                    move.l   32(a2),d1
+                    move.l   22(a3),d4
+                    move.l   #$9F00000,BLTCON0(a6)
+                    move.l   #-1,BLTAFWM(a6)
+                    move.l   d1,BLTAPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   d1,$50(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d1,BLTAPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   d1,$50(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d1,BLTAPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   d1,$50(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d1,BLTAPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
-                    move.l   d1,$50(a6)
-                    move.l   a1,$54(a6)
-                    move.w   d5,$58(a6)
+                    move.l   d1,BLTAPTH(a6)
+                    move.l   a1,BLTDPTH(a6)
+                    move.w   d5,BLTSIZE(a6)
                     WAIT_BLIT2
 lbC012078:          tst.l    -4(a0)
                     bne      lbC011B20
-                    move.w   #$400,$dff096
+                    move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
 lbC01208A:          clr.w    lbW0113B8
                     
-                    lea      lbL0146B2,a0
+                    lea      lbL0146B2(pc),a0
                     move.l   lbL000554,a1
                     lea      aliens_sprites_block,a2
                     lea      lbL1101C4,a3
-                    move.l   #40,d0
+                    moveq    #40,d0
                     move.l   #384*40,d1
                     bsr      lbC011622
                     
-                    lea      lbL014AB6,a0
+                    lea      lbL014AB6(pc),a0
                     move.l   lbL000558,a1
                     lea      bkgnd_anim_block,a2
-                    move.l   #40,d0
+                    moveq    #40,d0
                     move.l   #144*40,d1
                     bsr      lbC01165A
                     
-                    lea      lbL01790A,a0
-                    lea      lbW0188CE,a1
+                    lea      lbL01790A(pc),a0
+                    lea      lbW0188CE(pc),a1
                     lea      aliens_sprites_block,a2
                     lea      lbL1101C4,a3
-                    move.l   #40,d0
+                    moveq    #40,d0
                     move.l   #384*40,d1
                     bsr      lbC011622
                     
-                    lea      lbW012B44,a1
-                    lea      lbL01790A,a2
-                    move.l   #42,d0
-                    move.l   #5,d1
+                    lea      lbW012B44(pc),a1
+                    lea      lbL01790A(pc),a2
+                    moveq    #42,d0
+                    moveq    #5,d1
                     bsr      lbC011704
                     
-                    lea      lbW012B44,a1
-                    lea      lbW013890,a2
-                    move.l   #42,d0
-                    move.l   #5,d1
+                    lea      lbW012B44(pc),a1
+                    lea      lbW013890(pc),a2
+                    moveq    #42,d0
+                    moveq    #5,d1
                     bsr      lbC011704
                     
-                    lea      lbW012B44,a1
-                    lea      lbL014AB6,a2
-                    move.l   #42,d0
-                    move.l   #5,d1
+                    lea      lbW012B44(pc),a1
+                    lea      lbL014AB6(pc),a2
+                    moveq    #42,d0
+                    moveq    #5,d1
                     bsr      lbC011704
                     
-                    lea      lbW012B44,a1
-                    lea      lbL0146B2,a2
-                    move.l   #42,d0
-                    move.l   #5,d1
+                    lea      lbW012B44(pc),a1
+                    lea      lbL0146B2(pc),a2
+                    moveq    #42,d0
+                    moveq    #5,d1
                     bsr      lbC011704
                     
-                    lea      lbL012328,a0
-                    move.l   #42,d0
-                    move.l   #5,d1
+                    lea      lbL012328(pc),a0
+                    moveq    #42,d0
+                    moveq    #5,d1
                     bsr      lbC011690
                     
                     lea      lbL1101C4,a0
@@ -13068,75 +13026,74 @@ lbC01208A:          clr.w    lbW0113B8
                     
                     lea      aliens_sprites_block,a0
                     lea      lbL1101C4,a1
-                    move.l   #5,d0
+                    moveq    #5,d0
                     move.l   #320,d1
                     move.l   #384,d2
                     bsr      lbC01176E
                     
-                    lea      lbW0122F0,a0
-                    move.w   #$150,(a0)
+                    lea      lbW0122F0(pc),a0
+                    move.w   #336,(a0)
                     bsr      lbC0111C4
-                    lea      lbW0122F0,a0
+                    lea      lbW0122F0(pc),a0
                     bsr      lbC011272
-                    lea      lbW01230C,a0
-                    move.w   #$161,(a0)
+                    lea      lbW01230C(pc),a0
+                    move.w   #353,(a0)
                     bsr      lbC0111C4
-                    lea      lbW01230C,a0
+                    lea      lbW01230C(pc),a0
                     bsr      lbC011272
-                    move.w   #$8020,$dff096
-                    lea      lbW01227C,a0
+                    move.w   #DMAF_SETCLR|DMAF_SPRITE,CUSTOM+DMACON
+                    lea      lbW01227C(pc),a0
                     bsr      lbC0111C4
-                    lea      lbW012298,a0
+                    lea      lbW012298(pc),a0
                     bsr      lbC0111C4
                     cmp.l    #1,number_players
-                    beq.s    lbC012238
-                    lea      lbW0122B8,a0
+                    beq.b    lbC012238
+                    lea      lbW0122B8(pc),a0
                     bsr      lbC0111C4
-                    lea      lbW0122D4,a0
-                    bsr      lbC0111C4
-                    rts
+                    lea      lbW0122D4(pc),a0
+                    bra      lbC0111C4
 
 lbC012238:          lea      sprite_5_6_bps,a0
                     bsr      clear_sprites_bps
                     lea      sprite_7_8_bps,a0
                     bsr      clear_sprites_bps
-                    move.w   #$8020,$dff09a
+                    move.w   #INTF_SETCLR|INTF_VERTB,CUSTOM+INTENA
                     rts
 
 clear_sprites_bps:  clr.w    2(a0)
                     clr.w    6(a0)
                     clr.w    10(a0)
                     clr.w    14(a0)
-                    clr.w    $12(a0)
-                    clr.w    $16(a0)
-                    clr.w    $1A(a0)
-                    clr.w    $1E(a0)
+                    clr.w    18(a0)
+                    clr.w    22(a0)
+                    clr.w    26(a0)
+                    clr.w    30(a0)
                     rts
 
-                    dc.w     $290,$290
-lbW01227C:          dcb.w    2,$3C
-                    dc.w     $20,$80
+                    dc.w     656,656
+lbW01227C:          dcb.w    2,60
+                    dc.w     32,128
                     dc.l     lbW005BCC
                     dc.l     player_spr1_pic
                     dc.l     lbL0139C2
                     dcb.w    4,0
-lbW012298:          dc.w     $4C,$3C,$20,$80
+lbW012298:          dc.w     76,60,32,128
                     dc.l     lbW005BEC
                     dcb.w    8,0
-                    dcb.w    2,$3C
-lbW0122B8:          dc.w     $A0,$3C,$20,$80
+                    dcb.w    2,60
+lbW0122B8:          dc.w     160,60,32,128
                     dc.l     lbW005C0C
                     dc.l     player_spr41_pic
                     dc.l     lbL0139C2
                     dcb.w    4,0
-lbW0122D4:          dc.w     $A0,$3C,$20,$80
+lbW0122D4:          dc.w     160,60,32,128
                     dc.l     lbW005C2C
                     dcb.w    8,0
-lbW0122F0:          dc.w     6,$18,$20,$80
+lbW0122F0:          dc.w     6,24,32,128
                     dc.l     sprite_1_2_bps
                     dc.l     lbL098E2C
                     dcb.w    6,0
-lbW01230C:          dc.w     $17,$18,$20,$80
+lbW01230C:          dc.w     23,24,32,128
                     dc.l     sprite_3_4_bps
                     dc.l     lbL098E2C
                     dcb.w    6,0
@@ -13159,7 +13116,9 @@ lbL01232C:          dc.l     lbW013308
                     dc.l     lbW0126D4
                     dc.l     lbW0127F0
                     dc.l     lbW01290C
-                    dc.l     lbW012A28,0,$7D000080
+                    dc.l     lbW012A28
+                    dc.l     0
+                    dc.l     $7D000080
 lbL012380:          dc.l     0,-1
 
 lbW012388:          dc.l     lbL014AB6
@@ -14243,78 +14202,78 @@ lbL01883E:          dcb.l    12,0
 lbL01886E:          dcb.l    12,0
 lbL01889E:          dcb.l    12,0
 
-lbW0188CE:          dc.w    $C0,$A0,$10,$0E,$00,$00
-                    dc.w    $D0,$A0,$10,$0E,$00,$00
-                    dc.w    $E0,$A0,$10,$0E,$00,$00
-                    dc.w    $F0,$A0,$10,$0E,$00,$00
-                    dc.w    $100,$A0,$10,$0E,$00,$00
-                    dc.w    $110,$A0,$10,$0E,$00,$00
-                    dc.w    $120,$A0,$10,$0E,$00,$00
-                    dc.w    $130,$A0,$10,$0E,$00,$00
-                    dc.w    $C0,$B0,$10,$0E,$00,$00
-                    dc.w    $D0,$B0,$10,$0E,$00,$00
-                    dc.w    $E0,$B0,$10,$0E,$00,$00
-                    dc.w    $F0,$B0,$10,$0E,$00,$00
-                    dc.w    $100,$B0,$10,$0E,$00,$00
-                    dc.w    $110,$B0,$10,$0E,$00,$00
-                    dc.w    $120,$B0,$10,$0E,$00,$00
-                    dc.w    $130,$B0,$10,$0E,$00,$00
-                    dc.w    $40,$A0,$10,$0E,$00,$00
-                    dc.w    $50,$A0,$10,$0E,$00,$00
-                    dc.w    $60,$A0,$10,$0E,$00,$00
-                    dc.w    $70,$A0,$10,$0E,$00,$00
-                    dc.w    $80,$A0,$10,$0E,$00,$00
-                    dc.w    $90,$A0,$10,$0E,$00,$00
-                    dc.w    $A0,$A0,$10,$0E,$00,$00
-                    dc.w    $B0,$A0,$10,$0E,$00,$00
-                    dc.w    $40,$B0,$10,$0E,$00,$00
-                    dc.w    $50,$B0,$10,$0E,$00,$00
-                    dc.w    $60,$B0,$10,$0E,$00,$00
-                    dc.w    $70,$B0,$10,$0E,$00,$00
-                    dc.w    $80,$B0,$10,$0E,$00,$00
-                    dc.w    $90,$B0,$10,$0E,$00,$00
-                    dc.w    $A0,$B0,$10,$0E,$00,$00
-                    dc.w    $B0,$B0,$10,$0E,$00,$00
-                    dc.w    $00,$A0,$10,$0E,$00,$00
-                    dc.w    $10,$A0,$10,$0E,$00,$00
-                    dc.w    $20,$A0,$10,$0E,$00,$00
-                    dc.w    $30,$A0,$10,$0E,$00,$00
-                    dc.w    $00,$B0,$10,$0E,$00,$00
-                    dc.w    $10,$B0,$10,$0E,$00,$00
-                    dc.w    $20,$B0,$10,$0E,$00,$00
-                    dc.w    $30,$B0,$10,$0E,$00,$00
-                    dc.w    $00,$C0,$20,$1E,$00,$00
-                    dc.w    $20,$C0,$20,$1E,$00,$00
-                    dc.w    $40,$C0,$20,$1E,$00,$00
-                    dc.w    $60,$C0,$20,$1E,$00,$00
-                    dc.w    $80,$C0,$20,$1E,$00,$00
-                    dc.w    $A0,$C0,$20,$1E,$00,$00
-                    dc.w    $C0,$C0,$20,$1E,$00,$00
-                    dc.w    $E0,$C0,$20,$1E,$00,$00
-                    dc.w    $100,$C0,$20,$1E,$00,$00
-                    dc.w    $120,$C0,$20,$1E,$00,$00
-                    dc.w    $00,$E0,$20,$1E,$00,$00
-                    dc.w    $20,$E0,$20,$1E,$00,$00
-                    dc.w    $40,$E0,$20,$1E,$00,$00
-                    dc.w    $60,$E0,$20,$1E,$00,$00
-                    dc.w    $80,$E0,$20,$1E,$00,$00
-                    dc.w    $A0,$E0,$20,$1E,$00,$00
-                    dc.w    $C0,$E0,$10,$0E,$00,$00
-                    dc.w    $D0,$E0,$10,$0E,$00,$00
-                    dc.w    $E0,$E0,$10,$0E,$00,$00
-                    dc.w    $F0,$E0,$10,$0E,$00,$00
-                    dc.w    $C0,$F0,$10,$0E,$00,$00
-                    dc.w    $D0,$F0,$10,$0E,$00,$00
-                    dc.w    $E0,$F0,$10,$0E,$00,$00
-                    dc.w    $F0,$F0,$10,$0E,$00,$00
-                    dc.w    $100,$E0,$10,$0E,$00,$00
-                    dc.w    $110,$E0,$10,$0E,$00,$00
-                    dc.w    $120,$E0,$10,$0E,$00,$00
-                    dc.w    $130,$E0,$10,$0E,$00,$00
-                    dc.w    $100,$F0,$10,$0E,$00,$00
-                    dc.w    $110,$F0,$10,$0E,$00,$00
-                    dc.w    $120,$F0,$10,$0E,$00,$00
-                    dc.w    $130,$F0,$10,$0E,$00,$00
+lbW0188CE:          dc.w     $C0,$A0,$10,$0E,$00,$00
+                    dc.w     $D0,$A0,$10,$0E,$00,$00
+                    dc.w     $E0,$A0,$10,$0E,$00,$00
+                    dc.w     $F0,$A0,$10,$0E,$00,$00
+                    dc.w     $100,$A0,$10,$0E,$00,$00
+                    dc.w     $110,$A0,$10,$0E,$00,$00
+                    dc.w     $120,$A0,$10,$0E,$00,$00
+                    dc.w     $130,$A0,$10,$0E,$00,$00
+                    dc.w     $C0,$B0,$10,$0E,$00,$00
+                    dc.w     $D0,$B0,$10,$0E,$00,$00
+                    dc.w     $E0,$B0,$10,$0E,$00,$00
+                    dc.w     $F0,$B0,$10,$0E,$00,$00
+                    dc.w     $100,$B0,$10,$0E,$00,$00
+                    dc.w     $110,$B0,$10,$0E,$00,$00
+                    dc.w     $120,$B0,$10,$0E,$00,$00
+                    dc.w     $130,$B0,$10,$0E,$00,$00
+                    dc.w     $40,$A0,$10,$0E,$00,$00
+                    dc.w     $50,$A0,$10,$0E,$00,$00
+                    dc.w     $60,$A0,$10,$0E,$00,$00
+                    dc.w     $70,$A0,$10,$0E,$00,$00
+                    dc.w     $80,$A0,$10,$0E,$00,$00
+                    dc.w     $90,$A0,$10,$0E,$00,$00
+                    dc.w     $A0,$A0,$10,$0E,$00,$00
+                    dc.w     $B0,$A0,$10,$0E,$00,$00
+                    dc.w     $40,$B0,$10,$0E,$00,$00
+                    dc.w     $50,$B0,$10,$0E,$00,$00
+                    dc.w     $60,$B0,$10,$0E,$00,$00
+                    dc.w     $70,$B0,$10,$0E,$00,$00
+                    dc.w     $80,$B0,$10,$0E,$00,$00
+                    dc.w     $90,$B0,$10,$0E,$00,$00
+                    dc.w     $A0,$B0,$10,$0E,$00,$00
+                    dc.w     $B0,$B0,$10,$0E,$00,$00
+                    dc.w     $00,$A0,$10,$0E,$00,$00
+                    dc.w     $10,$A0,$10,$0E,$00,$00
+                    dc.w     $20,$A0,$10,$0E,$00,$00
+                    dc.w     $30,$A0,$10,$0E,$00,$00
+                    dc.w     $00,$B0,$10,$0E,$00,$00
+                    dc.w     $10,$B0,$10,$0E,$00,$00
+                    dc.w     $20,$B0,$10,$0E,$00,$00
+                    dc.w     $30,$B0,$10,$0E,$00,$00
+                    dc.w     $00,$C0,$20,$1E,$00,$00
+                    dc.w     $20,$C0,$20,$1E,$00,$00
+                    dc.w     $40,$C0,$20,$1E,$00,$00
+                    dc.w     $60,$C0,$20,$1E,$00,$00
+                    dc.w     $80,$C0,$20,$1E,$00,$00
+                    dc.w     $A0,$C0,$20,$1E,$00,$00
+                    dc.w     $C0,$C0,$20,$1E,$00,$00
+                    dc.w     $E0,$C0,$20,$1E,$00,$00
+                    dc.w     $100,$C0,$20,$1E,$00,$00
+                    dc.w     $120,$C0,$20,$1E,$00,$00
+                    dc.w     $00,$E0,$20,$1E,$00,$00
+                    dc.w     $20,$E0,$20,$1E,$00,$00
+                    dc.w     $40,$E0,$20,$1E,$00,$00
+                    dc.w     $60,$E0,$20,$1E,$00,$00
+                    dc.w     $80,$E0,$20,$1E,$00,$00
+                    dc.w     $A0,$E0,$20,$1E,$00,$00
+                    dc.w     $C0,$E0,$10,$0E,$00,$00
+                    dc.w     $D0,$E0,$10,$0E,$00,$00
+                    dc.w     $E0,$E0,$10,$0E,$00,$00
+                    dc.w     $F0,$E0,$10,$0E,$00,$00
+                    dc.w     $C0,$F0,$10,$0E,$00,$00
+                    dc.w     $D0,$F0,$10,$0E,$00,$00
+                    dc.w     $E0,$F0,$10,$0E,$00,$00
+                    dc.w     $F0,$F0,$10,$0E,$00,$00
+                    dc.w     $100,$E0,$10,$0E,$00,$00
+                    dc.w     $110,$E0,$10,$0E,$00,$00
+                    dc.w     $120,$E0,$10,$0E,$00,$00
+                    dc.w     $130,$E0,$10,$0E,$00,$00
+                    dc.w     $100,$F0,$10,$0E,$00,$00
+                    dc.w     $110,$F0,$10,$0E,$00,$00
+                    dc.w     $120,$F0,$10,$0E,$00,$00
+                    dc.w     $130,$F0,$10,$0E,$00,$00
 
 lbL018C2E:          dc.l     lbL0182CE,0
                     dc.l     lbL0182FE,0
@@ -14354,444 +14313,444 @@ lbL018D06:          dc.l     lbL0185CE,1
                     dc.l     lbL01871E,1
                     dc.l     -1
 
-lbW018D4A:          dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $00,$20,$20,$1E,$00,$00
-                    dc.w    $00,$40,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $20,$20,$20,$1E,$00,$00
-                    dc.w    $20,$40,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $40,$20,$20,$1E,$00,$00
-                    dc.w    $40,$40,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $60,$20,$20,$1E,$00,$00
-                    dc.w    $60,$40,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $80,$20,$20,$1E,$00,$00
-                    dc.w    $80,$40,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$20,$20,$1E,$00,$00
-                    dc.w    $A0,$40,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$20,$20,$1E,$00,$00
-                    dc.w    $C0,$40,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$20,$20,$1E,$00,$00
-                    dc.w    $E0,$40,$20,$1E,$00,$00
-                    dc.w    $00,$60,$20,$1E,$00,$00
-                    dc.W    $00,$80,$20,$1E,$00,$00
-                    dc.w    $20,$60,$20,$1E,$00,$00
-                    dc.w    $20,$80,$20,$1E,$00,$00
-                    dc.w    $40,$60,$20,$1E,$00,$00
-                    dc.w    $40,$80,$20,$1E,$00,$00
-                    dC.w    $60,$60,$20,$1E,$00,$00
-                    dc.w    $60,$80,$20,$1E,$00,$00
-                    dc.w    $80,$60,$20,$1E,$00,$00
-                    dc.w    $80,$80,$20,$1E,$00,$00
-                    dc.w    $A0,$60,$20,$1E,$00,$00
-                    dC.w    $A0,$80,$20,$1E,$00,$00
-                    dc.w    $C0,$60,$20,$1E,$00,$00
-                    dc.w    $C0,$80,$20,$1E,$00,$00
-                    dc.w    $E0,$60,$20,$1E,$00,$00
-                    dc.w    $E0,$80,$20,$1E,$00,$00
-                    dc.w    $100,$00,$10,$10,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00
-                    dc.w    $100,$40,$10,$10,$00,$00
-                    dc.w    $110,$00,$10,$10,$00,$00
-                    dc.w    $110,$20,$10,$10,$00,$00
-                    dc.w    $110,$40,$10,$10,$00,$00
-                    dc.w    $120,$00,$10,$10,$00,$00
-                    dc.w    $120,$20,$10,$10,$00,$00
-                    dc.w    $120,$40,$10,$10,$00,$00
-                    dc.w    $130,$00,$10,$10,$00,$00
-                    dc.w    $130,$20,$10,$10,$00,$00
-                    dc.w    $130,$40,$10,$10,$00,$00
-                    dc.w    $100,$10,$10,$10,$00,$00
-                    dc.w    $100,$30,$10,$10,$00,$00
-                    dc.w    $100,$50,$10,$10,$00,$00
-                    dc.w    $110,$10,$10,$10,$00,$00
-                    dc.w    $110,$30,$10,$10,$00,$00
-                    dc.w    $110,$50,$10,$10,$00,$00
-                    dc.w    $120,$10,$10,$10,$00,$00
-                    dc.w    $120,$30,$10,$10,$00,$00
-                    dc.w    $120,$50,$10,$10,$00,$00
-                    dc.w    $130,$10,$10,$10,$00,$00
-                    dc.w    $130,$30,$10,$10,$00,$00
-                    dc.w    $130,$50,$10,$10,$00,$00
-                    dc.w    $100,$60,$10,$10,$00,$00
-                    dc.w    $100,$80,$10,$10,$00,$00
-                    dc.w    $110,$60,$10,$10,$00,$00
-                    dc.w    $110,$80,$10,$10,$00,$00
-                    dc.w    $120,$60,$10,$10,$00,$00
-                    dc.w    $120,$80,$10,$10,$00,$00
-                    dc.w    $130,$60,$10,$10,$00,$00
-                    dc.w    $130,$80,$10,$10,$00,$00
-                    dc.w    $100,$70,$10,$10,$00,$00
-                    dc.w    $100,$90,$10,$10,$00,$00
-                    dc.w    $110,$70,$10,$10,$00,$00
-                    dc.w    $110,$90,$10,$10,$00,$00
-                    dc.w    $120,$70,$10,$10,$00,$00
-                    dc.w    $120,$90,$10,$10,$00,$00
-                    dc.w    $130,$70,$10,$10,$00,$00
-                    dc.w    $130,$90,$10,$10,$00,$00
-                    dc.w    $00,$100,$60,$80,$00,$00
-                    dc.w    $60,$100,$60,$80,$00,$00
-                    dc.w    $C0,$100,$60,$80,$00,$00
-                    dc.w    $120,$100,$20,$20,$00,$00
-                    dc.w    $120,$120,$20,$20,$00,$00
-                    dc.w    $120,$140,$20,$20,$00,$00
-                    dc.w    $120,$160,$20,$20,$00,$00
-                    dcb.w   384,0
+lbW018D4A:          dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $00,$20,$20,$1E,$00,$00
+                    dc.w     $00,$40,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $20,$20,$20,$1E,$00,$00
+                    dc.w     $20,$40,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $40,$20,$20,$1E,$00,$00
+                    dc.w     $40,$40,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $60,$20,$20,$1E,$00,$00
+                    dc.w     $60,$40,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $80,$20,$20,$1E,$00,$00
+                    dc.w     $80,$40,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$20,$20,$1E,$00,$00
+                    dc.w     $A0,$40,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$20,$20,$1E,$00,$00
+                    dc.w     $C0,$40,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$20,$20,$1E,$00,$00
+                    dc.w     $E0,$40,$20,$1E,$00,$00
+                    dc.w     $00,$60,$20,$1E,$00,$00
+                    dc.W     $00,$80,$20,$1E,$00,$00
+                    dc.w     $20,$60,$20,$1E,$00,$00
+                    dc.w     $20,$80,$20,$1E,$00,$00
+                    dc.w     $40,$60,$20,$1E,$00,$00
+                    dc.w     $40,$80,$20,$1E,$00,$00
+                    dC.w     $60,$60,$20,$1E,$00,$00
+                    dc.w     $60,$80,$20,$1E,$00,$00
+                    dc.w     $80,$60,$20,$1E,$00,$00
+                    dc.w     $80,$80,$20,$1E,$00,$00
+                    dc.w     $A0,$60,$20,$1E,$00,$00
+                    dC.w     $A0,$80,$20,$1E,$00,$00
+                    dc.w     $C0,$60,$20,$1E,$00,$00
+                    dc.w     $C0,$80,$20,$1E,$00,$00
+                    dc.w     $E0,$60,$20,$1E,$00,$00
+                    dc.w     $E0,$80,$20,$1E,$00,$00
+                    dc.w     $100,$00,$10,$10,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00
+                    dc.w     $100,$40,$10,$10,$00,$00
+                    dc.w     $110,$00,$10,$10,$00,$00
+                    dc.w     $110,$20,$10,$10,$00,$00
+                    dc.w     $110,$40,$10,$10,$00,$00
+                    dc.w     $120,$00,$10,$10,$00,$00
+                    dc.w     $120,$20,$10,$10,$00,$00
+                    dc.w     $120,$40,$10,$10,$00,$00
+                    dc.w     $130,$00,$10,$10,$00,$00
+                    dc.w     $130,$20,$10,$10,$00,$00
+                    dc.w     $130,$40,$10,$10,$00,$00
+                    dc.w     $100,$10,$10,$10,$00,$00
+                    dc.w     $100,$30,$10,$10,$00,$00
+                    dc.w     $100,$50,$10,$10,$00,$00
+                    dc.w     $110,$10,$10,$10,$00,$00
+                    dc.w     $110,$30,$10,$10,$00,$00
+                    dc.w     $110,$50,$10,$10,$00,$00
+                    dc.w     $120,$10,$10,$10,$00,$00
+                    dc.w     $120,$30,$10,$10,$00,$00
+                    dc.w     $120,$50,$10,$10,$00,$00
+                    dc.w     $130,$10,$10,$10,$00,$00
+                    dc.w     $130,$30,$10,$10,$00,$00
+                    dc.w     $130,$50,$10,$10,$00,$00
+                    dc.w     $100,$60,$10,$10,$00,$00
+                    dc.w     $100,$80,$10,$10,$00,$00
+                    dc.w     $110,$60,$10,$10,$00,$00
+                    dc.w     $110,$80,$10,$10,$00,$00
+                    dc.w     $120,$60,$10,$10,$00,$00
+                    dc.w     $120,$80,$10,$10,$00,$00
+                    dc.w     $130,$60,$10,$10,$00,$00
+                    dc.w     $130,$80,$10,$10,$00,$00
+                    dc.w     $100,$70,$10,$10,$00,$00
+                    dc.w     $100,$90,$10,$10,$00,$00
+                    dc.w     $110,$70,$10,$10,$00,$00
+                    dc.w     $110,$90,$10,$10,$00,$00
+                    dc.w     $120,$70,$10,$10,$00,$00
+                    dc.w     $120,$90,$10,$10,$00,$00
+                    dc.w     $130,$70,$10,$10,$00,$00
+                    dc.w     $130,$90,$10,$10,$00,$00
+                    dc.w     $00,$100,$60,$80,$00,$00
+                    dc.w     $60,$100,$60,$80,$00,$00
+                    dc.w     $C0,$100,$60,$80,$00,$00
+                    dc.w     $120,$100,$20,$20,$00,$00
+                    dc.w     $120,$120,$20,$20,$00,$00
+                    dc.w     $120,$140,$20,$20,$00,$00
+                    dc.w     $120,$160,$20,$20,$00,$00
+                    dcb.w    384,0
 
-lbW01945E:          dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $00,$60,$20,$1E,$00,$00
-                    dc.w    $00,$80,$20,$1E,$00,$00
-                    dc.w    $20,$60,$20,$1E,$00,$00
-                    dc.w    $20,$80,$20,$1E,$00,$00
-                    dc.w    $40,$60,$20,$1E,$00,$00
-                    dc.w    $40,$80,$20,$1E,$00,$00
-                    dc.w    $60,$60,$20,$1E,$00,$00
-                    dc.w    $60,$80,$20,$1E,$00,$00
-                    dc.w    $80,$60,$20,$1E,$00,$00
-                    dc.w    $80,$80,$20,$1E,$00,$00
-                    dc.w    $A0,$60,$20,$1E,$00,$00
-                    dc.w    $A0,$80,$20,$1E,$00,$00
-                    dc.w    $C0,$60,$20,$1E,$00,$00
-                    dc.w    $C0,$80,$20,$1E,$00,$00
-                    dc.w    $E0,$60,$20,$1E,$00,$00
-                    dc.w    $E0,$80,$20,$1E,$00,$00
-                    dc.w    $100,$00,$10,$10,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00
-                    dc.w    $100,$40,$10,$10,$00,$00
-                    dc.w    $110,$00,$10,$10,$00,$00
-                    dc.w    $110,$20,$10,$10,$00,$00
-                    dc.w    $110,$40,$10,$10,$00,$00
-                    dc.w    $120,$00,$10,$10,$00,$00
-                    dc.w    $120,$20,$10,$10,$00,$00
-                    dc.w    $120,$40,$10,$10,$00,$00
-                    dc.w    $130,$00,$10,$10,$00,$00
-                    dc.w    $130,$20,$10,$10,$00,$00
-                    dc.w    $130,$40,$10,$10,$00,$00
-                    dc.w    $100,$10,$10,$10,$00,$00
-                    dc.w    $100,$30,$10,$10,$00,$00
-                    dc.w    $100,$50,$10,$10,$00,$00
-                    dc.w    $110,$10,$10,$10,$00,$00
-                    dc.w    $110,$30,$10,$10,$00,$00
-                    dc.w    $110,$50,$10,$10,$00,$00
-                    dc.w    $120,$10,$10,$10,$00,$00
-                    dc.w    $120,$30,$10,$10,$00,$00
-                    dc.w    $120,$50,$10,$10,$00,$00
-                    dc.w    $130,$10,$10,$10,$00,$00
-                    dc.w    $130,$30,$10,$10,$00,$00
-                    dc.w    $130,$50,$10,$10,$00,$00
-                    dc.w    $100,$60,$10,$10,$00,$00
-                    dc.w    $100,$80,$10,$10,$00,$00
-                    dc.w    $110,$60,$10,$10,$00,$00
-                    dc.w    $110,$80,$10,$10,$00,$00
-                    dc.w    $120,$60,$10,$10,$00,$00
-                    dc.w    $120,$80,$10,$10,$00,$00
-                    dc.w    $130,$60,$10,$10,$00,$00
-                    dc.w    $130,$80,$10,$10,$00,$00
-                    dc.w    $100,$70,$10,$10,$00,$00
-                    dc.w    $100,$90,$10,$10,$00,$00
-                    dc.w    $110,$70,$10,$10,$00,$00
-                    dc.w    $110,$90,$10,$10,$00,$00
-                    dc.w    $120,$70,$10,$10,$00,$00
-                    dc.w    $120,$90,$10,$10,$00,$00
-                    dc.w    $130,$70,$10,$10,$00,$00
-                    dc.w    $130,$90,$10,$10,$00,$00
-                    dc.w    $00,$140,$20,$1B,$00,$00
-                    dc.w    $20,$140,$20,$1B,$00,$00
-                    dc.w    $40,$140,$20,$1B,$00,$00
-                    dc.w    $60,$140,$20,$1B,$00,$00
-                    dc.w    $80,$140,$20,$1B,$00,$00
-                    dc.w    $A0,$140,$20,$1B,$00,$00
-                    dc.w    $C0,$140,$20,$1B,$00,$00
-                    dc.w    $E0,$140,$20,$1B,$00,$00
-                    dc.w    $00,$160,$20,$1B,$00,$00
-                    dc.w    $20,$160,$20,$1B,$00,$00
-                    dc.w    $40,$160,$20,$1B,$00,$00
-                    dc.w    $60,$160,$20,$1B,$00,$00
-                    dc.w    $80,$160,$20,$1B,$00,$00
-                    dc.w    $A0,$160,$20,$1B,$00,$00
-                    dc.w    $C0,$160,$20,$1B,$00,$00
-                    dc.w    $E0,$160,$20,$1B,$00,$00
-                    dc.w    $00,$100,$20,$1B,$00,$00
-                    dc.w    $20,$100,$20,$1B,$00,$00
-                    dc.w    $40,$100,$20,$1B,$00,$00
-                    dc.w    $60,$100,$20,$1B,$00,$00
-                    dc.w    $80,$100,$20,$1B,$00,$00
-                    dc.w    $A0,$100,$20,$1B,$00,$00
-                    dc.w    $C0,$100,$20,$1B,$00,$00
-                    dc.w    $E0,$100,$20,$1B,$00,$00
-                    dc.w    $00,$120,$20,$1B,$00,$00
-                    dc.w    $20,$120,$20,$1B,$00,$00
-                    dc.w    $40,$120,$20,$1B,$00,$00
-                    dc.w    $60,$120,$20,$1B,$00,$00
-                    dc.w    $80,$120,$20,$1B,$00,$00
-                    dc.w    $A0,$120,$20,$1B,$00,$00
-                    dc.w    $C0,$120,$20,$1B,$00,$00
-                    dc.w    $E0,$120,$20,$1B,$00,$00
-                    dc.w    $120,$100,$20,$20,$00,$00
-                    dc.w    $120,$120,$20,$20,$00,$00
-                    dc.w    $120,$140,$20,$20,$00,$00
-                    dc.w    $120,$160,$20,$20,$00,$00
-                    dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $00,$20,$20,$1E,$00,$00
-                    dc.w    $00,$40,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $20,$20,$20,$1E,$00,$00
-                    dc.w    $20,$40,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $40,$20,$20,$1E,$00,$00
-                    dc.w    $40,$40,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $60,$20,$20,$1E,$00,$00
-                    dc.w    $60,$40,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $80,$20,$20,$1E,$00,$00
-                    dc.w    $80,$40,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$20,$20,$1E,$00,$00
-                    dc.w    $A0,$40,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$20,$20,$1E,$00,$00
-                    dc.w    $C0,$40,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$20,$20,$1E,$00,$00
-                    dc.w    $E0,$40,$20,$1E,$00,$00
-                    dcb.w   48,0
+lbW01945E:          dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $00,$60,$20,$1E,$00,$00
+                    dc.w     $00,$80,$20,$1E,$00,$00
+                    dc.w     $20,$60,$20,$1E,$00,$00
+                    dc.w     $20,$80,$20,$1E,$00,$00
+                    dc.w     $40,$60,$20,$1E,$00,$00
+                    dc.w     $40,$80,$20,$1E,$00,$00
+                    dc.w     $60,$60,$20,$1E,$00,$00
+                    dc.w     $60,$80,$20,$1E,$00,$00
+                    dc.w     $80,$60,$20,$1E,$00,$00
+                    dc.w     $80,$80,$20,$1E,$00,$00
+                    dc.w     $A0,$60,$20,$1E,$00,$00
+                    dc.w     $A0,$80,$20,$1E,$00,$00
+                    dc.w     $C0,$60,$20,$1E,$00,$00
+                    dc.w     $C0,$80,$20,$1E,$00,$00
+                    dc.w     $E0,$60,$20,$1E,$00,$00
+                    dc.w     $E0,$80,$20,$1E,$00,$00
+                    dc.w     $100,$00,$10,$10,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00
+                    dc.w     $100,$40,$10,$10,$00,$00
+                    dc.w     $110,$00,$10,$10,$00,$00
+                    dc.w     $110,$20,$10,$10,$00,$00
+                    dc.w     $110,$40,$10,$10,$00,$00
+                    dc.w     $120,$00,$10,$10,$00,$00
+                    dc.w     $120,$20,$10,$10,$00,$00
+                    dc.w     $120,$40,$10,$10,$00,$00
+                    dc.w     $130,$00,$10,$10,$00,$00
+                    dc.w     $130,$20,$10,$10,$00,$00
+                    dc.w     $130,$40,$10,$10,$00,$00
+                    dc.w     $100,$10,$10,$10,$00,$00
+                    dc.w     $100,$30,$10,$10,$00,$00
+                    dc.w     $100,$50,$10,$10,$00,$00
+                    dc.w     $110,$10,$10,$10,$00,$00
+                    dc.w     $110,$30,$10,$10,$00,$00
+                    dc.w     $110,$50,$10,$10,$00,$00
+                    dc.w     $120,$10,$10,$10,$00,$00
+                    dc.w     $120,$30,$10,$10,$00,$00
+                    dc.w     $120,$50,$10,$10,$00,$00
+                    dc.w     $130,$10,$10,$10,$00,$00
+                    dc.w     $130,$30,$10,$10,$00,$00
+                    dc.w     $130,$50,$10,$10,$00,$00
+                    dc.w     $100,$60,$10,$10,$00,$00
+                    dc.w     $100,$80,$10,$10,$00,$00
+                    dc.w     $110,$60,$10,$10,$00,$00
+                    dc.w     $110,$80,$10,$10,$00,$00
+                    dc.w     $120,$60,$10,$10,$00,$00
+                    dc.w     $120,$80,$10,$10,$00,$00
+                    dc.w     $130,$60,$10,$10,$00,$00
+                    dc.w     $130,$80,$10,$10,$00,$00
+                    dc.w     $100,$70,$10,$10,$00,$00
+                    dc.w     $100,$90,$10,$10,$00,$00
+                    dc.w     $110,$70,$10,$10,$00,$00
+                    dc.w     $110,$90,$10,$10,$00,$00
+                    dc.w     $120,$70,$10,$10,$00,$00
+                    dc.w     $120,$90,$10,$10,$00,$00
+                    dc.w     $130,$70,$10,$10,$00,$00
+                    dc.w     $130,$90,$10,$10,$00,$00
+                    dc.w     $00,$140,$20,$1B,$00,$00
+                    dc.w     $20,$140,$20,$1B,$00,$00
+                    dc.w     $40,$140,$20,$1B,$00,$00
+                    dc.w     $60,$140,$20,$1B,$00,$00
+                    dc.w     $80,$140,$20,$1B,$00,$00
+                    dc.w     $A0,$140,$20,$1B,$00,$00
+                    dc.w     $C0,$140,$20,$1B,$00,$00
+                    dc.w     $E0,$140,$20,$1B,$00,$00
+                    dc.w     $00,$160,$20,$1B,$00,$00
+                    dc.w     $20,$160,$20,$1B,$00,$00
+                    dc.w     $40,$160,$20,$1B,$00,$00
+                    dc.w     $60,$160,$20,$1B,$00,$00
+                    dc.w     $80,$160,$20,$1B,$00,$00
+                    dc.w     $A0,$160,$20,$1B,$00,$00
+                    dc.w     $C0,$160,$20,$1B,$00,$00
+                    dc.w     $E0,$160,$20,$1B,$00,$00
+                    dc.w     $00,$100,$20,$1B,$00,$00
+                    dc.w     $20,$100,$20,$1B,$00,$00
+                    dc.w     $40,$100,$20,$1B,$00,$00
+                    dc.w     $60,$100,$20,$1B,$00,$00
+                    dc.w     $80,$100,$20,$1B,$00,$00
+                    dc.w     $A0,$100,$20,$1B,$00,$00
+                    dc.w     $C0,$100,$20,$1B,$00,$00
+                    dc.w     $E0,$100,$20,$1B,$00,$00
+                    dc.w     $00,$120,$20,$1B,$00,$00
+                    dc.w     $20,$120,$20,$1B,$00,$00
+                    dc.w     $40,$120,$20,$1B,$00,$00
+                    dc.w     $60,$120,$20,$1B,$00,$00
+                    dc.w     $80,$120,$20,$1B,$00,$00
+                    dc.w     $A0,$120,$20,$1B,$00,$00
+                    dc.w     $C0,$120,$20,$1B,$00,$00
+                    dc.w     $E0,$120,$20,$1B,$00,$00
+                    dc.w     $120,$100,$20,$20,$00,$00
+                    dc.w     $120,$120,$20,$20,$00,$00
+                    dc.w     $120,$140,$20,$20,$00,$00
+                    dc.w     $120,$160,$20,$20,$00,$00
+                    dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $00,$20,$20,$1E,$00,$00
+                    dc.w     $00,$40,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $20,$20,$20,$1E,$00,$00
+                    dc.w     $20,$40,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $40,$20,$20,$1E,$00,$00
+                    dc.w     $40,$40,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $60,$20,$20,$1E,$00,$00
+                    dc.w     $60,$40,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $80,$20,$20,$1E,$00,$00
+                    dc.w     $80,$40,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$20,$20,$1E,$00,$00
+                    dc.w     $A0,$40,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$20,$20,$1E,$00,$00
+                    dc.w     $C0,$40,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$20,$20,$1E,$00,$00
+                    dc.w     $E0,$40,$20,$1E,$00,$00
+                    dcb.w    48,0
 
-lbW019A8E:          dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $00,$20,$20,$1E,$00,$00
-                    dc.w    $00,$40,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $20,$20,$20,$1E,$00,$00
-                    dc.w    $20,$40,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $40,$20,$20,$1E,$00,$00
-                    dc.w    $40,$40,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $60,$20,$20,$1E,$00,$00
-                    dc.w    $60,$40,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $80,$20,$20,$1E,$00,$00
-                    dc.w    $80,$40,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$20,$20,$1E,$00,$00
-                    dc.w    $A0,$40,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$20,$20,$1E,$00,$00
-                    dc.w    $C0,$40,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$20,$20,$1E,$00,$00
-                    dc.w    $E0,$40,$20,$1E,$00,$00
-                    dc.w    $00,$60,$20,$1E,$00,$00
-                    dc.w    $00,$80,$20,$1E,$00,$00
-                    dc.w    $20,$60,$20,$1E,$00,$00
-                    dc.w    $20,$80,$20,$1E,$00,$00
-                    dc.w    $40,$60,$20,$1E,$00,$00
-                    dc.w    $40,$80,$20,$1E,$00,$00
-                    dc.w    $60,$60,$20,$1E,$00,$00
-                    dc.w    $60,$80,$20,$1E,$00,$00
-                    dc.w    $80,$60,$20,$1E,$00,$00
-                    dc.w    $80,$80,$20,$1E,$00,$00
-                    dc.w    $A0,$60,$20,$1E,$00,$00
-                    dc.w    $A0,$80,$20,$1E,$00,$00
-                    dc.w    $C0,$60,$20,$1E,$00,$00
-                    dc.w    $C0,$80,$20,$1E,$00,$00
-                    dc.w    $E0,$60,$20,$1E,$00,$00
-                    dc.w    $E0,$80,$20,$1E,$00,$00
-                    dc.w    $100,$00,$10,$10,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00
-                    dc.w    $100,$40,$10,$10,$00,$00
-                    dc.w    $110,$00,$10,$10,$00,$00
-                    dc.w    $110,$20,$10,$10,$00,$00
-                    dc.w    $110,$40,$10,$10,$00,$00
-                    dc.w    $120,$00,$10,$10,$00,$00
-                    dc.w    $120,$20,$10,$10,$00,$00
-                    dc.w    $120,$40,$10,$10,$00,$00
-                    dc.w    $130,$00,$10,$10,$00,$00
-                    dc.w    $130,$20,$10,$10,$00,$00
-                    dc.w    $130,$40,$10,$10,$00,$00
-                    dc.w    $100,$10,$10,$10,$00,$00
-                    dc.w    $100,$30,$10,$10,$00,$00
-                    dc.w    $100,$50,$10,$10,$00,$00
-                    dc.w    $110,$10,$10,$10,$00,$00
-                    dc.w    $110,$30,$10,$10,$00,$00
-                    dc.w    $110,$50,$10,$10,$00,$00
-                    dc.w    $120,$10,$10,$10,$00,$00
-                    dc.w    $120,$30,$10,$10,$00,$00
-                    dc.w    $120,$50,$10,$10,$00,$00
-                    dc.w    $130,$10,$10,$10,$00,$00
-                    dc.w    $130,$30,$10,$10,$00,$00
-                    dc.w    $130,$50,$10,$10,$00,$00
-                    dc.w    $100,$60,$10,$10,$00,$00
-                    dc.w    $100,$80,$10,$10,$00,$00
-                    dc.w    $110,$60,$10,$10,$00,$00
-                    dc.w    $110,$80,$10,$10,$00,$00
-                    dc.w    $120,$60,$10,$10,$00,$00
-                    dc.w    $120,$80,$10,$10,$00,$00
-                    dc.w    $130,$60,$10,$10,$00,$00
-                    dc.w    $130,$80,$10,$10,$00,$00
-                    dc.w    $100,$70,$10,$10,$00,$00
-                    dc.w    $100,$90,$10,$10,$00,$00
-                    dc.w    $110,$70,$10,$10,$00,$00
-                    dc.w    $110,$90,$10,$10,$00,$00
-                    dc.w    $120,$70,$10,$10,$00,$00
-                    dc.w    $120,$90,$10,$10,$00,$00
-                    dc.w    $130,$70,$10,$10,$00,$00
-                    dc.w    $130,$90,$10,$10,$00,$00
-                    dc.w    $00,$100,$60,$80,$00,$00
-                    dc.w    $60,$100,$60,$80,$00,$00
-                    dc.w    $C0,$100,$60,$80,$00,$00
-                    dc.w    $120,$100,$20,$20,$00,$00
-                    dc.w    $120,$120,$20,$20,$00,$00
-                    dc.w    $120,$140,$20,$20,$00,$00
-                    dc.w    $120,$160,$20,$20,$00,$00
-                    dcb.w   384,0
+lbW019A8E:          dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $00,$20,$20,$1E,$00,$00
+                    dc.w     $00,$40,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $20,$20,$20,$1E,$00,$00
+                    dc.w     $20,$40,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $40,$20,$20,$1E,$00,$00
+                    dc.w     $40,$40,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $60,$20,$20,$1E,$00,$00
+                    dc.w     $60,$40,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $80,$20,$20,$1E,$00,$00
+                    dc.w     $80,$40,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$20,$20,$1E,$00,$00
+                    dc.w     $A0,$40,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$20,$20,$1E,$00,$00
+                    dc.w     $C0,$40,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$20,$20,$1E,$00,$00
+                    dc.w     $E0,$40,$20,$1E,$00,$00
+                    dc.w     $00,$60,$20,$1E,$00,$00
+                    dc.w     $00,$80,$20,$1E,$00,$00
+                    dc.w     $20,$60,$20,$1E,$00,$00
+                    dc.w     $20,$80,$20,$1E,$00,$00
+                    dc.w     $40,$60,$20,$1E,$00,$00
+                    dc.w     $40,$80,$20,$1E,$00,$00
+                    dc.w     $60,$60,$20,$1E,$00,$00
+                    dc.w     $60,$80,$20,$1E,$00,$00
+                    dc.w     $80,$60,$20,$1E,$00,$00
+                    dc.w     $80,$80,$20,$1E,$00,$00
+                    dc.w     $A0,$60,$20,$1E,$00,$00
+                    dc.w     $A0,$80,$20,$1E,$00,$00
+                    dc.w     $C0,$60,$20,$1E,$00,$00
+                    dc.w     $C0,$80,$20,$1E,$00,$00
+                    dc.w     $E0,$60,$20,$1E,$00,$00
+                    dc.w     $E0,$80,$20,$1E,$00,$00
+                    dc.w     $100,$00,$10,$10,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00
+                    dc.w     $100,$40,$10,$10,$00,$00
+                    dc.w     $110,$00,$10,$10,$00,$00
+                    dc.w     $110,$20,$10,$10,$00,$00
+                    dc.w     $110,$40,$10,$10,$00,$00
+                    dc.w     $120,$00,$10,$10,$00,$00
+                    dc.w     $120,$20,$10,$10,$00,$00
+                    dc.w     $120,$40,$10,$10,$00,$00
+                    dc.w     $130,$00,$10,$10,$00,$00
+                    dc.w     $130,$20,$10,$10,$00,$00
+                    dc.w     $130,$40,$10,$10,$00,$00
+                    dc.w     $100,$10,$10,$10,$00,$00
+                    dc.w     $100,$30,$10,$10,$00,$00
+                    dc.w     $100,$50,$10,$10,$00,$00
+                    dc.w     $110,$10,$10,$10,$00,$00
+                    dc.w     $110,$30,$10,$10,$00,$00
+                    dc.w     $110,$50,$10,$10,$00,$00
+                    dc.w     $120,$10,$10,$10,$00,$00
+                    dc.w     $120,$30,$10,$10,$00,$00
+                    dc.w     $120,$50,$10,$10,$00,$00
+                    dc.w     $130,$10,$10,$10,$00,$00
+                    dc.w     $130,$30,$10,$10,$00,$00
+                    dc.w     $130,$50,$10,$10,$00,$00
+                    dc.w     $100,$60,$10,$10,$00,$00
+                    dc.w     $100,$80,$10,$10,$00,$00
+                    dc.w     $110,$60,$10,$10,$00,$00
+                    dc.w     $110,$80,$10,$10,$00,$00
+                    dc.w     $120,$60,$10,$10,$00,$00
+                    dc.w     $120,$80,$10,$10,$00,$00
+                    dc.w     $130,$60,$10,$10,$00,$00
+                    dc.w     $130,$80,$10,$10,$00,$00
+                    dc.w     $100,$70,$10,$10,$00,$00
+                    dc.w     $100,$90,$10,$10,$00,$00
+                    dc.w     $110,$70,$10,$10,$00,$00
+                    dc.w     $110,$90,$10,$10,$00,$00
+                    dc.w     $120,$70,$10,$10,$00,$00
+                    dc.w     $120,$90,$10,$10,$00,$00
+                    dc.w     $130,$70,$10,$10,$00,$00
+                    dc.w     $130,$90,$10,$10,$00,$00
+                    dc.w     $00,$100,$60,$80,$00,$00
+                    dc.w     $60,$100,$60,$80,$00,$00
+                    dc.w     $C0,$100,$60,$80,$00,$00
+                    dc.w     $120,$100,$20,$20,$00,$00
+                    dc.w     $120,$120,$20,$20,$00,$00
+                    dc.w     $120,$140,$20,$20,$00,$00
+                    dc.w     $120,$160,$20,$20,$00,$00
+                    dcb.w    384,0
 
-lbW01A1A2:          dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $00,$20,$20,$1E,$00,$00
-                    dc.w    $00,$40,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $20,$20,$20,$1E,$00,$00
-                    dc.w    $20,$40,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $40,$20,$20,$1E,$00,$00
-                    dc.w    $40,$40,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $60,$20,$20,$1E,$00,$00
-                    dc.w    $60,$40,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $80,$20,$20,$1E,$00,$00
-                    dc.w    $80,$40,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$20,$20,$1E,$00,$00
-                    dc.w    $A0,$40,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$20,$20,$1E,$00,$00
-                    dc.w    $C0,$40,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$20,$20,$1E,$00,$00
-                    dc.w    $E0,$40,$20,$1E,$00,$00
-                    dc.w    $00,$60,$20,$1E,$00,$00
-                    dc.w    $00,$80,$20,$1E,$00,$00
-                    dc.w    $20,$60,$20,$1E,$00,$00
-                    dc.w    $20,$80,$20,$1E,$00,$00
-                    dc.w    $40,$60,$20,$1E,$00,$00
-                    dc.w    $40,$80,$20,$1E,$00,$00
-                    dc.w    $60,$60,$20,$1E,$00,$00
-                    dc.w    $60,$80,$20,$1E,$00,$00
-                    dc.w    $80,$60,$20,$1E,$00,$00
-                    dc.w    $80,$80,$20,$1E,$00,$00
-                    dc.w    $A0,$60,$20,$1E,$00,$00
-                    dc.w    $A0,$80,$20,$1E,$00,$00
-                    dc.w    $C0,$60,$20,$1E,$00,$00
-                    dc.w    $C0,$80,$20,$1E,$00,$00
-                    dc.w    $E0,$60,$20,$1E,$00,$00
-                    dc.w    $E0,$80,$20,$1E,$00,$00
-                    dc.w    $100,$20,$20,$1E,$00,$00
-                    dc.w    $100,$40,$20,$1E,$00,$00
-                    dc.w    $120,$20,$20,$1E,$00,$00
-                    dc.w    $100,$00,$10,$10,$00,$00
-                    dcb.w   696,0
+lbW01A1A2:          dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $00,$20,$20,$1E,$00,$00
+                    dc.w     $00,$40,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $20,$20,$20,$1E,$00,$00
+                    dc.w     $20,$40,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $40,$20,$20,$1E,$00,$00
+                    dc.w     $40,$40,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $60,$20,$20,$1E,$00,$00
+                    dc.w     $60,$40,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $80,$20,$20,$1E,$00,$00
+                    dc.w     $80,$40,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$20,$20,$1E,$00,$00
+                    dc.w     $A0,$40,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$20,$20,$1E,$00,$00
+                    dc.w     $C0,$40,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$20,$20,$1E,$00,$00
+                    dc.w     $E0,$40,$20,$1E,$00,$00
+                    dc.w     $00,$60,$20,$1E,$00,$00
+                    dc.w     $00,$80,$20,$1E,$00,$00
+                    dc.w     $20,$60,$20,$1E,$00,$00
+                    dc.w     $20,$80,$20,$1E,$00,$00
+                    dc.w     $40,$60,$20,$1E,$00,$00
+                    dc.w     $40,$80,$20,$1E,$00,$00
+                    dc.w     $60,$60,$20,$1E,$00,$00
+                    dc.w     $60,$80,$20,$1E,$00,$00
+                    dc.w     $80,$60,$20,$1E,$00,$00
+                    dc.w     $80,$80,$20,$1E,$00,$00
+                    dc.w     $A0,$60,$20,$1E,$00,$00
+                    dc.w     $A0,$80,$20,$1E,$00,$00
+                    dc.w     $C0,$60,$20,$1E,$00,$00
+                    dc.w     $C0,$80,$20,$1E,$00,$00
+                    dc.w     $E0,$60,$20,$1E,$00,$00
+                    dc.w     $E0,$80,$20,$1E,$00,$00
+                    dc.w     $100,$20,$20,$1E,$00,$00
+                    dc.w     $100,$40,$20,$1E,$00,$00
+                    dc.w     $120,$20,$20,$1E,$00,$00
+                    dc.w     $100,$00,$10,$10,$00,$00
+                    dcb.w    696,0
 
-lbW01A922:          dc.w    $00,$00,$20,$1E,$00,$00
-                    dc.w    $00,$20,$20,$1E,$00,$00
-                    dc.w    $00,$40,$20,$1E,$00,$00
-                    dc.w    $20,$00,$20,$1E,$00,$00
-                    dc.w    $20,$20,$20,$1E,$00,$00
-                    dc.w    $20,$40,$20,$1E,$00,$00
-                    dc.w    $40,$00,$20,$1E,$00,$00
-                    dc.w    $40,$20,$20,$1E,$00,$00
-                    dc.w    $40,$40,$20,$1E,$00,$00
-                    dc.w    $60,$00,$20,$1E,$00,$00
-                    dc.w    $60,$20,$20,$1E,$00,$00
-                    dc.w    $60,$40,$20,$1E,$00,$00
-                    dc.w    $80,$00,$20,$1E,$00,$00
-                    dc.w    $80,$20,$20,$1E,$00,$00
-                    dc.w    $80,$40,$20,$1E,$00,$00
-                    dc.w    $A0,$00,$20,$1E,$00,$00
-                    dc.w    $A0,$20,$20,$1E,$00,$00
-                    dc.w    $A0,$40,$20,$1E,$00,$00
-                    dc.w    $C0,$00,$20,$1E,$00,$00
-                    dc.w    $C0,$20,$20,$1E,$00,$00
-                    dc.w    $C0,$40,$20,$1E,$00,$00
-                    dc.w    $E0,$00,$20,$1E,$00,$00
-                    dc.w    $E0,$20,$20,$1E,$00,$00
-                    dc.w    $E0,$40,$20,$1E,$00,$00
-                    dc.w    $00,$60,$20,$1E,$00,$00
-                    dc.w    $00,$80,$20,$1E,$00,$00
-                    dc.w    $20,$60,$20,$1E,$00,$00
-                    dc.w    $20,$80,$20,$1E,$00,$00
-                    dc.w    $40,$60,$20,$1E,$00,$00
-                    dc.w    $40,$80,$20,$1E,$00,$00
-                    dc.w    $60,$60,$20,$1E,$00,$00
-                    dc.w    $60,$80,$20,$1E,$00,$00
-                    dc.w    $80,$60,$20,$1E,$00,$00
-                    dc.w    $80,$80,$20,$1E,$00,$00
-                    dc.w    $A0,$60,$20,$1E,$00,$00
-                    dc.w    $A0,$80,$20,$1E,$00,$00
-                    dc.w    $C0,$60,$20,$1E,$00,$00
-                    dc.w    $C0,$80,$20,$1E,$00,$00
-                    dc.w    $E0,$60,$20,$1E,$00,$00
-                    dc.w    $E0,$80,$20,$1E,$00,$00
-                    dc.w    $100,$00,$10,$10,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00
-                    dc.w    $100,$40,$10,$10,$00,$00
-                    dc.w    $110,$00,$10,$10,$00,$00
-                    dc.w    $110,$20,$10,$10,$00,$00
-                    dc.w    $110,$40,$10,$10,$00,$00
-                    dc.w    $120,$00,$10,$10,$00,$00
-                    dc.w    $120,$20,$10,$10,$00,$00
-                    dc.w    $120,$40,$10,$10,$00,$00
-                    dc.w    $130,$00,$10,$10,$00,$00
-                    dc.w    $130,$20,$10,$10,$00,$00
-                    dc.w    $130,$40,$10,$10,$00,$00
-                    dc.w    $100,$10,$10,$10,$00,$00
-                    dc.w    $100,$30,$10,$10,$00,$00
-                    dc.w    $100,$50,$10,$10,$00,$00
-                    dc.w    $110,$10,$10,$10,$00,$00
-                    dc.w    $110,$30,$10,$10,$00,$00
-                    dc.w    $110,$50,$10,$10,$00,$00
-                    dc.w    $120,$10,$10,$10,$00,$00
-                    dc.w    $120,$30,$10,$10,$00,$00
-                    dc.w    $120,$50,$10,$10,$00,$00
-                    dc.w    $130,$10,$10,$10,$00,$00
-                    dc.w    $130,$30,$10,$10,$00,$00
-                    dc.w    $130,$50,$10,$10,$00,$00
-                    dc.w    $100,$60,$10,$10,$00,$00
-                    dc.w    $100,$80,$10,$10,$00,$00
-                    dc.w    $110,$60,$10,$10,$00,$00
-                    dc.w    $110,$80,$10,$10,$00,$00
-                    dc.w    $120,$60,$10,$10,$00,$00
-                    dc.w    $120,$80,$10,$10,$00,$00
-                    dc.w    $130,$60,$10,$10,$00,$00
-                    dc.w    $130,$80,$10,$10,$00,$00
-                    dc.w    $100,$70,$10,$10,$00,$00
-                    dc.w    $100,$90,$10,$10,$00,$00
-                    dc.w    $110,$70,$10,$10,$00,$00
-                    dc.w    $110,$90,$10,$10,$00,$00
-                    dc.w    $120,$70,$10,$10,$00,$00
-                    dc.w    $120,$90,$10,$10,$00,$00
-                    dc.w    $130,$70,$10,$10,$00,$00
-                    dc.w    $130,$90,$10,$10,$00,$00
-                    dc.w    $00,$100,$60,$80,$00,$00
-                    dc.w    $60,$100,$60,$80,$00,$00
-                    dc.w    $C0,$100,$60,$80,$00,$00
-                    dc.w    $120,$100,$10,$10,$00,$00
-                    dc.w    $120,$120,$10,$10,$00,$00
-                    dc.w    $120,$140,$10,$10,$00,$00
-                    dc.w    $120,$160,$10,$10,$00,$00
-                    dcb.w   384,0
+lbW01A922:          dc.w     $00,$00,$20,$1E,$00,$00
+                    dc.w     $00,$20,$20,$1E,$00,$00
+                    dc.w     $00,$40,$20,$1E,$00,$00
+                    dc.w     $20,$00,$20,$1E,$00,$00
+                    dc.w     $20,$20,$20,$1E,$00,$00
+                    dc.w     $20,$40,$20,$1E,$00,$00
+                    dc.w     $40,$00,$20,$1E,$00,$00
+                    dc.w     $40,$20,$20,$1E,$00,$00
+                    dc.w     $40,$40,$20,$1E,$00,$00
+                    dc.w     $60,$00,$20,$1E,$00,$00
+                    dc.w     $60,$20,$20,$1E,$00,$00
+                    dc.w     $60,$40,$20,$1E,$00,$00
+                    dc.w     $80,$00,$20,$1E,$00,$00
+                    dc.w     $80,$20,$20,$1E,$00,$00
+                    dc.w     $80,$40,$20,$1E,$00,$00
+                    dc.w     $A0,$00,$20,$1E,$00,$00
+                    dc.w     $A0,$20,$20,$1E,$00,$00
+                    dc.w     $A0,$40,$20,$1E,$00,$00
+                    dc.w     $C0,$00,$20,$1E,$00,$00
+                    dc.w     $C0,$20,$20,$1E,$00,$00
+                    dc.w     $C0,$40,$20,$1E,$00,$00
+                    dc.w     $E0,$00,$20,$1E,$00,$00
+                    dc.w     $E0,$20,$20,$1E,$00,$00
+                    dc.w     $E0,$40,$20,$1E,$00,$00
+                    dc.w     $00,$60,$20,$1E,$00,$00
+                    dc.w     $00,$80,$20,$1E,$00,$00
+                    dc.w     $20,$60,$20,$1E,$00,$00
+                    dc.w     $20,$80,$20,$1E,$00,$00
+                    dc.w     $40,$60,$20,$1E,$00,$00
+                    dc.w     $40,$80,$20,$1E,$00,$00
+                    dc.w     $60,$60,$20,$1E,$00,$00
+                    dc.w     $60,$80,$20,$1E,$00,$00
+                    dc.w     $80,$60,$20,$1E,$00,$00
+                    dc.w     $80,$80,$20,$1E,$00,$00
+                    dc.w     $A0,$60,$20,$1E,$00,$00
+                    dc.w     $A0,$80,$20,$1E,$00,$00
+                    dc.w     $C0,$60,$20,$1E,$00,$00
+                    dc.w     $C0,$80,$20,$1E,$00,$00
+                    dc.w     $E0,$60,$20,$1E,$00,$00
+                    dc.w     $E0,$80,$20,$1E,$00,$00
+                    dc.w     $100,$00,$10,$10,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00
+                    dc.w     $100,$40,$10,$10,$00,$00
+                    dc.w     $110,$00,$10,$10,$00,$00
+                    dc.w     $110,$20,$10,$10,$00,$00
+                    dc.w     $110,$40,$10,$10,$00,$00
+                    dc.w     $120,$00,$10,$10,$00,$00
+                    dc.w     $120,$20,$10,$10,$00,$00
+                    dc.w     $120,$40,$10,$10,$00,$00
+                    dc.w     $130,$00,$10,$10,$00,$00
+                    dc.w     $130,$20,$10,$10,$00,$00
+                    dc.w     $130,$40,$10,$10,$00,$00
+                    dc.w     $100,$10,$10,$10,$00,$00
+                    dc.w     $100,$30,$10,$10,$00,$00
+                    dc.w     $100,$50,$10,$10,$00,$00
+                    dc.w     $110,$10,$10,$10,$00,$00
+                    dc.w     $110,$30,$10,$10,$00,$00
+                    dc.w     $110,$50,$10,$10,$00,$00
+                    dc.w     $120,$10,$10,$10,$00,$00
+                    dc.w     $120,$30,$10,$10,$00,$00
+                    dc.w     $120,$50,$10,$10,$00,$00
+                    dc.w     $130,$10,$10,$10,$00,$00
+                    dc.w     $130,$30,$10,$10,$00,$00
+                    dc.w     $130,$50,$10,$10,$00,$00
+                    dc.w     $100,$60,$10,$10,$00,$00
+                    dc.w     $100,$80,$10,$10,$00,$00
+                    dc.w     $110,$60,$10,$10,$00,$00
+                    dc.w     $110,$80,$10,$10,$00,$00
+                    dc.w     $120,$60,$10,$10,$00,$00
+                    dc.w     $120,$80,$10,$10,$00,$00
+                    dc.w     $130,$60,$10,$10,$00,$00
+                    dc.w     $130,$80,$10,$10,$00,$00
+                    dc.w     $100,$70,$10,$10,$00,$00
+                    dc.w     $100,$90,$10,$10,$00,$00
+                    dc.w     $110,$70,$10,$10,$00,$00
+                    dc.w     $110,$90,$10,$10,$00,$00
+                    dc.w     $120,$70,$10,$10,$00,$00
+                    dc.w     $120,$90,$10,$10,$00,$00
+                    dc.w     $130,$70,$10,$10,$00,$00
+                    dc.w     $130,$90,$10,$10,$00,$00
+                    dc.w     $00,$100,$60,$80,$00,$00
+                    dc.w     $60,$100,$60,$80,$00,$00
+                    dc.w     $C0,$100,$60,$80,$00,$00
+                    dc.w     $120,$100,$10,$10,$00,$00
+                    dc.w     $120,$120,$10,$10,$00,$00
+                    dc.w     $120,$140,$10,$10,$00,$00
+                    dc.w     $120,$160,$10,$10,$00,$00
+                    dcb.w    384,0
 
 lbL01B036:          dc.l     lbL0160AA,1
                     dc.l     lbL0160DA,1
@@ -15165,374 +15124,374 @@ lbL01BEA2:          dc.l     lbL01559A,1
                     dc.l     lbL01559A,1,-1
                     dc.l     lbL0155FA,$7D00,-1
 
-lbW01BECA:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$00
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dc.w    $40,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $60,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $80,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $A0,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $C0,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $E0,$40,$20,$20,$22,$22,$22,$22
-                    dc.w    $40,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $60,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $80,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $A0,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $C0,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $E0,$60,$20,$20,$22,$22,$22,$22
-                    dc.w    $00,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $00,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $20,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $70,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $A0,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $D0,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $70,$00,$20,$10,$00,$00,$00,$00
-                    dc.w    $70,$10,$20,$10,$00,$00,$00,$00
-                    dc.w    $70,$20,$20,$10,$00,$00,$00,$00
-                    dcb.w   472,$10
+lbW01BECA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$00
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dc.w     $40,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $60,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $80,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $A0,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $C0,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $E0,$40,$20,$20,$22,$22,$22,$22
+                    dc.w     $40,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $60,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $80,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $A0,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $C0,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $E0,$60,$20,$20,$22,$22,$22,$22
+                    dc.w     $00,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $00,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $20,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $70,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $A0,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $D0,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $70,$00,$20,$10,$00,$00,$00,$00
+                    dc.w     $70,$10,$20,$10,$00,$00,$00,$00
+                    dc.w     $70,$20,$20,$10,$00,$00,$00,$00
+                    dcb.w    472,$10
 
-lbW01C52A:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$00
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dc.w    $B0,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $B0,$10,$10,$10,$00,$00,$00,$00
-                    dc.w    $B0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $70,$00,$10,$30,$100,$5F80,$5F80,$5F80
-                    dc.w    $80,$00,$10,$30,$114,$5F94,$5F94,$5F94
-                    dc.w    $90,$00,$10,$30,$114,$5F94,$5F94,$5F94
-                    dc.w    $A0,$00,$10,$30,$114,$5F94,$5F94,$5F94
-                    dc.w    $100,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $110,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $120,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $130,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $100,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $110,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $120,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $130,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $C0,$00,$20,$20,$4100,$4140,$4600,$4640
-                    dc.w    $F0,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $C0,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $E0,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $80,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $A0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $C0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $E0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $00,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $20,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $00,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $70,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $A0,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $D0,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $20,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dc.w    $40,$40,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dc.w    $40,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dc.w    $60,$40,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dc.w    $60,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dc.w    $80,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
-                    dcb.w   360,$10
+lbW01C52A:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$00
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dc.w     $B0,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $B0,$10,$10,$10,$00,$00,$00,$00
+                    dc.w     $B0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $70,$00,$10,$30,$100,$5F80,$5F80,$5F80
+                    dc.w     $80,$00,$10,$30,$114,$5F94,$5F94,$5F94
+                    dc.w     $90,$00,$10,$30,$114,$5F94,$5F94,$5F94
+                    dc.w     $A0,$00,$10,$30,$114,$5F94,$5F94,$5F94
+                    dc.w     $100,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $110,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $120,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $130,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $100,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $110,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $120,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $130,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $C0,$00,$20,$20,$4100,$4140,$4600,$4640
+                    dc.w     $F0,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $C0,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $E0,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $80,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $A0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $C0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $E0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $00,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $20,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $00,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $70,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $A0,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $D0,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $20,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dc.w     $40,$40,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dc.w     $40,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dc.w     $60,$40,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dc.w     $60,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dc.w     $80,$60,$20,$20,$5EB4,$5EE7,$63AF,$63E7
+                    dcb.w    360,$10
 
-lbW01CB8A:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$580
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$580
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$0
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dC.w    $70,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $90,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $B0,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $D0,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $F0,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $110,$00,$20,$20,$20,$20,$20,$20
-                    dc.w    $00,$40,$20,$20,$20,$20,$20,$20
-                    dc.w    $20,$40,$20,$20,$20,$20,$20,$20
-                    dc.w    $40,$40,$20,$20,$20,$20,$20,$20
-                    dc.w    $60,$40,$20,$20,$20,$20,$20,$20
-                    dc.w    $80,$40,$20,$20,$20,$20,$20,$20
-                    dc.w    $A0,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $80,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $60,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $40,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $20,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $00,$40,$20,$20,$21,$21,$21,$21
-                    dc.w    $110,$00,$20,$20,$21,$21,$21,$21
-                    dc.w    $F0,$00,$20,$20,$21,$21,$21,$21
-                    dc.w    $D0,$00,$20,$20,$21,$21,$21,$21
-                    dc.w    $B0,$00,$20,$20,$21,$21,$21,$21
-                    dc.w    $90,$00,$20,$20,$21,$21,$21,$21
-                    dc.w    $70,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $90,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $B0,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $D0,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $F0,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $110,$20,$20,$20,$20,$20,$20,$20
-                    dc.w    $00,$60,$20,$20,$20,$20,$20,$20
-                    dc.w    $20,$60,$20,$20,$20,$20,$20,$20
-                    dc.w    $40,$60,$20,$20,$20,$20,$20,$20
-                    dc.w    $60,$60,$20,$20,$20,$20,$20,$20
-                    dc.w    $80,$60,$20,$20,$20,$20,$20,$20
-                    dc.w    $A0,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $80,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $60,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $40,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $20,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $00,$60,$20,$20,$21,$21,$21,$21
-                    dc.w    $110,$20,$20,$20,$21,$21,$21,$21
-                    dc.w    $F0,$20,$20,$20,$21,$21,$21,$21
-                    dc.w    $D0,$20,$20,$20,$21,$21,$21,$21
-                    dc.w    $B0,$20,$20,$20,$21,$21,$21,$21
-                    dc.w    $90,$20,$20,$20,$21,$21,$21,$21
-                    dc.w    $C0,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $C0,$50,$30,$10,$00,$00,$00,$00
-                    dc.w    $C0,$50,$30,$10,$00,$00,$00,$00
-                    dc.w    $130,$00,$10,$30,$40,$540,$540,$540
-                    dc.w    $130,$30,$10,$30,$80,$5C0,$5C0,$00
-                    dc.w    $C0,$70,$30,$10,$1100,$1100,$1100,$00
-                    dc.w    $110,$60,$20,$10,$6540,$6580,$00,$00
-                    dc.w    $110,$70,$20,$10,$1100,$2180,$00,$00
-                    dc.w    $C0,$60,$30,$10,$10C0,$1100,$1100,00
-                    dc.w    $F0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $110,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $F0,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $10,$00,$10,$30,$A7,$A7,$A7,$27
-                    dcb.w   208,$10
+lbW01CB8A:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$580
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$580
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$0
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dC.w     $70,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $90,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $B0,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $D0,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $F0,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $110,$00,$20,$20,$20,$20,$20,$20
+                    dc.w     $00,$40,$20,$20,$20,$20,$20,$20
+                    dc.w     $20,$40,$20,$20,$20,$20,$20,$20
+                    dc.w     $40,$40,$20,$20,$20,$20,$20,$20
+                    dc.w     $60,$40,$20,$20,$20,$20,$20,$20
+                    dc.w     $80,$40,$20,$20,$20,$20,$20,$20
+                    dc.w     $A0,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $80,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $60,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $40,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $20,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $00,$40,$20,$20,$21,$21,$21,$21
+                    dc.w     $110,$00,$20,$20,$21,$21,$21,$21
+                    dc.w     $F0,$00,$20,$20,$21,$21,$21,$21
+                    dc.w     $D0,$00,$20,$20,$21,$21,$21,$21
+                    dc.w     $B0,$00,$20,$20,$21,$21,$21,$21
+                    dc.w     $90,$00,$20,$20,$21,$21,$21,$21
+                    dc.w     $70,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $90,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $B0,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $D0,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $F0,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $110,$20,$20,$20,$20,$20,$20,$20
+                    dc.w     $00,$60,$20,$20,$20,$20,$20,$20
+                    dc.w     $20,$60,$20,$20,$20,$20,$20,$20
+                    dc.w     $40,$60,$20,$20,$20,$20,$20,$20
+                    dc.w     $60,$60,$20,$20,$20,$20,$20,$20
+                    dc.w     $80,$60,$20,$20,$20,$20,$20,$20
+                    dc.w     $A0,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $80,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $60,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $40,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $20,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $00,$60,$20,$20,$21,$21,$21,$21
+                    dc.w     $110,$20,$20,$20,$21,$21,$21,$21
+                    dc.w     $F0,$20,$20,$20,$21,$21,$21,$21
+                    dc.w     $D0,$20,$20,$20,$21,$21,$21,$21
+                    dc.w     $B0,$20,$20,$20,$21,$21,$21,$21
+                    dc.w     $90,$20,$20,$20,$21,$21,$21,$21
+                    dc.w     $C0,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $C0,$50,$30,$10,$00,$00,$00,$00
+                    dc.w     $C0,$50,$30,$10,$00,$00,$00,$00
+                    dc.w     $130,$00,$10,$30,$40,$540,$540,$540
+                    dc.w     $130,$30,$10,$30,$80,$5C0,$5C0,$00
+                    dc.w     $C0,$70,$30,$10,$1100,$1100,$1100,$00
+                    dc.w     $110,$60,$20,$10,$6540,$6580,$00,$00
+                    dc.w     $110,$70,$20,$10,$1100,$2180,$00,$00
+                    dc.w     $C0,$60,$30,$10,$10C0,$1100,$1100,00
+                    dc.w     $F0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $110,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $F0,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $10,$00,$10,$30,$A7,$A7,$A7,$27
+                    dcb.w    208,$10
 
-lbW01D21A:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$580
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$580
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$00
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dc.w    $90,$00,$10,$30,$14,$14,$14,$00
-                    dc.w    $A0,$00,$10,$30,$14,$14,$14,$00
-                    dc.w    $B0,$00,$10,$30,$14,$14,$14,$00
-                    dc.w    $C0,$00,$30,$10,$14,$14,$14,$00
-                    dc.w    $C0,$10,$30,$10,$14,$14,$14,$00
-                    dc.w    $C0,$20,$30,$10,$14,$14,$14,$00
-                    dc.w    $60,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $80,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $70,$10,$10,$10,$00,$00,$00,$00
-                    dc.w    $80,$10,$10,$10,$00,$00,$00,$00
-                    dc.w    $70,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $80,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $70,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $80,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $90,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $90,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $C0,$30,$30,$10,$00,$00,$00,$00
-                    dc.w    $C0,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $00,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $30,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $60,$40,$30,$10,$00,$00,$00,$00
-                    dc.w    $F0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $F0,$20,$10,$20,$00,$00,$00,$00
-                    dc.w    $F0,$40,$10,$20,$00,$00,$00,$00
-                    dc.w    $F0,$60,$10,$20,$00,$00,$00,$00
-                    dc.w    $100,$00,$40,$10,$00,$00,$00,$00
-                    dc.W    $100,$10,$40,$10,$00,$00,$00,$00
-                    dc.w    $100,$20,$40,$10,$00,$00,$00,$00
-                    dc.w    $100,$30,$40,$10,$14,$00,$00,$14
-                    dc.w    $100,$40,$40,$10,$14,$14,$14,$14
-                    dc.w    $100,$50,$40,$10,$14,$14,$14,$14
-                    dc.w    $100,$60,$40,$10,$14,$14,$14,$14
-                    dc.w    $00,$50,$10,$30,$00,$00,$00,$00
-                    dc.w    $10,$50,$10,$30,$00,$00,$00,$00
-                    dc.w    $20,$50,$30,$10,$00,$00,$00,$00
-                    dc.w    $20,$60,$30,$10,$00,$00,$00,$00
-                    dc.w    $50,$50,$10,$30,$15C0,$1600,$1B80,$00
-                    dc.w    $60,$50,$30,$10,$15C0,$1600,$1640,$00
-                    dc.w    $50,$50,$10,$10,$15C0,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$540,$540,$540,$540
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dcb.w   344,$10
+lbW01D21A:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$580
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$580
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$00
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dc.w     $90,$00,$10,$30,$14,$14,$14,$00
+                    dc.w     $A0,$00,$10,$30,$14,$14,$14,$00
+                    dc.w     $B0,$00,$10,$30,$14,$14,$14,$00
+                    dc.w     $C0,$00,$30,$10,$14,$14,$14,$00
+                    dc.w     $C0,$10,$30,$10,$14,$14,$14,$00
+                    dc.w     $C0,$20,$30,$10,$14,$14,$14,$00
+                    dc.w     $60,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $80,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $70,$10,$10,$10,$00,$00,$00,$00
+                    dc.w     $80,$10,$10,$10,$00,$00,$00,$00
+                    dc.w     $70,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $80,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $70,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $80,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $90,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $90,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $C0,$30,$30,$10,$00,$00,$00,$00
+                    dc.w     $C0,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $00,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $30,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $60,$40,$30,$10,$00,$00,$00,$00
+                    dc.w     $F0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $F0,$20,$10,$20,$00,$00,$00,$00
+                    dc.w     $F0,$40,$10,$20,$00,$00,$00,$00
+                    dc.w     $F0,$60,$10,$20,$00,$00,$00,$00
+                    dc.w     $100,$00,$40,$10,$00,$00,$00,$00
+                    dc.W     $100,$10,$40,$10,$00,$00,$00,$00
+                    dc.w     $100,$20,$40,$10,$00,$00,$00,$00
+                    dc.w     $100,$30,$40,$10,$14,$00,$00,$14
+                    dc.w     $100,$40,$40,$10,$14,$14,$14,$14
+                    dc.w     $100,$50,$40,$10,$14,$14,$14,$14
+                    dc.w     $100,$60,$40,$10,$14,$14,$14,$14
+                    dc.w     $00,$50,$10,$30,$00,$00,$00,$00
+                    dc.w     $10,$50,$10,$30,$00,$00,$00,$00
+                    dc.w     $20,$50,$30,$10,$00,$00,$00,$00
+                    dc.w     $20,$60,$30,$10,$00,$00,$00,$00
+                    dc.w     $50,$50,$10,$30,$15C0,$1600,$1B80,$00
+                    dc.w     $60,$50,$30,$10,$15C0,$1600,$1640,$00
+                    dc.w     $50,$50,$10,$10,$15C0,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$540,$540,$540,$540
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dcb.w    344,$10
 
-lbW01D8BA:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$00
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dc.w    $60,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $80,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $A0,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $C0,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $E0,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $100,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $120,$60,$20,$20,$14,$14,$14,$14
-                    dc.w    $60,$40,$20,$20,$14,$14,$14,$14
-                    dc.w    $A0,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $A0,$10,$10,$10,$00,$00,$00,$00
-                    dc.w    $C0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $100,$40,$20,$10,$2C1,$2C1,$01,$01
-                    dc.W    $100,$50,$20,$10,$3100,$3100,$00,$00
-                    dc.w    $C0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $D0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $E0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $F0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $110,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $120,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $130,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $A0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $B0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $C0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $D0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $E0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $F0,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $100,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $110,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $120,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $130,$30,$10,$10,$00,$00,$00,$00
-                    dc.w    $D0,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $E0,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $F0,$00,$10,$10,$00,$00,$00,$00
-                    dc.w    $100,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $110,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $120,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $130,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $80,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $A0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $C0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $E0,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $120,$30,$10,$30,$40,$540,$540,$540
-                    dc.w    $130,$30,$10,$30,$80,$5C0,$5C0,$00
-                    dcb.w   656,$10
+lbW01D8BA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$00
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dc.w     $60,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $80,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $A0,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $C0,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $E0,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $100,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $120,$60,$20,$20,$14,$14,$14,$14
+                    dc.w     $60,$40,$20,$20,$14,$14,$14,$14
+                    dc.w     $A0,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $A0,$10,$10,$10,$00,$00,$00,$00
+                    dc.w     $C0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $100,$40,$20,$10,$2C1,$2C1,$01,$01
+                    dc.W     $100,$50,$20,$10,$3100,$3100,$00,$00
+                    dc.w     $C0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $D0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $E0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $F0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $110,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $120,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $130,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $A0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $B0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $C0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $D0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $E0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $F0,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $100,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $110,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $120,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $130,$30,$10,$10,$00,$00,$00,$00
+                    dc.w     $D0,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $E0,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $F0,$00,$10,$10,$00,$00,$00,$00
+                    dc.w     $100,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $110,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $120,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $130,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $80,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $A0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $C0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $E0,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $120,$30,$10,$30,$40,$540,$540,$540
+                    dc.w     $130,$30,$10,$30,$80,$5C0,$5C0,$00
+                    dcb.w    656,$10
 
-lbW01E1FA:          dc.w    $00,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $10,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $20,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $30,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $40,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $50,$80,$10,$10,$00,$00,$00,$00
-                    dc.w    $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
-                    dc.w    $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
-                    dc.w    $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
-                    dc.w    $10,$00,$10,$40,$80,$80,$80,$80
-                    dc.w    $10,$00,$10,$30,$80,$80,$80,$00
-                    dc.w    $30,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $40,$20,$10,$10,$5B00,$00,$00,$00
-                    dc.w    $30,$10,$10,$10,$563C,$00,$00,$00
-                    dc.w    $30,$00,$10,$10,$5F80,$00,$00,$00
-                    dc.w    $50,$30,$20,$10,$00,$00,$00,$00
-                    dc.w    $50,$20,$20,$10,$00,$00,$00,$00
-                    dc.w    $30,$30,$20,$10,$2400,$2440,$00,$00
-                    dc.w    $60,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $50,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $40,$00,$10,$20,$1500,$1A00,$00,$00
-                    dc.w    $70,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $80,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $90,$00,$10,$30,$00,$00,$00,$00
-                    dc.w    $A0,$00,$10,$30,$16,$16,$16,$16
-                    dc.w    $B0,$00,$10,$30,$16,$16,$16,$16
-                    dc.w    $70,$30,$10,$10,$6034,$27,$2F,$27
-                    dc.w    $80,$30,$10,$10,$6034,$27,$2F,$27
-                    dc.w    $90,$30,$10,$10,$6034,$27,$2F,$27
-                    dc.w    $A0,$30,$10,$10,$6034,$27,$2F,$27
-                    dc.w    $B0,$30,$10,$10,$6034,$27,$2F,$27
-                    dc.w    $C0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $D0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $E0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $F0,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $100,$20,$10,$10,$00,$00,$00,$00
-                    dc.w    $C0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $D0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $E0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $F0,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $100,$00,$10,$20,$00,$00,$00,$00
-                    dc.w    $00,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $20,$40,$20,$20,$00,$00,$00,$00
-                    dc.w    $00,$60,$20,$20,$00,$00,$00,$00
-                    dc.w    $120,$30,$10,$30,$40,$540,$540,$540
-                    dc.w    $130,$30,$10,$30,$80,$5C0,$5C0,$00
-                    dc.w    $110,$10,$30,$10,$5FC0,$5FC0,$5FC0,$00
-                    dc.w    $110,$00,$30,$10,$5AC1,$5AC1,$5AC1,$00
-                    dcb.w   768,$10
+lbW01E1FA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $10,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $20,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $30,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $40,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $50,$80,$10,$10,$00,$00,$00,$00
+                    dc.w     $00,$00,$10,$40,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$40,$5A3,$5A3,$5A3,$5A3
+                    dc.w     $00,$00,$10,$30,$5A2,$5A2,$5A2,$5A2
+                    dc.w     $20,$00,$10,$30,$5A3,$5A3,$5A3,$580
+                    dc.w     $10,$00,$10,$40,$80,$80,$80,$80
+                    dc.w     $10,$00,$10,$30,$80,$80,$80,$00
+                    dc.w     $30,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $40,$20,$10,$10,$5B00,$00,$00,$00
+                    dc.w     $30,$10,$10,$10,$563C,$00,$00,$00
+                    dc.w     $30,$00,$10,$10,$5F80,$00,$00,$00
+                    dc.w     $50,$30,$20,$10,$00,$00,$00,$00
+                    dc.w     $50,$20,$20,$10,$00,$00,$00,$00
+                    dc.w     $30,$30,$20,$10,$2400,$2440,$00,$00
+                    dc.w     $60,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $50,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $40,$00,$10,$20,$1500,$1A00,$00,$00
+                    dc.w     $70,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $80,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $90,$00,$10,$30,$00,$00,$00,$00
+                    dc.w     $A0,$00,$10,$30,$16,$16,$16,$16
+                    dc.w     $B0,$00,$10,$30,$16,$16,$16,$16
+                    dc.w     $70,$30,$10,$10,$6034,$27,$2F,$27
+                    dc.w     $80,$30,$10,$10,$6034,$27,$2F,$27
+                    dc.w     $90,$30,$10,$10,$6034,$27,$2F,$27
+                    dc.w     $A0,$30,$10,$10,$6034,$27,$2F,$27
+                    dc.w     $B0,$30,$10,$10,$6034,$27,$2F,$27
+                    dc.w     $C0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $D0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $E0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $F0,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $100,$20,$10,$10,$00,$00,$00,$00
+                    dc.w     $C0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $D0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $E0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $F0,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $100,$00,$10,$20,$00,$00,$00,$00
+                    dc.w     $00,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $20,$40,$20,$20,$00,$00,$00,$00
+                    dc.w     $00,$60,$20,$20,$00,$00,$00,$00
+                    dc.w     $120,$30,$10,$30,$40,$540,$540,$540
+                    dc.w     $130,$30,$10,$30,$80,$5C0,$5C0,$00
+                    dc.w     $110,$10,$30,$10,$5FC0,$5FC0,$5FC0,$00
+                    dc.w     $110,$00,$30,$10,$5AC1,$5AC1,$5AC1,$00
+                    dcb.w    768,$10
                     
                     dc.w     $FFFF,2,$F8,$FA                    ; ????
 lbW01EB12:          dc.l     lbL016A0A
@@ -16566,7 +16525,7 @@ lbL020F82:          dc.l     lbL0166DA,12
 
 return2:            rts
 
-disable_interrupts: move.w   #$4000,$dff09a
+disable_interrupts: move.w   #INTF_INTEN,CUSTOM+INTENA
                     rts
 
 init_level_variables:
@@ -16591,26 +16550,26 @@ init_level_variables:
                     jsr      lbC023210
                     jsr      lbC00A6AE
                     lea      lbL012328,a0
-                    add.l    #4,a0
+                    addq.l   #4,a0
 lbC021016:          move.l   (a0),a1
-                    clr.l    $42(a1)
-                    move.l   #lbL00051C,$32(a1)
-                    move.l   #lbL00051C,$36(a1)
-                    move.l   #lbL00051C,$3A(a1)
-                    move.l   #lbL00051C,$3E(a1)
+                    clr.l    66(a1)
+                    move.l   #lbL00051C,50(a1)
+                    move.l   #lbL00051C,54(a1)
+                    move.l   #lbL00051C,58(a1)
+                    move.l   #lbL00051C,62(a1)
                     addq.l   #4,a0
                     tst.l    (a0)
-                    bne.s    lbC021016
+                    bne.b    lbC021016
                     rts
 
 keyboard_handler:   tst.w    music_enabled
                     bne      return2
-                    move.w   #8,$dff09a
+                    move.w   #INTF_PORTS,CUSTOM+INTENA
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.b   $bfec01,d0
+                    move.b   CIAA+CIASDR,d0
                     not.b    d0
                     lsr.w    #1,d0
-                    bcs.s    lbC021074
+                    bcs.b    lbC021074
                     and.w    #$7F,d0
                     move.b   d0,key_pressed
                     bra      lbC02107E
@@ -16618,15 +16577,15 @@ keyboard_handler:   tst.w    music_enabled
 lbC021074:          and.w    #$7F,d0
                     move.b   d0,key_released
 lbC02107E:          moveq    #0,d0
-                    move.b   $bfed01,d0
+                    move.b   CIAA+CIAICR,d0
                     btst     #3,d0
                     beq      lbC0210B8
-                    move.b   $bfec01,d0
-                    or.b     #$40,$bfee01
-                    move.b   #$FF,$bfec01
-                    and.b    #$BF,$bfee01
+                    move.b   CIAA+CIASDR,d0
+                    or.b     #$40,CIAA+CIACRA
+                    move.b   #$FF,CIAA+CIASDR
+                    and.b    #$BF,CIAA+CIACRA
 lbC0210B8:          movem.l  (sp)+,d0-d7/a0-a6
-                    move.w   #8,$dff09c
+                    move.w   #INTF_PORTS,CUSTOM+INTREQ
                     rts
 
 key_pressed:        dc.b    0
@@ -16872,18 +16831,18 @@ start_music:        tst.w    lbW0003A2
                     clr.b    numtables
                     clr.l    tables
                     movem.l  d0/a0/a1,-(sp)
-                    lea      bpreset,a0
-                    lea      bpcurrent,a1
+                    lea      bpreset(pc),a0
+                    lea      bpcurrent(pc),a1
                     move.w   #64-1,d0
 lbC022B64:          move.w   (a0)+,(a1)+
                     dbf      d0,lbC022B64
-                    lea      bpbuffer,a0
+                    lea      bpbuffer(pc),a0
                     move.w   #144-1,d0
 lbC022B74:          clr.b    (a0)+
                     dbf      d0,lbC022B74
                     movem.l  (sp)+,d0/a0/a1
-                    jsr      bpinit
-                    jsr      bpresetbuffer
+                    bsr      bpinit
+                    bsr      bpresetbuffer
                     move.w   #1,lbW0004C4
 lbC022B92:          rts
 
@@ -16892,25 +16851,25 @@ stop_sound:         tst.w    lbW0003A2
                     clr.w    lbW0004E0
                     moveq    #76,d0
                     moveq    #0,d2
-                    jsr      trigger_sample_select_channel
+                    bsr      trigger_sample_select_channel
                     moveq    #76,d0
                     moveq    #1,d2
-                    jsr      trigger_sample_select_channel
+                    bsr      trigger_sample_select_channel
                     moveq    #76,d0
                     moveq    #2,d2
-                    jsr      trigger_sample_select_channel
+                    bsr      trigger_sample_select_channel
                     moveq    #76,d0
                     moveq    #3,d2
-                    jsr      trigger_sample_select_channel
+                    bsr      trigger_sample_select_channel
                     move.l   #12,number_frames_to_wait
                     jsr      sleep_frames
                     clr.w    lbW0004C4
-                    jsr      silence
-                    move.w   #2,$dff0a2
-                    move.w   #2,$dff0b2
-                    move.w   #2,$dff0c2
-                    move.w   #2,$dff0d2
-                    move.w   #15,$dff096
+                    bsr      silence
+                    move.w   #2,CUSTOM+AUD0LCL
+                    move.w   #2,CUSTOM+AUD1LCL
+                    move.w   #2,CUSTOM+AUD2LCL
+                    move.w   #2,CUSTOM+AUD3LCL
+                    move.w   #DMAF_AUD0|DMAF_AUD1|DMAF_AUD2|DMAF_AUD3,CUSTOM+DMACON
                     clr.w    bpchannel1_status
                     clr.w    bpchannel2_status
                     clr.w    bpchannel3_status
@@ -16923,11 +16882,11 @@ lbB022C32:          dcb.b    2,0
 lbC022C34:          tst.w    music_enabled
                     bne      return2
                     move.w   audio_dmacon,d0
-                    move.w   d0,$dff096
-                    btst     #3,d0
-                    beq.s    lbC022C60
-                    move.w   #$400,$dff09c
-                    move.w   #$8400,$dff09a
+                    move.w   d0,CUSTOM+DMACON
+                    btst     #DMAB_AUD3,d0
+                    beq.b    lbC022C60
+                    move.w   #INTF_AUD3,CUSTOM+INTREQ
+                    move.w   #INTF_SETCLR|INTF_AUD3,CUSTOM+INTENA
 lbC022C60:          clr.w    audio_dmacon
                     rts
 
@@ -16940,21 +16899,21 @@ lbW022C70:          dc.l     0
 lbC022D1E:          tst.w    lbW0004C2
                     beq      return2
                     move.l   #lbL02311A,d0
-                    cmp.l    lbL02328C,d0
+                    cmp.l    lbL02328C(pc),d0
                     beq      return2
-                    cmp.l    lbL02320C,d0
+                    cmp.l    lbL02320C(pc),d0
                     beq      return2
                     move.w   lbW008C9A,d7
                     subq.w   #1,d7
-                    add.w    #$41,d7
-                    cmp.w    lbW023126,d7
+                    add.w    #65,d7
+                    cmp.w    lbW023126(pc),d7
                     beq      return2
                     move.w   d7,lbW023126
-                    lea      lbL02311A,a6
-                    jsr      lbC02325A
+                    lea      lbL02311A(pc),a6
+                    bsr      lbC02325A
                     tst.w    lbW02328A
                     bne      return2
-                    lea      lbL02311A,a6
+                    lea      lbL02311A(pc),a6
                     move.l   a6,lbL02328C
                     rts
 
@@ -16962,36 +16921,36 @@ install_lev4irq:    lea      lbL114EC4,a0
                     move.w   #129-1,d0
 lbC022D8C:          clr.l    (a0)+
                     dbf      d0,lbC022D8C
-                    move.w   #$780,$dff09a
-                    move.w   #$780,$dff09c
+                    move.w   #INTF_AUD3|INTF_AUD2|INTF_AUD1|INTF_AUD0,CUSTOM+INTENA
+                    move.w   #INTF_AUD3|INTF_AUD2|INTF_AUD1|INTF_AUD0,CUSTOM+INTREQ
                     move.l   reg_vbr,a1
                     move.l   $70(a1),d0
                     lea      lev4irq(pc),a0
                     cmp.l    a0,d0
-                    beq.s    lbC022DBE
+                    beq.b    .already_installed
                     move.l   a0,$70(a1)
-lbC022DBE:          rts
+.already_installed: rts
 
 lev4irq:            move.l   d0,-(sp)
-                    move.w   $dff01e,d0
+                    move.w   CUSTOM+INTREQR,d0
                     btst     #10,d0
                     beq      lbC022F2E
-                    move.w   #$400,$dff09c
+                    move.w   #$400,CUSTOM+INTREQ
                     movem.l  a0/a1,-(sp)
                     lea      lbW0230F8(pc),a0
                     lea      lbL114EC4,a1
                     move.l   2(a0),d0
                     bmi      lbC022E8E
                     not.w    0(a0)
-                    beq.s    lbC022E16
-                    add.w    #$100,a1
-lbC022E16:          move.l   a1,$dff0d0
+                    beq.b    lbC022E16
+                    add.w    #256,a1
+lbC022E16:          move.l   a1,CUSTOM+AUD3LCH
                     movem.l  d1-d7/a2/a3,-(sp)
                     move.l   6(a0),a2
-                    add.l    #$100,6(a0)
-                    sub.l    #$100,2(a0)
-                    bmi.s    lbC022EB0
-                    moveq    #$20,d0
+                    add.l    #256,6(a0)
+                    sub.l    #256,2(a0)
+                    bmi.b    lbC022EB0
+                    moveq    #32,d0
                     movem.l  (a2)+,d1-d7/a3
                     movem.l  d1-d7/a3,(a1)
                     add.w    d0,a1
@@ -17018,61 +16977,61 @@ lbC022E16:          move.l   a1,$dff0d0
                     movem.l  (sp)+,d1-d7/a2/a3
                     bra      lbC022F2A
 
-lbC022E8E:          move.l   #lbL1150C4,$dff0d0
-                    move.w   #1,$dff0d4
-                    clr.w    $dff0d8
-                    move.w   #$400,$dff09a
-                    bra.s    lbC022F2A
+lbC022E8E:          move.l   #lbL1150C4,CUSTOM+AUD3LCH
+                    move.w   #1,CUSTOM+AUD3LEN
+                    clr.w    CUSTOM+AUD3VOL
+                    move.w   #INTF_AUD3,CUSTOM+INTENA
+                    bra.b    lbC022F2A
 
 lbC022EB0:          lsr.w    #1,d0
-                    move.w   d0,$dff0d4
+                    move.w   d0,CUSTOM+AUD3LEN
                     add.w    d0,d0
-                    moveq    #$20,d1
+                    moveq    #32,d1
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    bmi.s    lbC022F26
+                    bmi.b    lbC022F26
                     movem.l  (a2)+,d2-d7/a0/a3
                     movem.l  d2-d7/a0/a3,(a1)
 lbC022F26:          movem.l  (sp)+,d1-d7/a2/a3
 lbC022F2A:          movem.l  (sp)+,a0/a1
-lbC022F2E:          move.w   #$400,$dff09c
+lbC022F2E:          move.w   #INTF_AUD3,CUSTOM+INTREQ
                     move.l   (sp)+,d0
                     rte
 
 lbC022F3A:          movem.l  d2-d7/a2-a4,-(sp)
-                    move.w   #$400,$dff09a
+                    move.w   #INTF_AUD3,CUSTOM+INTENA
                     cmp.l    #$200,d0
                     bgt      lbC023070
                     move.l   d0,-(sp)
@@ -17113,66 +17072,66 @@ lbC022F3A:          movem.l  d2-d7/a2-a4,-(sp)
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
                     sub.w    d1,d0
-                    ble.s    lbC023042
+                    ble.b    lbC023042
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
 lbC023042:          move.l   (sp)+,d0
                     lsr.w    #1,d0
-                    move.l   a4,$dff0d0
-                    move.w   d0,$dff0d4
-                    move.w   #$400,$dff09c
-                    move.w   #$8400,$dff09a
+                    move.l   a4,CUSTOM+AUD3LCH
+                    move.w   d0,CUSTOM+AUD3LEN
+                    move.w   #INTF_AUD3,CUSTOM+INTREQ
+                    move.w   #INTF_SETCLR|INTF_AUD3,CUSTOM+INTENA
                     move.l   #-1,lbL0230FA
                     bra      lbC0230F2
 
 lbC023070:          clr.w    lbW0230F8
-                    sub.l    #$100,d0
+                    sub.l    #256,d0
                     move.l   d0,lbL0230FA
-                    lea      $100(a0),a1
+                    lea      256(a0),a1
                     move.l   a1,lbL0230FE
                     lea      lbL114EC4,a1
                     move.l   a1,a4
-                    moveq    #$20,d1
+                    moveq    #32,d1
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
                     add.w    d1,a1
@@ -17196,8 +17155,8 @@ lbC023070:          clr.w    lbW0230F8
                     add.w    d1,a1
                     movem.l  (a0)+,d2-d7/a2/a3
                     movem.l  d2-d7/a2/a3,(a1)
-                    move.l   a4,$dff0d0
-                    move.w   #$80,$dff0d4
+                    move.l   a4,CUSTOM+AUD3LCH
+                    move.w   #256/2,CUSTOM+AUD3LEN
 lbC0230F2:          movem.l  (sp)+,d2-d7/a2-a4
                     rts
 
@@ -17205,12 +17164,12 @@ lbW0230F8:          dc.w     0
 lbL0230FA:          dc.l     0
 lbL0230FE:          dc.l     0
 
-lbL02311A:          dc.l     $1E0033
+lbL02311A:          dc.w     $1E,$33
                     dc.w     3
                     dc.l     lbW023124
 lbW023124:          dc.w     12
 lbW023126:          dc.w     0,3,0,0
-lbL02312E:          dc.l     $1E0039
+lbL02312E:          dc.w     $1E,$39
                     dc.w     3
                     dc.l     lbW023138
 lbW023138:          dc.w     13
@@ -17290,29 +17249,29 @@ lbL023298:          dc.l     0
 lbL02329C:          dc.l     0
 lbL0232A0:          dc.l     0
 
-lbC0232A4:          lea      lbL02328C,a0
+lbC0232A4:          lea      lbL02328C(pc),a0
                     move.l   (a0),a6
                     cmp.l    #0,a6
-                    beq.s    lbC0232BC
+                    beq.b    lbC0232BC
                     clr.l    (a0)
                     bra      lbC02325A
 
 lbC0232BC:          rts
 
-lbC023D20:          move.l   lbL023200,a0
+lbC023D20:          move.l   lbL023200(pc),a0
                     cmp.l    #0,a0
                     beq      lbC0232A4
                     addq.w   #1,lbW023204
-                    move.w   lbW023204,d0
+                    move.w   lbW023204(pc),d0
                     cmp.w    0(a0),d0
                     bmi      lbC0232BC
                     move.w   2(a0),d0
                     move.w   4(a0),d2
-                    jsr      trigger_sample_select_channel
-                    move.l   lbL023200,a0
+                    bsr      trigger_sample_select_channel
+                    move.l   lbL023200(pc),a0
                     move.l   6(a0),d0
                     cmp.l    #0,d0
-                    beq.s    lbC023D72
+                    beq.b    lbC023D72
                     move.l   d0,lbL023200
                     clr.w    lbW023204
                     rts
@@ -17329,28 +17288,28 @@ lbW023D8E:          dc.w     0
 trigger_sample:     tst.w    music_enabled
                     bne      lbC0232BC
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   sample_to_play,d0
+                    move.w   sample_to_play(pc),d0
                     cmp.w    #17,d0
-                    beq.s    lbC023DD4
+                    beq.b    lbC023DD4
                     cmp.w    #18,d0
-                    beq.s    lbC023DD4
+                    beq.b    lbC023DD4
                     cmp.w    #50,d0
-                    bmi.s    lbC023DD8
+                    bmi.b    lbC023DD8
                     cmp.w    #73,d0
-                    bpl.s    lbC023DD8
+                    bpl.b    lbC023DD8
                     cmp.w    #55,d0
-                    beq.s    lbC023DD8
+                    beq.b    lbC023DD8
                     cmp.w    #56,d0
-                    beq.s    lbC023DD8
+                    beq.b    lbC023DD8
 lbC023DD4:          moveq    #3,d2
-                    bra.s    lbC023DFA
+                    bra.b    lbC023DFA
 
-lbC023DD8:          move.w   sample_to_play,d0
-                    move.w   lbW023D8E,d2
+lbC023DD8:          move.w   sample_to_play(pc),d0
+                    move.w   lbW023D8E(pc),d2
                     tst.l    lbL023200
-                    beq.s    lbC023DFA
+                    beq.b    lbC023DFA
                     cmp.w    #2,d2
-                    bmi.s    lbC023DFA
+                    bmi.b    lbC023DFA
                     clr.w    lbW023D8E
                     clr.w    d2
 lbC023DFA:          ext.l    d0
@@ -17358,7 +17317,7 @@ lbC023DFA:          ext.l    d0
                     bsr      play_sample
                     addq.w   #1,lbW023D8E
                     cmp.w    #2,lbW023D8E
-                    bne.s    lbC023E18
+                    bne.b    lbC023E18
                     clr.w    lbW023D8E
 lbC023E18:          movem.l  (sp)+,d0-d7/a0-a6
                     rts
@@ -17367,34 +17326,34 @@ trigger_sample_select_channel:
                     tst.w    music_enabled
                     bne      return2
                     cmp.w    #37,d0
-                    bne.s    lbC023E3E
+                    bne.b    lbC023E3E
                     tst.w    lbW023E9C
-                    bne.s    lbC023E9A
+                    bne.b    lbC023E9A
                     move.w   #3,lbW023E9C
 lbC023E3E:          cmp.w    #3,d2
-                    bne.s    lbC023E46
+                    bne.b    lbC023E46
                     moveq    #2,d2
 lbC023E46:          cmp.w    #17,d0
-                    beq.s    lbC023E76
+                    beq.b    lbC023E76
                     cmp.w    #18,d0
-                    beq.s    lbC023E76
+                    beq.b    lbC023E76
                     cmp.w    #50,d0
-                    bmi.s    lbC023E78
+                    bmi.b    lbC023E78
                     cmp.w    #73,d0
-                    bpl.s    lbC023E78
+                    bpl.b    lbC023E78
                     cmp.w    #55,d0
-                    beq.s    lbC023E78
+                    beq.b    lbC023E78
                     cmp.w    #56,d0
-                    beq.s    lbC023E78
+                    beq.b    lbC023E78
 lbC023E76:          moveq    #3,d2
 lbC023E78:          cmp.w    #2,d2
-                    bne.s    lbC023E84
+                    bne.b    lbC023E84
                     move.w   d0,lbW023EA0
 lbC023E84:          cmp.w    #3,d2
-                    bne.s    lbC023E90
+                    bne.b    lbC023E90
                     move.w   d0,lbW023EA2
 lbC023E90:          movem.l  d1/d3-d7/a0-a6,-(sp)
-                    bsr.s    play_sample
+                    bsr.b    play_sample
                     movem.l  (sp)+,d1/d3-d7/a0-a6
 lbC023E9A:          rts
 
@@ -17405,11 +17364,11 @@ lbW023EA2:          dc.w     0
 ; in:
 ; d0: sample number
 ; d2: channel
-play_sample:        lea      $dff000,a6
+play_sample:        lea      CUSTOM,a6
                     move.w   d2,d1
-                    lea      lbW022C70,a0
+                    lea      lbW022C70(pc),a0
                     bsr      switch_sel_channel_off
-                    lea      samples_table,a0
+                    lea      samples_table(pc),a0
                     mulu     #18,d0
                     lea      0(a0,d0.w),a0
                     moveq    #0,d0
@@ -17419,7 +17378,7 @@ play_sample:        lea      $dff000,a6
                     beq      lbC023FF2
                     subq.w   #1,d2
                     beq      lbC02407C
-                    move.w   #8,$96(a6)
+                    move.w   #DMAF_AUD3,DMACON(a6)
                     pea      (a0)
                     moveq    #0,d0
                     move.w   4(a0),d0
@@ -17427,8 +17386,8 @@ play_sample:        lea      $dff000,a6
                     add.l    d0,d0
                     bsr      lbC022F3A
                     move.l   (sp)+,a0
-                    move.w   8(a0),$D6(a6)
-                    move.w   6(a0),$D8(a6)
+                    move.w   8(a0),AUD3PER(a6)
+                    move.w   6(a0),AUD3VOL(a6)
                     move.b   #1,lbB024130
                     move.w   10(a0),d1
                     move.b   d1,lbB024131
@@ -17438,21 +17397,21 @@ play_sample:        lea      $dff000,a6
                     move.l   14(a0),lbL024132
                     move.b   15(a0),lbB024137
                     tst.b    15(a0)
-                    bgt.s    lbC023F42
+                    bgt.b    lbC023F42
                     neg.b    lbB024137
-lbC023F42:          move.b   $11(a0),lbB024136
-                    tst.b    $11(a0)
-                    bgt.s    lbC023F56
+lbC023F42:          move.b   17(a0),lbB024136
+                    tst.b    17(a0)
+                    bgt.b    lbC023F56
                     neg.b    lbB024136
-lbC023F56:          or.w     #$8008,audio_dmacon
+lbC023F56:          or.w     #DMAF_SETCLR|DMAF_AUD3,audio_dmacon
                     move.w   #1,bpchannel4_status
                     rts
 
-lbC023F68:          move.w   #1,$96(a6)
-                    move.l   (a0),$A0(a6)
-                    move.w   4(a0),$A4(a6)
-                    move.w   6(a0),$A8(a6)
-                    move.w   8(a0),$A6(a6)
+lbC023F68:          move.w   #DMAF_AUD0,DMACON(a6)
+                    move.l   (a0),AUD0LCH(a6)
+                    move.w   4(a0),AUD0LEN(a6)
+                    move.w   6(a0),AUD0VOL(a6)
+                    move.w   8(a0),AUD0PER(a6)
                     move.b   #1,lbB024106
                     move.w   10(a0),d1
                     move.b   d1,lbB024107
@@ -17464,19 +17423,19 @@ lbC023F68:          move.w   #1,$96(a6)
                     tst.b    15(a0)
                     bgt.b    lbC023FCC
                     neg.b    lbB02410D
-lbC023FCC:          move.b   $11(a0),lbB02410C
-                    tst.b    $11(a0)
-                    bgt.s    lbC023FE0
+lbC023FCC:          move.b   17(a0),lbB02410C
+                    tst.b    17(a0)
+                    bgt.b    lbC023FE0
                     neg.b    lbB02410C
-lbC023FE0:          or.w     #$8001,audio_dmacon
+lbC023FE0:          or.w     #DMAF_SETCLR|DMAF_AUD0,audio_dmacon
                     move.w   #1,bpchannel1_status
                     rts
 
-lbC023FF2:          move.w   #2,$96(a6)
-                    move.l   (a0),$B0(a6)
-                    move.w   4(a0),$B4(a6)
-                    move.w   6(a0),$B8(a6)
-                    move.w   8(a0),$B6(a6)
+lbC023FF2:          move.w   #DMAF_AUD1,DMACON(a6)
+                    move.l   (a0),AUD1LCH(a6)
+                    move.w   4(a0),AUD1LEN(a6)
+                    move.w   6(a0),AUD1VOL(a6)
+                    move.w   8(a0),AUD1PER(a6)
                     move.b   #1,lbB024114
                     move.w   10(a0),d1
                     move.b   d1,lbB024115
@@ -17488,19 +17447,19 @@ lbC023FF2:          move.w   #2,$96(a6)
                     tst.b    15(a0)
                     bgt.b    lbC024056
                     neg.b    lbB02411B
-lbC024056:          move.b   $11(a0),lbB02411A
-                    tst.b    $11(a0)
-                    bgt.s    lbC02406A
+lbC024056:          move.b   17(a0),lbB02411A
+                    tst.b    17(a0)
+                    bgt.b    lbC02406A
                     neg.b    lbB02411A
-lbC02406A:          or.w     #$8002,audio_dmacon
+lbC02406A:          or.w     #DMAF_SETCLR|DMAF_AUD1,audio_dmacon
                     move.w   #1,bpchannel2_status
                     rts
 
-lbC02407C:          move.w   #4,$96(a6)
-                    move.l   (a0),$C0(a6)
-                    move.w   4(a0),$C4(a6)
-                    move.w   6(a0),$C8(a6)
-                    move.w   8(a0),$C6(a6)
+lbC02407C:          move.w   #DMAF_AUD2,DMACON(a6)
+                    move.l   (a0),AUD2LCH(a6)
+                    move.w   4(a0),AUD2LEN(a6)
+                    move.w   6(a0),AUD2VOL(a6)
+                    move.w   8(a0),AUD2PER(a6)
                     move.b   #1,lbB024122
                     move.w   10(a0),d1
                     move.b   d1,lbB024123
@@ -17512,11 +17471,11 @@ lbC02407C:          move.w   #4,$96(a6)
                     tst.b    15(a0)
                     bgt.b    lbC0240E0
                     neg.b    lbB024129
-lbC0240E0:          move.b   $11(a0),lbB024128
-                    tst.b    $11(a0)
-                    bpl.s    lbC0240F4
+lbC0240E0:          move.b   17(a0),lbB024128
+                    tst.b    17(a0)
+                    bpl.b    lbC0240F4
                     neg.b    lbB024128
-lbC0240F4:          or.w     #$8004,audio_dmacon
+lbC0240F4:          or.w     #DMAF_SETCLR|DMAF_AUD2,audio_dmacon
                     move.w   #1,bpchannel3_status
                     rts
 
@@ -17557,13 +17516,13 @@ lbC024142:          tst.w    music_enabled
                     bne      return2
                     tst.w    lbW0004C4
                     beq      return2
-                    lea      lbB024106,a0
-                    lea      $dff0a6,a1
-                    lea      $dff0a8,a2
+                    lea      lbB024106(pc),a0
+                    lea      CUSTOM+AUD0PER,a1
+                    lea      CUSTOM+AUD0VOL,a2
                     moveq    #0,d1
                     moveq    #4-1,d7
 lbC02416C:          tst.b    (a0)
-                    bne.s    lbC024184
+                    bne.b    lbC024184
 lbC024170:          lea      14(a0),a0
                     lea      $10(a1),a1
                     lea      $10(a2),a2
@@ -17572,132 +17531,132 @@ lbC024170:          lea      14(a0),a0
                     rts
 
 lbC024184:          tst.b    1(a0)
-                    bne.s    lbC024190
+                    bne.b    lbC024190
                     subq.w   #1,12(a0)
-                    beq.s    switch_sel_channel_off
+                    beq.b    switch_sel_channel_off
 lbC024190:          tst.b    2(a0)
-                    beq.s    lbC0241C2
+                    beq.b    lbC0241C2
                     tst.b    7(a0)
-                    bne.s    lbC0241BE
+                    bne.b    lbC0241BE
                     move.b   3(a0),7(a0)
                     tst.b    3(a0)
-                    bpl.s    lbC0241B4
+                    bpl.b    lbC0241B4
                     neg.b    7(a0)
-                    sub.w    #$32,8(a0)
-                    bra.s    lbC0241BA
+                    sub.w    #50,8(a0)
+                    bra.b    lbC0241BA
 
-lbC0241B4:          add.w    #$32,8(a0)
+lbC0241B4:          add.w    #50,8(a0)
 lbC0241BA:          move.w   8(a0),(a1)
 lbC0241BE:          subq.b   #1,7(a0)
 lbC0241C2:          tst.b    4(a0)
-                    beq.s    lbC024170
+                    beq.b    lbC024170
                     tst.w    10(a0)
-                    ble.s    lbC024170
-                    cmp.w    #$40,10(a0)
-                    bge.s    lbC024170
+                    ble.b    lbC024170
+                    cmp.w    #64,10(a0)
+                    bge.b    lbC024170
                     tst.b    6(a0)
-                    bne.s    lbC024204
+                    bne.b    lbC024204
                     move.b   5(a0),6(a0)
                     tst.b    6(a0)
-                    bpl.s    lbC0241FA
+                    bpl.b    lbC0241FA
                     neg.b    6(a0)
-                    sub.w    #8,10(a0)
+                    subq.w   #8,10(a0)
                     move.w   10(a0),(a2)
                     bra      lbC024170
 
-lbC0241FA:          add.w    #8,10(a0)
+lbC0241FA:          addq.w   #8,10(a0)
                     move.w   10(a0),(a2)
-lbC024204:          sub.b    #1,6(a0)
+lbC024204:          subq.b   #1,6(a0)
                     bra      lbC024170
 
 switch_sel_channel_off:
                     clr.b    (a0)
                     tst.w    d1
-                    beq.s    lbC02423A
+                    beq.b    lbC02423A
                     cmp.b    #1,d1
-                    beq.s    lbC02424C
+                    beq.b    lbC02424C
                     cmp.b    #2,d1
-                    beq.s    lbC02425E
-                    move.w   #0,bpchannel4_status
-                    move.w   #8,$dff096
-                    move.w   #$400,$dff09a
+                    beq.b    lbC02425E
+                    clr.w    bpchannel4_status
+                    move.w   #DMAF_AUD3,CUSTOM+DMACON
+                    move.w   #INTF_AUD3,CUSTOM+INTENA
                     rts
 
-lbC02423A:          move.w   #0,bpchannel1_status
-                    move.w   #1,$dff096
+lbC02423A:          clr.w    bpchannel1_status
+                    move.w   #DMAF_AUD0,CUSTOM+DMACON
                     rts
 
-lbC02424C:          move.w   #0,bpchannel2_status
-                    move.w   #2,$dff096
+lbC02424C:          clr.w    bpchannel2_status
+                    move.w   #DMAF_AUD1,CUSTOM+DMACON
                     rts
 
-lbC02425E:          move.w   #0,bpchannel3_status
-                    move.w   #4,$dff096
+lbC02425E:          clr.w    bpchannel3_status
+                    move.w   #DMAF_AUD2,CUSTOM+DMACON
                     rts
 
-silence:            clr.w    $dff0a8
-                    clr.w    $dff0b8
-                    clr.w    $dff0c8
-                    clr.w    $dff0d8
-                    move.w   #15,$dff096
+silence:            clr.w    CUSTOM+AUD0VOL
+                    clr.w    CUSTOM+AUD1VOL
+                    clr.w    CUSTOM+AUD2VOL
+                    clr.w    CUSTOM+AUD3VOL
+                    move.w   #DMAF_AUD0|DMAF_AUD1|DMAF_AUD2|DMAF_AUD3,CUSTOM+DMACON
                     rts
 
-bpinit:             lea     samples(pc),a0
-                    lea     bpsong,a1
-                    clr.b   numtables
-                    cmpi.w  #'V.',26(a1)
-                    bne.s   bpnotv2
-                    cmpi.b  #'2',28(a1)
-                    bne.s   bpnotv2
-                    move.b  29(a1),numtables
+bpinit:             lea      samples(pc),a0
+                    lea      bpsong,a1
+                    clr.b    numtables
+                    cmpi.w   #'V.',26(a1)
+                    bne.b    bpnotv2
+                    cmpi.b   #'2',28(a1)
+                    bne.b    bpnotv2
+                    move.b   29(a1),numtables
 bpnotv2:
-                    move.l  #512,d0
-                    move.w  30(a1),d1       ; d1 now contains length in steps
-                    move.l  #1,d2           ; 1 is highest pattern number
-                    mulu    #4,d1           ; 4 voices per step
-                    subq.w  #1,d1           ; correction for DBRA
+                    move.l   #512,d0
+                    move.w   30(a1),d1          ; d1 now contains length in steps
+                    move.l   #1,d2              ; 1 is highest pattern number
+                    mulu     #4,d1              ; 4 voices per step
+                    subq.w   #1,d1              ; correction for DBRA
 findhighest:
-                    cmp.w   (a1,d0),d2      ; Is it higher
-                    bge.s   nothigher       ; No
-                    move.w  (a1,d0),d2      ; Yes, so let D2 be highest
+                    cmp.w    (a1,d0.w),d2       ; Is it higher
+                    bge.b    nothigher          ; No
+                    move.w   (a1,d0.w),d2       ; Yes, so let D2 be highest
 nothigher:
-                    addq.l  #4,d0           ; Next Voice
-                    dbf     d1,findhighest  ; And search
-                    move.w  30(a1),d1
-                    mulu    #16,d1          ; 16 bytes per step
-                    move.l  #512,d0         ; header is 512 bytes
-                    mulu    #48,d2          ; 48 bytes per pattern
-                    add.l   d2,d0
-                    add.l   d1,d0           ; offset for samples
+                    addq.l   #4,d0              ; Next Voice
+                    dbf      d1,findhighest     ; And search
+                    move.w   30(a1),d1
+                    mulu     #16,d1             ; 16 bytes per step
+                    move.l   #512,d0            ; header is 512 bytes
+                    mulu     #48,d2             ; 48 bytes per pattern
+                    add.l    d2,d0
+                    add.l    d1,d0              ; offset for samples
                     
-                    add.l   #bpsong,d0
-                    move.l  d0,tables
-                    clr.l   d1
-                    move.b  numtables,d1    ; Number of tables
-                    lsl.l   #6,d1           ; x 64
-                    add.l   d1,d0
-                    move.l  #14,d1          ; 15 samples
-                    add.l   #32,a1
+                    add.l    #bpsong,d0
+                    move.l   d0,tables
+                    moveq    #0,d1
+                    move.b   numtables(pc),d1   ; Number of tables
+                    lsl.l    #6,d1              ; x 64
+                    add.l    d1,d0
+                    moveq    #15-1,d1           ; 15 samples
+                    add.l    #32,a1
 initloop:
-                    move.l  d0,(a0)+
-                    cmpi.b  #$ff,(a1)
-                    beq.s   bpissynth
-                    move.w  24(a1),d2
-                    mulu    #2,d2           ; Length is in words
-                    add.l   d2,d0           ; offset next sample
+                    move.l   d0,(a0)+
+                    cmpi.b   #$ff,(a1)
+                    beq.b    bpissynth
+                    move.w   24(a1),d2
+                    mulu     #2,d2              ; Length is in words
+                    add.l    d2,d0              ; offset next sample
 bpissynth:
-                    add.l   #32,a1          ; Length of Sample Part in header
-                    dbf     d1,initloop
+                    add.l    #32,a1             ; Length of Sample Part in header
+                    dbf      d1,initloop
                     rts
 
-bpresetbuffer:      moveq    #3,d7
+bpresetbuffer:      moveq    #4-1,d7
                     lea      bpbuffer(pc),a0
 lbC02433E:          tst.l    (a0)
-                    beq.s    lbC024352
+                    beq.b    lbC024352
                     move.l   a0,a2
                     move.l   (a2),a1
                     clr.l    (a2)+
-                    moveq    #7,d6
+                    moveq    #8-1,d6
 lbC02434A:          move.l   (a2),(a1)+
                     clr.l    (a2)+
                     dbf      d6,lbC02434A
@@ -17711,31 +17670,31 @@ bpmusic:            tst.w    lbW0003A2
                     beq      return2
                     bsr      bpsynth
                     subq.b   #1,arpcount
-                    moveq    #3,d0
-                    lea      bpcurrent,a0
-                    move.l   #$dff0a0,a1
-bloop1:             cmp.l    #$dff0a0,a1
+                    moveq    #4-1,d0
+                    lea      bpcurrent(pc),a0
+                    lea      CUSTOM+AUD0LCH,a1
+bloop1:             cmp.l    #CUSTOM+AUD0LCH,a1
                     beq      lbC024458
-                    cmp.l    #$dff0b0,a1
+                    cmp.l    #CUSTOM+AUD1LCH,a1
                     beq      lbC024472
-                    cmp.l    #$dff0c0,a1
+                    cmp.l    #CUSTOM+AUD2LCH,a1
                     beq      lbC02448C
-                    cmp.l    #$dff0d0,a1
+                    cmp.l    #CUSTOM+AUD3LCH,a1
                     beq      lbC0244A6
 bploop1_channels:   move.b   12(a0),d4
                     ext.w    d4
                     add.w    d4,(a0)
-                    tst.b    $1E(a0)
-                    bne.s    bpnovibr
+                    tst.b    30(a0)
+                    bne.b    bpnovibr
                     move.w   (a0),6(a1)
 bpnovibr:           move.l   4(a0),(a1)
                     move.w   8(a0),4(a1)
                     tst.b    11(a0)
-                    bne.s    bpdoarp
+                    bne.b    bpdoarp
                     tst.b    13(a0)
-                    beq.s    not2
+                    beq.b    not2
 bpdoarp:            tst.b    arpcount
-                    bne.s    lbC024402
+                    bne.b    lbC024402
                     move.b   11(a0),d3
                     move.b   13(a0),d4
                     and.w    #$F0,d4
@@ -17745,10 +17704,10 @@ bpdoarp:            tst.b    arpcount
                     add.w    d3,d4
                     add.b    10(a0),d4
                     bsr      bpplayarp
-                    bra.s    not2
+                    bra.b    not2
 
 lbC024402:          cmp.b    #1,arpcount
-                    bne.s    not1
+                    bne.b    not1
                     move.b   11(a0),d3
                     move.b   13(a0),d4
                     and.w    #$F,d3
@@ -17756,15 +17715,15 @@ lbC024402:          cmp.b    #1,arpcount
                     add.w    d3,d4
                     add.b    10(a0),d4
                     bsr      bpplayarp
-                    bra.s    not2
+                    bra.b    not2
 
 not1:               move.b   10(a0),d4
                     bsr      bpplayarp
 not2:               lea      $10(a1),a1
-                    lea      $20(a0),a0
+                    lea      32(a0),a0
                     dbf      d0,bloop1
 lbC02443C:          tst.b    arpcount
-                    bne.s    lbC02444C
+                    bne.b    lbC02444C
                     move.b   #3,arpcount
 
 lbC02444C:          subq.b   #1,bpcount
@@ -17772,107 +17731,107 @@ lbC02444C:          subq.b   #1,bpcount
                     rts
 
 lbC024458:          tst.w    bpchannel1_status
-                    beq.s    lbC02446E
+                    beq.b    lbC02446E
                     lea      $10(a1),a1
-                    lea      $20(a0),a0
+                    lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
 lbC02446E:          bra      bploop1_channels
 
 lbC024472:          tst.w    bpchannel2_status
-                    beq.s    lbC024488
+                    beq.b    lbC024488
                     lea      $10(a1),a1
-                    lea      $20(a0),a0
+                    lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
 lbC024488:          bra      bploop1_channels
 
 lbC02448C:          tst.w    bpchannel3_status
-                    beq.s    lbC0244A2
+                    beq.b    lbC0244A2
                     lea      $10(a1),a1
-                    lea      $20(a0),a0
+                    lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
 lbC0244A2:          bra      bploop1_channels
 
 lbC0244A6:          tst.w    bpchannel4_status
-                    beq.s    lbC0244BE
+                    beq.b    lbC0244BE
                     lea      $10(a1),a1
-                    lea      $20(a0),a0
+                    lea      32(a0),a0
                     dbf      d0,bloop1
-                    bra.s    lbC02443C
+                    bra.b    lbC02443C
 
 lbC0244BE:          bra      bploop1_channels
 
 bpskip1:            move.b   bpdelay(pc),bpcount
                     bsr      bpnext
-                    move.w   dma(pc),$dff096
+                    move.w   dma(pc),CUSTOM+DMACON
                     jsr      lbC00EE2E
-                    moveq    #3,d0
-                    move.l   #$dff0a0,a1
-                    moveq    #1,d1
-                    lea      bpcurrent,a2
-                    lea      bpbuffer,a5
-bploop2:            cmp.l    #$dff0a0,a1
+                    moveq    #4-1,d0
+                    lea      CUSTOM+AUD0LCH,a1
+                    moveq    #DMAF_AUD0,d1
+                    lea      bpcurrent(pc),a2
+                    lea      bpbuffer(pc),a5
+bploop2:            cmp.l    #CUSTOM+AUD0LCH,a1
                     beq      lbC02453C
-                    cmp.l    #$dff0b0,a1
+                    cmp.l    #CUSTOM+AUD1LCH,a1
                     beq      lbC02455C
-                    cmp.l    #$dff0c0,a1
+                    cmp.l    #CUSTOM+AUD2LCH,a1
                     beq      lbC02457C
-                    cmp.l    #$dff0d0,a1
+                    cmp.l    #CUSTOM+AUD3LCH,a1
                     beq      lbC02459C
 bploop2_channels:   btst     #15,(a2)
-                    beq.s    bpskip7
+                    beq.b    bpskip7
                     bsr      bpplayit
 bpskip7:            asl.w    #1,d1
                     lea      $10(a1),a1
-                    lea      $20(a2),a2
-                    lea      $24(a5),a5
+                    lea      32(a2),a2
+                    lea      36(a5),a5
                     dbf      d0,bploop2
                     rts
 
 lbC02453C:          tst.w    bpchannel1_status
-                    beq.s    lbC024558
+                    beq.b    lbC024558
                     asl.w    #1,d1
                     lea      $10(a1),a1
-                    lea      $20(a2),a2
-                    lea      $24(a5),a5
+                    lea      32(a2),a2
+                    lea      36(a5),a5
                     dbf      d0,bploop2
                     rts
 
 lbC024558:          bra      bploop2_channels
 
 lbC02455C:          tst.w    bpchannel2_status
-                    beq.s    lbC024578
+                    beq.b    lbC024578
                     asl.w    #1,d1
                     lea      $10(a1),a1
-                    lea      $20(a2),a2
-                    lea      $24(a5),a5
+                    lea      32(a2),a2
+                    lea      36(a5),a5
                     dbf      d0,bploop2
                     rts
 
 lbC024578:          bra      bploop2_channels
 
 lbC02457C:          tst.w    bpchannel3_status
-                    beq.s    lbC024598
+                    beq.b    lbC024598
                     asl.w    #1,d1
                     lea      $10(a1),a1
-                    lea      $20(a2),a2
-                    lea      $24(a5),a5
+                    lea      32(a2),a2
+                    lea      36(a5),a5
                     dbf      d0,bploop2
                     rts
 
 lbC024598:          bra      bploop2_channels
 
 lbC02459C:          tst.w    bpchannel4_status
-                    beq.s    lbC0245B8
+                    beq.b    lbC0245B8
                     asl.w    #1,d1
-                    lea      $10(a1),a1
-                    lea      $20(a2),a2
-                    lea      $24(a5),a5
+                    lea      16(a1),a1
+                    lea      32(a2),a2
+                    lea      36(a5),a5
                     dbf      d0,bploop2
                     rts
 
@@ -17880,52 +17839,52 @@ lbC0245B8:          bra      bploop2_channels
 
 bpnext:             clr.w    dma
                     lea      bpsong,a0
-                    lea      bpcurrent,a1
-                    move.l   #$dff0a0,a3
-                    moveq    #3,d0
-                    move.w   #1,d7
-bploop3:            cmp.l    #$dff0a0,a3
+                    lea      bpcurrent(pc),a1
+                    lea      CUSTOM+AUD0LCH,a3
+                    moveq    #4-1,d0
+                    move.w   #DMAF_AUD0,d7
+bploop3:            cmp.l    #CUSTOM+AUD0LCH,a3
                     beq      lbC0247D4
-                    cmp.l    #$dff0b0,a3
+                    cmp.l    #CUSTOM+AUD1LCH,a3
                     beq      lbC0247F0
-                    cmp.l    #$dff0c0,a3
+                    cmp.l    #CUSTOM+AUD2LCH,a3
                     beq      lbC02480C
-                    cmp.l    #$dff0d0,a3
+                    cmp.l    #CUSTOM+AUD3LCH,a3
                     beq      lbC024828
 bploop3_next:       moveq    #0,d1
-                    move.w   bpstep,d1
+                    move.w   bpstep(pc),d1
                     lsl.w    #4,d1
                     move.l   d0,d2
                     lsl.l    #2,d2
                     add.l    d2,d1
-                    add.l    #$200,d1
+                    add.l    #512,d1
                     move.w   0(a0,d1.l),d2
                     move.b   2(a0,d1.l),st
                     move.b   3(a0,d1.l),tr
                     subq.w   #1,d2
-                    mulu     #$30,d2
+                    mulu     #48,d2
                     moveq    #0,d3
-                    move.w   $1E(a0),d3
+                    move.w   30(a0),d3
                     lsl.w    #4,d3
                     add.l    d2,d3
-                    move.l   #$200,d4
+                    move.l   #512,d4
                     move.b   bppatcount(pc),d4
                     add.l    d3,d4
                     move.l   d4,a2
                     add.l    a0,a2
                     moveq    #0,d3
                     move.b   (a2),d3
-                    bne.s    bpskip4
+                    bne.b    bpskip4
                     bra      bpoptionals
 
 bpskip4:            clr.w    12(a1)
                     move.b   1(a2),d4
-                    and.b    #15,d4
+                    and.b    #$F,d4
                     cmp.b    #10,d4
-                    bne.s    bp_do1
+                    bne.b    bp_do1
                     move.b   2(a2),d4
                     and.b    #$F0,d4
-                    bne.s    bp_not1
+                    bne.b    bp_not1
 bp_do1:             add.b    tr,d3
                     ext.w    d3
 bp_not1:            move.b   d3,10(a1)
@@ -17937,106 +17896,104 @@ bp_not1:            move.b   d3,10(a1)
                     clr.w    d3
                     move.b   1(a2),d3
                     lsr.b    #4,d3
-                    and.b    #15,d3
-                    tst.b    d3
-                    bne.s    bpskip5
+                    and.b    #$F,d3
+                    bne.b    bpskip5
                     move.b   3(a1),d3
 bpskip5:            move.b   1(a2),d4
-                    and.b    #15,d4
+                    and.b    #$F,d4
                     cmp.b    #10,d4
-                    bne.s    bp_do2
+                    bne.b    bp_do2
                     move.b   2(a2),d4
-                    and.b    #15,d4
-                    bne.s    bp_not2
-bp_do2:             add.b    st,d3
+                    and.b    #$F,d4
+                    bne.b    bp_not2
+bp_do2:             add.b    st(pc),d3
 bp_not2:            cmp.w    #1,8(a1)
-                    beq.s    bpsamplechange
+                    beq.b    bpsamplechange
                     cmp.b    3(a1),d3
-                    beq.s    bpoptionals
+                    beq.b    bpoptionals
 bpsamplechange:     move.b   d3,3(a1)
                     or.w     d7,dma
 
 bpoptionals:        moveq    #0,d3
                     moveq    #0,d4
                     move.b   1(a2),d3
-                    and.b    #15,d3
                     move.b   2(a2),d4
-                    tst.b    d3
-                    bne.s    notopt0
+                    and.b    #$F,d3
+                    bne.b    notopt0
                     move.b   d4,11(a1)
                     bra      notopt9
 
 notopt0:            cmp.b    #1,d3
-                    bne.s    bpskip3
+                    bne.b    bpskip3
                     move.w   d4,8(a3)
                     move.b   d4,2(a1)
                     bra      notopt9
 
 bpskip3:            cmp.b    #2,d3
-                    bne.s    bpskip9
-                    and.b    #15,d4
+                    bne.b    bpskip9
+                    and.b    #$F,d4
                     cmp.b    #4,d4
-                    blt.s    notopt9
+                    blt.b    notopt9
                     move.b   d4,bpcount
                     move.b   d4,bpdelay
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 bpskip9:            cmp.b    #3,d3
-                    bne.s    bpskipa
-                    bra.s    notopt9
+                    bne.b    bpskipa
+                    bra.b    notopt9
 
 bpskipa:            cmp.b    #4,d3
-                    bne.s    noportup
+                    bne.b    noportup
                     sub.w    d4,(a1)
                     clr.b    11(a1)
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 noportup:           cmp.b    #5,d3
-                    bne.s    noportdn
+                    bne.b    noportdn
                     add.w    d4,(a1)
                     clr.b    11(a1)
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 noportdn:           cmp.b    #6,d3
-                    bne.s    notopt6
+                    bne.b    notopt6
                     move.b   d4,bprepcount
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 notopt6:            cmp.b    #7,d3
-                    bne.s    notopt7
+                    bne.b    notopt7
                     subq.b   #1,bprepcount
-                    beq.s    notopt9
+                    beq.b    notopt9
                     move.w   d4,bpstep
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 notopt7:            cmp.b    #8,d3
-                    bne.s    notopt8
+                    bne.b    notopt8
                     move.b   d4,12(a1)
-                    bra.s    notopt9
+                    bra.b    notopt9
 
 notopt8:            cmp.b    #9,d3
-                    bne.s    notopt9
+                    bne.b    notopt9
                     move.b   d4,13(a1)
 notopt9:            lea      $10(a3),a3
-                    lea      $20(a1),a1
+                    lea      32(a1),a1
                     asl.w    #1,d7
                     dbf      d0,bploop3
 lbC02479E:          addq.b   #3,bppatcount
-                    cmp.b    #$30,bppatcount
-                    bne.s    bpskip8
+                    cmp.b    #48,bppatcount
+                    bne.b    bpskip8
                     clr.b    bppatcount
                     addq.w   #1,bpstep
                     lea      bpsong,a0
-                    move.w   $1E(a0),d1
+                    move.w   30(a0),d1
                     cmp.w    bpstep(pc),d1
-                    bne.s    bpskip8
+                    bne.b    bpskip8
                     clr.w    bpstep
 bpskip8:            rts
 
 lbC0247D4:          tst.w    bpchannel1_status
-                    beq.s    lbC0247EC
+                    beq.b    lbC0247EC
                     lea      $10(a3),a3
-                    lea      $20(a1),a1
+                    lea      32(a1),a1
                     asl.w    #1,d7
                     dbf      d0,bploop3
                     rts
@@ -18044,9 +18001,9 @@ lbC0247D4:          tst.w    bpchannel1_status
 lbC0247EC:          bra      bploop3_next
 
 lbC0247F0:          tst.w    bpchannel2_status
-                    beq.s    lbC024808
+                    beq.b    lbC024808
                     lea      $10(a3),a3
-                    lea      $20(a1),a1
+                    lea      32(a1),a1
                     asl.w    #1,d7
                     dbf      d0,bploop3
                     rts
@@ -18054,9 +18011,9 @@ lbC0247F0:          tst.w    bpchannel2_status
 lbC024808:          bra      bploop3_next
 
 lbC02480C:          tst.w    bpchannel3_status
-                    beq.s    lbC024824
+                    beq.b    lbC024824
                     lea      $10(a3),a3
-                    lea      $20(a1),a1
+                    lea      32(a1),a1
                     asl.w    #1,d7
                     dbf      d0,bploop3
                     rts
@@ -18064,9 +18021,9 @@ lbC02480C:          tst.w    bpchannel3_status
 lbC024824:          bra      bploop3_next
 
 lbC024828:          tst.w    bpchannel4_status
-                    beq.s    lbC024842
+                    beq.b    lbC024842
                     lea      $10(a3),a3
-                    lea      $20(a1),a1
+                    lea      32(a1),a1
                     asl.w    #1,d7
                     dbf      d0,bploop3
                     bra      lbC02479E
@@ -18075,7 +18032,7 @@ lbC024842:          bra      bploop3_next
 
 bpplayit:           bclr     #15,(a2)
                     tst.l    (a5)
-                    beq.s    lbC02485E
+                    beq.b    lbC02485E
                     clr.w    d3
                     move.l   (a5),a4
                     moveq    #8-1,d7
@@ -18091,18 +18048,18 @@ lbC02485E:          move.w   (a2),6(a1)
                     cmp.b    #$FF,0(a3,d7.w)
                     beq      bpplaysynthetic
                     clr.l    (a5)
-                    clr.b    $1A(a2)
-                    clr.w    $1E(a2)
-                    add.l    #$18,d7
+                    clr.b    26(a2)
+                    clr.w    30(a2)
+                    add.l    #24,d7
                     lsl.l    #2,d6
                     lea      samples(pc),a4
                     move.l   -4(a4,d6.l),d4
-                    beq.s    bp_nosamp
+                    beq.b    bp_nosamp
                     move.l   d4,(a1)
                     move.w   0(a3,d7.l),4(a1)
                     move.b   2(a2),9(a1)
                     cmp.b    #$FF,2(a2)
-                    bne.s    skipxx
+                    bne.b    skipxx
                     move.w   6(a3,d7.l),8(a1)
 skipxx:             move.w   4(a3,d7.l),8(a2)
                     moveq    #0,d6
@@ -18110,31 +18067,31 @@ skipxx:             move.w   4(a3,d7.l),8(a2)
                     add.l    d6,d4
                     move.l   d4,4(a2)
                     cmp.w    #1,8(a2)
-                    bne.s    bpskip6
+                    bne.b    bpskip6
 bp_nosamp:          move.l   #lbL098E0C,4(a2)
-                    bra.s    bpskip10
+                    bra.b    bpskip10
 
 bpskip6:            move.w   8(a2),4(a1)
                     move.l   4(a2),(a1)
-bpskip10:           add.w    #$8000,d1
-                    move.w   d1,$dff096
+bpskip10:           add.w    #DMAF_SETCLR,d1
+                    move.w   d1,CUSTOM+DMACON
                     rts
 
-bpplaysynthetic:    move.b   #1,$1A(a2)
+bpplaysynthetic:    move.b   #1,26(a2)
                     clr.w    14(a2)
-                    clr.w    $10(a2)
-                    clr.w    $12(a2)
-                    move.w   $16(a3,d7.w),$14(a2)
-                    addq.w   #1,$14(a2)
-                    move.w   14(a3,d7.w),$16(a2)
-                    addq.w   #1,$16(a2)
-                    move.w   #1,$18(a2)
-                    move.b   $11(a3,d7.w),$1D(a2)
-                    move.b   9(a3,d7.w),$1E(a2)
-                    move.b   4(a3,d7.w),$1F(a2)
-                    move.b   $13(a3,d7.w),$1C(a2)
+                    clr.w    16(a2)
+                    clr.w    18(a2)
+                    move.w   22(a3,d7.w),20(a2)
+                    addq.w   #1,20(a2)
+                    move.w   14(a3,d7.w),22(a2)
+                    addq.w   #1,22(a2)
+                    move.w   #1,24(a2)
+                    move.b   17(a3,d7.w),29(a2)
+                    move.b   9(a3,d7.w),30(a2)
+                    move.b   4(a3,d7.w),31(a2)
+                    move.b   19(a3,d7.w),28(a2)
                     move.l   tables(pc),a4
-                    clr.l    d3
+                    moveq    #0,d3
                     move.b   1(a3,d7.w),d3
                     lsl.l    #6,d3
                     add.l    d3,a4
@@ -18143,48 +18100,48 @@ bpplaysynthetic:    move.b   #1,$1A(a2)
                     move.w   2(a3,d7.w),4(a1)
                     move.w   2(a3,d7.w),8(a2)
                     tst.b    4(a3,d7.w)
-                    beq.s    bpadsroff
+                    beq.b    bpadsroff
                     move.l   tables(pc),a4
-                    clr.l    d3
+                    moveq    #0,d3
                     move.b   5(a3,d7.w),d3
                     lsl.l    #6,d3
                     add.l    d3,a4
                     clr.w    d3
                     move.b   (a4),d3
-                    add.b    #$80,d3
+                    add.b    #128,d3
                     lsr.w    #2,d3
                     cmp.b    #$FF,2(a2)
-                    bne.s    bpskip99
-                    move.b   $19(a3,d7.w),2(a2)
+                    bne.b    bpskip99
+                    move.b   25(a3,d7.w),2(a2)
 bpskip99:           clr.w    d4
                     move.b   2(a2),d4
                     mulu     d4,d3
                     lsr.w    #6,d3
                     move.w   d3,8(a1)
-                    bra.s    bpflipper
+                    bra.b    bpflipper
 
 bpadsroff:          moveq    #0,d3
                     move.b   2(a2),d3
                     cmp.b    #$FF,2(a2)
-                    bne.s    bpflipper
+                    bne.b    bpflipper
                     moveq    #0,d3
-                    move.b   $19(a3,d7.w),d3
+                    move.b   25(a3,d7.w),d3
 bpflipper:          move.w   d3,8(a1)
                     move.l   4(a2),a4
                     move.l   a4,(a5)
                     clr.w    d3
-                    moveq    #7,d4
+                    moveq    #8-1,d4
 eg2loop:            move.l   0(a4,d3.w),4(a5,d3.w)
                     addq.w   #4,d3
                     dbf      d4,eg2loop
-                    tst.b    $11(a3,d7.w)
+                    tst.b    17(a3,d7.w)
                     beq      bpskip10
-                    tst.b    $13(a3,d7.w)
+                    tst.b    19(a3,d7.w)
                     beq      bpskip10
-                    clr.l    d3
-                    move.b   $13(a3,d7.w),d3
+                    moveq    #0,d3
+                    move.b   19(a3,d7.w),d3
                     lsr.l    #3,d3
-                    move.b   d3,$1C(a2)
+                    move.b   d3,28(a2)
                     subq.l   #1,d3
 eg3loop:            neg.b    (a4)+
                     dbf      d3,eg3loop
@@ -18196,63 +18153,63 @@ bpplayarp:          lea      bpper(pc),a4
                     move.w   -2(a4,d4.w),6(a1)
                     rts
 
-bpsynth:            moveq    #3,d0
-                    lea      $dff0a0,a1
-                    lea      bpcurrent,a2
+bpsynth:            moveq    #4-1,d0
+                    lea      CUSTOM+AUD0LCH,a1
+                    lea      bpcurrent(pc),a2
                     lea      bpsong,a3
-                    lea      bpbuffer,a5
-bpsynthloop:        cmp.l    #$dff0a0,a1
-                    beq.s    lbC024A52
-                    cmp.l    #$dff0b0,a1
-                    beq.s    lbC024A70
-                    cmp.l    #$dff0c0,a1
-                    beq.s    lbC024A8E
-                    cmp.l    #$dff0d0,a1
-                    beq.s    lbC024AAC
-lbC024A36:          tst.b    $1A(a2)
-                    beq.s    bpnosynth
+                    lea      bpbuffer(pc),a5
+bpsynthloop:        cmp.l    #CUSTOM+AUD0LCH,a1
+                    beq.b    lbC024A52
+                    cmp.l    #CUSTOM+AUD1LCH,a1
+                    beq.b    lbC024A70
+                    cmp.l    #CUSTOM+AUD2LCH,a1
+                    beq.b    lbC024A8E
+                    cmp.l    #CUSTOM+AUD3LCH,a1
+                    beq.b    lbC024AAC
+lbC024A36:          tst.b    26(a2)
+                    beq.b    bpnosynth
                     bsr      bpyessynth
 bpnosynth:          lea      36(a5),a5
                     lea      32(a2),a2
-                    lea      16(a1),a1
+                    lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
 lbC024A52:          tst.w    bpchannel1_status
-                    beq.s    lbC024A6C
+                    beq.b    lbC024A6C
                     lea      36(a5),a5
                     lea      32(a2),a2
-                    lea      16(a1),a1
+                    lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
 lbC024A6C:          bra      lbC024A36
 
 lbC024A70:          tst.w    bpchannel2_status
-                    beq.s    lbC024A8A
+                    beq.b    lbC024A8A
                     lea      36(a5),a5
                     lea      32(a2),a2
-                    lea      16(a1),a1
+                    lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
 lbC024A8A:          bra      lbC024A36
 
 lbC024A8E:          tst.w    bpchannel3_status
-                    beq.s    lbC024AA8
+                    beq.b    lbC024AA8
                     lea      36(a5),a5
                     lea      32(a2),a2
-                    lea      16(a1),a1
+                    lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
 lbC024AA8:          bra      lbC024A36
 
 lbC024AAC:          tst.w    bpchannel4_status
-                    beq.s    lbC024AC6
+                    beq.b    lbC024AC6
                     lea      36(a5),a5
                     lea      32(a2),a2
-                    lea      16(a1),a1
+                    lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
@@ -18261,99 +18218,99 @@ lbC024AC6:          bra      lbC024A36
 bpyessynth:         clr.w    d7
                     move.b   3(a2),d7
                     lsl.w    #5,d7
-                    tst.b    $1F(a2)
-                    beq.s    bpendadsr
-                    subq.w   #1,$18(a2)
-                    bne.s    bpendadsr
+                    tst.b    31(a2)
+                    beq.b    bpendadsr
+                    subq.w   #1,24(a2)
+                    bne.b    bpendadsr
                     moveq    #0,d3
                     move.b   8(a3,d7.w),d3
-                    move.w   d3,$18(a2)
+                    move.w   d3,24(a2)
                     move.l   tables,a4
                     move.b   5(a3,d7.w),d3
                     lsl.l    #6,d3
                     add.l    d3,a4
-                    move.w   $12(a2),d3
+                    move.w   18(a2),d3
                     clr.w    d4
                     move.b   0(a4,d3.w),d4
-                    add.b    #$80,d4
+                    add.b    #128,d4
                     lsr.w    #2,d4
                     clr.w    d3
                     move.b   2(a2),d3
                     mulu     d3,d4
                     lsr.w    #6,d4
                     move.w   d4,8(a1)
-                    addq.w   #1,$12(a2)
+                    addq.w   #1,18(a2)
                     move.w   6(a3,d7.w),d4
-                    cmp.w    $12(a2),d4
-                    bne.s    bpendadsr
-                    clr.w    $12(a2)
-                    cmp.b    #1,$1F(a2)
-                    bne.s    bpendadsr
-                    clr.b    $1F(a2)
-bpendadsr:          tst.b    $1E(a2)
-                    beq.s    bpendlfo
-                    subq.w   #1,$16(a2)
-                    bne.s    bpendlfo
+                    cmp.w    18(a2),d4
+                    bne.b    bpendadsr
+                    clr.w    18(a2)
+                    cmp.b    #1,31(a2)
+                    bne.b    bpendadsr
+                    clr.b    31(a2)
+bpendadsr:          tst.b    30(a2)
+                    beq.b    bpendlfo
+                    subq.w   #1,22(a2)
+                    bne.b    bpendlfo
                     moveq    #0,d3
-                    move.b   $10(a3,d7.w),d3
-                    move.w   d3,$16(a2)
+                    move.b   16(a3,d7.w),d3
+                    move.w   d3,22(a2)
                     move.l   tables,a4
                     move.b   10(a3,d7.w),d3
                     lsl.l    #6,d3
                     add.l    d3,a4
-                    move.w   $10(a2),d3
+                    move.w   16(a2),d3
                     move.b   0(a4,d3.w),d4
                     ext.w    d4
                     ext.l    d4
                     moveq    #0,d5
                     move.b   11(a3,d7.w),d5
-                    beq.s    bpnotx
+                    beq.b    bpnotx
                     divs     d5,d4
 bpnotx:             move.w   (a2),d5
                     add.w    d4,d5
                     move.w   d5,6(a1)
-                    addq.w   #1,$10(a2)
+                    addq.w   #1,16(a2)
                     move.w   12(a3,d7.w),d3
-                    cmp.w    $10(a2),d3
-                    bne.s    bpendlfo
-                    clr.w    $10(a2)
-                    cmp.b    #1,$1E(a2)
-                    bne.s    bpendlfo
-                    clr.b    $1E(a2)
-bpendlfo:           tst.b    $1D(a2)
+                    cmp.w    16(a2),d3
+                    bne.b    bpendlfo
+                    clr.w    16(a2)
+                    cmp.b    #1,30(a2)
+                    bne.b    bpendlfo
+                    clr.b    30(a2)
+bpendlfo:           tst.b    29(a2)
                     beq      bpendeg
-                    subq.w   #1,$14(a2)
-                    bne.s    bpendeg
+                    subq.w   #1,20(a2)
+                    bne.b    bpendeg
                     tst.l    (a5)
-                    beq.s    bpendeg
+                    beq.b    bpendeg
                     moveq    #0,d3
-                    move.b   $18(a3,d7.w),d3
-                    move.w   d3,$14(a2)
+                    move.b   24(a3,d7.w),d3
+                    move.w   d3,20(a2)
                     move.l   tables,a4
-                    move.b   $12(a3,d7.w),d3
+                    move.b   18(a3,d7.w),d3
                     lsl.l    #6,d3
                     add.l    d3,a4
                     move.w   14(a2),d3
                     moveq    #0,d4
                     move.b   0(a4,d3.w),d4
                     move.l   (a5),a4
-                    add.b    #$80,d4
+                    add.b    #128,d4
                     lsr.l    #3,d4
                     moveq    #0,d3
-                    move.b   $1C(a2),d3
-                    move.b   d4,$1C(a2)
+                    move.b   28(a2),d3
+                    move.b   d4,28(a2)
                     add.l    d3,a4
                     move.l   a5,a6
                     add.l    d3,a6
                     addq.l   #4,a6
                     cmp.b    d3,d4
-                    beq.s    bpnexteg
-                    bgt.s    bpishigh
+                    beq.b    bpnexteg
+                    bgt.b    bpishigh
                     sub.l    d4,d3
                     subq.w   #1,d3
 bpegloop1a:         move.b   -(a6),-(a4)
                     dbf      d3,bpegloop1a
-                    bra.s    bpnexteg
+                    bra.b    bpnexteg
 
 bpishigh:           sub.l    d3,d4
                     subq.w   #1,d4
@@ -18362,13 +18319,13 @@ bpegloop1b:         move.b   (a6)+,d3
                     move.b   d3,(a4)+
                     dbf      d4,bpegloop1b
 bpnexteg:           addq.w   #1,14(a2)
-                    move.w   $14(a3,d7.w),d3
+                    move.w   20(a3,d7.w),d3
                     cmp.w    14(a2),d3
-                    bne.s    bpendeg
+                    bne.b    bpendeg
                     clr.w    14(a2)
-                    cmp.b    #1,$1D(a2)
-                    bne.s    bpendeg
-                    clr.b    $1D(a2)
+                    cmp.b    #1,29(a2)
+                    bne.b    bpendeg
+                    clr.b    29(a2)
 bpendeg:            rts
 
 bpcurrent:          dc.w     0,0            ; period,instrument =(volume.b,instr nr.b)
@@ -18604,11 +18561,11 @@ reloc_exe:          movem.l  d0-d7/a0-a6,-(sp)
                     cmp.l    #$3F3,d0
                     bne      not_an_exe
 lbC0255B0:          move.l   (a0)+,d0
-                    beq.s    lbC0255BC
+                    beq.b    lbC0255BC
                     add.l    d0,d0
                     add.l    d0,d0
                     add.l    d0,a0
-                    bra.s    lbC0255B0
+                    bra.b    lbC0255B0
 
 lbC0255BC:          move.l   (a0)+,d7
                     move.l   d7,d6
@@ -18624,7 +18581,7 @@ lbC0255CA:          move.l   (a0)+,d0
                     move.l   a3,(a1)+
                     add.l    d0,a3
                     subq.l   #1,d6
-                    bne.s    lbC0255CA
+                    bne.b    lbC0255CA
                     move.l   d7,d6
 lbC0255DC:          move.l   (a0)+,d0
                     move.l   d0,d1
@@ -18632,7 +18589,7 @@ lbC0255DC:          move.l   (a0)+,d0
                     add.l    d1,d1
                     add.l    d1,d1
                     jsr      lbC0255F4(pc,d1.w)
-                    bne.s    lbC0255DC
+                    bne.b    lbC0255DC
                     bra      relocated_exe
 
 lbC0255F4:          bra.w    lbC025624
@@ -18664,12 +18621,12 @@ lbC025634:          move.l   (a0)+,d0
 lbC02563C:          move.l   (a0)+,(a6)+
                     subq.l   #4,d1
                     subq.l   #1,d0
-                    bne.s    lbC02563C
+                    bne.b    lbC02563C
                     tst.l    d1
-                    beq.s    lbC02564E
+                    beq.b    lbC02564E
 lbC025648:          clr.l    (a6)+
                     subq.l   #4,d1
-                    bne.s    lbC025648
+                    bne.b    lbC025648
 lbC02564E:          moveq    #1,d0
                     rts
 
@@ -18677,12 +18634,12 @@ lbC025652:          move.l   (a0)+,d0
                     move.l   4(a5),a6
 lbC025658:          clr.l    (a6)+
                     subq.l   #1,d0
-                    bne.s    lbC025658
+                    bne.b    lbC025658
                     moveq    #1,d0
                     rts
 
 lbC025662:          move.l   (a0)+,d0
-                    beq.s    lbC02567E
+                    beq.b    lbC02567E
                     move.l   (a0)+,d1
                     lsl.l    #3,d1
                     move.l   8(sp,d1.l),d3
@@ -18690,8 +18647,8 @@ lbC025662:          move.l   (a0)+,d0
 lbC025672:          move.l   (a0)+,d2
                     add.l    d3,0(a6,d2.l)
                     subq.l   #1,d0
-                    bne.s    lbC025672
-                    bra.s    lbC025662
+                    bne.b    lbC025672
+                    bra.b    lbC025662
 
 lbC02567E:          moveq    #1,d0
                     rts
@@ -18703,7 +18660,10 @@ lbC025682:          addq.w   #8,a5
 relocated_exe:      add.l    d7,sp
                     moveq    #0,d0
                     move.l   4.w,a6
-                    jsr      _LVOCacheClearU(a6)
+	                cmp.w	 #37,LIB_VERSION(a6)
+	                blt.b	 older_kickstart
+	                jsr      _LVOCacheClearU(a6)
+older_kickstart:
                     moveq    #0,d0
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
@@ -18723,14 +18683,15 @@ lbW025768:          dc.w     0,$53,0,$4B,0,$43,2,$3C,3,$35,6,$2E,9,$27,13,$21
                     dc.w     $11,$1B
 lbW02578C:          dc.w     $17,$15,$1D,$10,$23,12,$2A,8,$31,5,$38,2,$3F,1
                     dc.w     $47,0
-                    dc.w     $FFFF,$FFFF
+                    dc.w     -1,-1
 
                     dcb.w    4*124,0
 cur_map_top:        dcb.w    3*124,0
 cur_map_datas:      dcb.w    124*98,0
 end_map_datas:      dcb.w    124*4,0
 
-                    incdir   "src/main/voices/"
+; ------------------------------------------------------
+
 voice_warning:      incbin   "warning.raw"
 voice_destruction_imminent:
                     incbin   "destruction_imminent.raw"
@@ -18757,18 +18718,20 @@ voice_six:          incbin   "six.raw"
 voice_seven:        incbin   "seven.raw"
 voice_eight:        incbin   "eight.raw"
 
+; ------------------------------------------------------
+
                     section  pub_bss,bss
 
 bkgnd_tiles_block:  ds.b     76800
 
+; ------------------------------------------------------
+
                     section  data_chip,data_c
 
-                    incdir   "src/main/gfx/"
 font_pic:           incbin   "font_16x504x5.raw"
 
 letter_buffer:      dcb.b    128,0
 
-                    incdir   "src/main/sprites/"
 timer_digit_0:      incbin   "timer_digit_0.raw"
 timer_digit_1:      incbin   "timer_digit_1.raw"
 timer_digit_2:      incbin   "timer_digit_2.raw"
@@ -18783,7 +18746,6 @@ timer_digit_9:      incbin   "timer_digit_9.raw"
 lbL098E0C:          dcb.l    8,0
 lbL098E2C:          dcb.l    150,0
 
-                    incdir   "src/main/gfx/"
 player_1_status_pic:
                     incbin   "player_1_status_304x8x2.raw"
 player_2_status_pic:
@@ -18816,465 +18778,463 @@ bottom_owned_keys_gfx:
 empty_sample:       dcb.b    16,0
 
 ; ------------------------------------------------------
-; ------------------------------------------------------
-copperlist_main:    dc.w    $104,$22
-                    dc.w    $8E,$2B8E,$90,$2DB3
-                    dc.w    $92,$38,$94,$D0
-lbW099EE8:          dc.w    $180,0
-                    dc.w    $96
-sprites_dma:        dc.w    $8020
-                    dc.w    $2001,$FF00
-sprite_1_2_bps:     dc.w    $120,0,$122,0,$140,0,$142,0,$124,0,$126,0,$148,0,$14A,0
-sprite_3_4_bps:     dc.w    $128,0,$12A,0,$150,0,$152,0,$12C,0,$12E,0,$158,0,$15A,0
-sprite_5_6_bps:     dc.w    $130,0,$132,0,$160,0,$162,0,$134,0,$136,0,$168,0,$16A,0
-sprite_7_8_bps:     dc.w    $138,0,$13A,0,$170,0,$172,0,$13C,0,$13E,0,$178,0,$17A,0
-                    dc.w    $2501,$FF00
+
+copperlist_main:    dc.w     BPLCON2,$22
+                    dc.w     DIWSTRT,$2B8E,DIWSTOP,$2DB3
+                    dc.w     DDFSTRT,$38,DDFSTOP,$D0
+lbW099EE8:          dc.w     COLOR00,0
+                    dc.w     DMACON
+sprites_dma:        dc.w     DMAF_SETCLR|DMAF_SPRITE
+                    dc.w     $2001,$FF00
+sprite_1_2_bps:     dc.w     SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0,SPR1PTH,0,SPR1PTL,0,SPR1POS,0,SPR1CTL,0
+sprite_3_4_bps:     dc.w     SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0,SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0
+sprite_5_6_bps:     dc.w     SPR4PTH,0,SPR4PTL,0,SPR4POS,0,SPR4CTL,0,SPR5PTH,0,SPR5PTL,0,SPR5POS,0,SPR5CTL,0
+sprite_7_8_bps:     dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0,SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
+                    dc.w     $2501,$FF00
 copper_main_palette:
-                    dc.w    $180,0,$182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0,$18E,0
-                    dc.w    $190,0,$192,0,$194,0,$196,0,$198,0,$19A,0,$19C,0,$19E,0
-                    dc.w    $1A0
-lbW099FBA:          dc.w    0,$1A2,0,$1A4,0,$1A6,0,$1A8,0,$1AA,0,$1AC,0,$1AE,0
-                    dc.w    $1B0,0,$1B2,0,$1B4,0,$1B6,0,$1B8,0,$1BA,0,$1BC,0,$1BE,0
-                    dc.w    $2901,$FF00
-                    dc.w    $102,$DD
-                    dc.w    $100,$2200
-                    dc.w    $108,-2,$10A,-2
-main_top_bar_bps:   dc.w    $E0,0,$E2,0
-                    dc.w    $E4,0,$E6,0
-                    dc.w    $2B01,$FF00,$182,$111,$184,$444
-                    dc.w    $2B51,$FFFE,$186,$610
-                    dc.w    $2B51,$FFFE,$186,$620
-                    dc.w    $2BA1,$FFFE,$186,$610
-                    dc.w    $2BB1,$FFFE,$186,$620
-                    dc.w    $2BC1,$FFFE,$186,$610
-                    dc.w    $2BC5,$FFFE,$186,$620
-                    dc.w    $2C01,$FF00,$182,$222,$184,$888
-                    dc.w    $2C51,$FFFE,$186,$930
-                    dc.w    $2C51,$FFFE,$186,$940
-                    dc.w    $2CA1,$FFFE,$186,$930
-                    dc.w    $2CB1,$FFFE,$186,$940
-                    dc.w    $2CC1,$FFFE,$186,$930
-                    dc.w    $2CC5,$FFFE,$186,$940
-                    dc.w    $2D01,$FF00,$182,$333,$184,$CCC
-                    dc.w    $2D51,$FFFE,$186,$C70
-                    dc.w    $2D51,$FFFE,$186,$C80
-                    dc.w    $2DA1,$FFFE,$186,$C70
-                    dc.w    $2DB1,$FFFE,$186,$C80
-                    dc.w    $2DC1,$FFFE,$186,$C70
-                    dc.w    $2DC5,$FFFE,$186,$C80
-                    dc.w    $2E01,$FF00,$182,$444,$184,$DDD
-                    dc.w    $2E51,$FFFE,$186,$E90
-                    dc.w    $2E51,$FFFE,$186,$EA0
-                    dc.w    $2EA1,$FFFE,$186,$E90
-                    dc.w    $2EB1,$FFFE,$186,$EA0
-                    dc.w    $2EC1,$FFFE,$186,$E90
-                    dc.w    $2EC5,$FFFE,$186,$EA0
-                    dc.w    $2F01,$FF00,$182,$333,$184,$DDD
-                    dc.w    $2F51,$FFFE,$186,$C70
-                    dc.w    $2F51,$FFFE,$186,$C80
-                    dc.w    $2FA1,$FFFE,$186,$C70
-                    dc.w    $2FB1,$FFFE,$186,$C80
-                    dc.w    $2FC1,$FFFE,$186,$C70
-                    dc.w    $2FC5,$FFFE,$186,$C80
-                    dc.w    $3001,$FF00,$182,$222,$184,$CCC
-                    dc.w    $3051,$FFFE,$186,$A30
-                    dc.w    $3051,$FFFE,$186,$A40
-                    dc.w    $30A1,$FFFE,$186,$A30
-                    dc.w    $30B1,$FFFE,$186,$A40
-                    dc.w    $30C1,$FFFE,$186,$A30
-                    dc.w    $30C5,$FFFE,$186,$A40
-                    dc.w    $3101,$FF00,$182,$111,$184,$888
-                    dc.w    $3151,$FFFE,$186,$710
-                    dc.w    $3151,$FFFE,$186,$720
-                    dc.w    $31A1,$FFFE,$186,$710
-                    dc.w    $31B1,$FFFE,$186,$720
-                    dc.w    $31C1,$FFFE,$186,$710
-                    dc.w    $31C5,$FFFE,$186,$720
-                    dc.w    $3201,$FF00,$182,$111,$184,$444
-                    dc.w    $3251,$FFFE,$186,$510
-                    dc.w    $3251,$FFFE,$186,$520
-                    dc.w    $32A1,$FFFE,$186,$510
-                    dc.w    $32B1,$FFFE,$186,$520
-                    dc.w    $32C1,$FFFE,$186,$510
-                    dc.w    $32C5,$FFFE,$186,$520
-                    dc.w    $3301,$FF00,$108,2,$10A,2
-                    dc.w    $100,$200
-lbW09A20C:          dc.w    $180,0,$182
-lbW09A212:          dc.w    0
-                    dc.w    $184,0,$186,0
-                    dc.w    $33E1,$FFFE
-                    dc.w    $102
-bplcon1:            dc.w    0
-                    dc.w    $100
-bplcon0:            dc.w    $5200
-scroll_bp1:         dc.w    $E0,0,$E2,0
-scroll_bp2:         dc.w    $E4,0,$E6,0
-scroll_bp3:         dc.w    $E8,0,$EA,0
-scroll_bp4:         dc.w    $EC,0,$EE,0
-scroll_bp5:         dc.w    $F0,0,$F2,0
-lbW09A250:          dc.w    $0098,$FF00
-lbW09A254:          dc.w    $120,0,$122,0,$140,0,$142,0,$124,0,$126,0,$148,0
-                    dc.w    $14A,0,$128,0,$12A,0,$150,0,$152,0,$12C,0,$12E,0
-                    dc.w    $158,0,$15A,0
-
-lbW09A294:          dc.w    $FFDF,$FFFE
-lbW09A298:          dc.w    $2BD7,$FFFE
-lbW09A29E:          dc.w    $E0,0,$E2,0
-lbW09A2A6:          dc.w    $E4,0,$E6,0
-lbW09A2AE:          dc.w    $E8,0,$EA,0
-lbW09A2B6:          dc.w    $EC,0,$EE,0
-lbW09A2BE:          dc.w    $F0,0,$F2,0
-lbW09A2C4:          dc.w    $98,$FF00
-lbW09A2C8:          dc.w    $120,0,$122,0,$140,0,$142,0,$124,0,$126,0,$148,0
-                    dc.w    $14A,0,$128,0,$12A,0,$150,0,$152,0,$12C,0,$12E,0
-                    dc.w    $158,0,$15A,0
-lbW09A308:          dc.w    $2401,$FF00
-                    dc.w    $2401,$FF00,$100,0
-                    dc.w    $2501,$FF00,$102,$DD,$100,$2200
-                    dc.w    $108,-2,$10A,-2
+                    dc.w     COLOR00,0,COLOR01,0,COLOR02,0,COLOR03,0,COLOR04,0,COLOR05,0,COLOR06,0,COLOR07,0
+                    dc.w     COLOR08,0,COLOR09,0,COLOR10,0,COLOR11,0,COLOR12,0,COLOR13,0,COLOR14,0,COLOR15,0
+                    dc.w     COLOR16
+lbW099FBA:          dc.w     0
+                    dc.w     COLOR17,0,COLOR18,0,COLOR19,0,COLOR20,0,COLOR21,0,COLOR22,0,COLOR23,0
+                    dc.w     COLOR24,0,COLOR25,0,COLOR26,0,COLOR27,0,COLOR28,0,COLOR29,0,COLOR30,0,COLOR31,0
+                    dc.w     $2901,$FF00
+                    dc.w     BPLCON1,$DD
+                    dc.w     BPLCON0,$2200
+                    dc.w     BPL1MOD,-2,BPL2MOD,-2
+main_top_bar_bps:   dc.w     BPL1PTH,0,BPL1PTL,0
+                    dc.w     BPL2PTH,0,BPL2PTL,0
+                    dc.w     $2B01,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $2B51,$FFFE,COLOR03,$610
+                    dc.w     $2B51,$FFFE,COLOR03,$620
+                    dc.w     $2BA1,$FFFE,COLOR03,$610
+                    dc.w     $2BB1,$FFFE,COLOR03,$620
+                    dc.w     $2BC1,$FFFE,COLOR03,$610
+                    dc.w     $2BC5,$FFFE,COLOR03,$620
+                    dc.w     $2C01,$FF00,COLOR01,$222,COLOR02,$888
+                    dc.w     $2C51,$FFFE,COLOR03,$930
+                    dc.w     $2C51,$FFFE,COLOR03,$940
+                    dc.w     $2CA1,$FFFE,COLOR03,$930
+                    dc.w     $2CB1,$FFFE,COLOR03,$940
+                    dc.w     $2CC1,$FFFE,COLOR03,$930
+                    dc.w     $2CC5,$FFFE,COLOR03,$940
+                    dc.w     $2D01,$FF00,COLOR01,$333,COLOR02,$CCC
+                    dc.w     $2D51,$FFFE,COLOR03,$C70
+                    dc.w     $2D51,$FFFE,COLOR03,$C80
+                    dc.w     $2DA1,$FFFE,COLOR03,$C70
+                    dc.w     $2DB1,$FFFE,COLOR03,$C80
+                    dc.w     $2DC1,$FFFE,COLOR03,$C70
+                    dc.w     $2DC5,$FFFE,COLOR03,$C80
+                    dc.w     $2E01,$FF00,COLOR01,$444,COLOR02,$DDD
+                    dc.w     $2E51,$FFFE,COLOR03,$E90
+                    dc.w     $2E51,$FFFE,COLOR03,$EA0
+                    dc.w     $2EA1,$FFFE,COLOR03,$E90
+                    dc.w     $2EB1,$FFFE,COLOR03,$EA0
+                    dc.w     $2EC1,$FFFE,COLOR03,$E90
+                    dc.w     $2EC5,$FFFE,COLOR03,$EA0
+                    dc.w     $2F01,$FF00,COLOR01,$333,COLOR02,$DDD
+                    dc.w     $2F51,$FFFE,COLOR03,$C70
+                    dc.w     $2F51,$FFFE,COLOR03,$C80
+                    dc.w     $2FA1,$FFFE,COLOR03,$C70
+                    dc.w     $2FB1,$FFFE,COLOR03,$C80
+                    dc.w     $2FC1,$FFFE,COLOR03,$C70
+                    dc.w     $2FC5,$FFFE,COLOR03,$C80
+                    dc.w     $3001,$FF00,COLOR01,$222,COLOR02,$CCC
+                    dc.w     $3051,$FFFE,COLOR03,$A30
+                    dc.w     $3051,$FFFE,COLOR03,$A40
+                    dc.w     $30A1,$FFFE,COLOR03,$A30
+                    dc.w     $30B1,$FFFE,COLOR03,$A40
+                    dc.w     $30C1,$FFFE,COLOR03,$A30
+                    dc.w     $30C5,$FFFE,COLOR03,$A40
+                    dc.w     $3101,$FF00,COLOR01,$111,COLOR02,$888
+                    dc.w     $3151,$FFFE,COLOR03,$710
+                    dc.w     $3151,$FFFE,COLOR03,$720
+                    dc.w     $31A1,$FFFE,COLOR03,$710
+                    dc.w     $31B1,$FFFE,COLOR03,$720
+                    dc.w     $31C1,$FFFE,COLOR03,$710
+                    dc.w     $31C5,$FFFE,COLOR03,$720
+                    dc.w     $3201,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $3251,$FFFE,COLOR03,$510
+                    dc.w     $3251,$FFFE,COLOR03,$520
+                    dc.w     $32A1,$FFFE,COLOR03,$510
+                    dc.w     $32B1,$FFFE,COLOR03,$520
+                    dc.w     $32C1,$FFFE,COLOR03,$510
+                    dc.w     $32C5,$FFFE,COLOR03,$520
+                    dc.w     $3301,$FF00,BPL1MOD,2,BPL2MOD,2
+                    dc.w     BPLCON0,$200
+lbW09A20C:          dc.w     COLOR00,0
+                    dc.w     COLOR01
+lbW09A212:          dc.w     0
+                    dc.w     COLOR02,0,COLOR03,0
+                    dc.w     $33E1,$FFFE
+                    dc.w     BPLCON1
+bplcon1:            dc.w     0
+                    dc.w     BPLCON0
+bplcon0:            dc.w     $5200
+scroll_bp1:         dc.w     BPL1PTH,0,BPL1PTL,0
+scroll_bp2:         dc.w     BPL2PTH,0,BPL2PTL,0
+scroll_bp3:         dc.w     BPL3PTH,0,BPL3PTL,0
+scroll_bp4:         dc.w     BPL4PTH,0,BPL4PTL,0
+scroll_bp5:         dc.w     BPL5PTH,0,BPL5PTL,0
+lbW09A250:          dc.w     $0098,$FF00
+lbW09A254:          dc.w     SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0,SPR1PTH,0,SPR1PTL,0,SPR1POS,0,SPR1CTL,0
+                    dc.w     SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0,SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0
+lbW09A294:          dc.w     $FFDF,$FFFE
+lbW09A298:          dc.w     $2BD7,$FFFE
+lbW09A29E:          dc.w     BPL1PTH,0,BPL1PTL,0
+lbW09A2A6:          dc.w     BPL2PTH,0,BPL2PTL,0
+lbW09A2AE:          dc.w     BPL3PTH,0,BPL3PTL,0
+lbW09A2B6:          dc.w     BPL4PTH,0,BPL4PTL,0
+lbW09A2BE:          dc.w     BPL5PTH,0,BPL5PTL,0
+lbW09A2C4:          dc.w     $0098,$FF00
+lbW09A2C8:          dc.w     SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0,SPR1PTH,0,SPR1PTL,0,SPR1POS,0,SPR1CTL,0
+                    dc.w     SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0,SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0
+lbW09A308:          dc.w     $2401,$FF00
+                    dc.w     $2401,$FF00,BPLCON0,0
+                    dc.w     $2501,$FF00,BPLCON1,$DD,BPLCON0,$2200
+                    dc.w     BPL1MOD,-2,BPL2MOD,-2
 main_bottom_bar_bps:
-                    dc.w    $E0,0,$E2,0
-                    dc.w    $E4,0,$E6,0
-                    dc.w    $182,$111,$184,$444
-                    dc.w    $2551,$FFFE,$186,$610
-                    dc.w    $2551,$FFFE,$186,$620
-                    dc.w    $25A1,$FFFE,$186,$610
-                    dc.w    $25B1,$FFFE,$186,$620
-                    dc.w    $25C1,$FFFE,$186,$610
-                    dc.w    $25C5,$FFFE,$186,$620
-                    dc.w    $2601,$FF00,$182,$222,$184,$888
-                    dc.w    $2651,$FFFE,$186,$930
-                    dc.w    $2651,$FFFE,$186,$940
-                    dc.w    $26A1,$FFFE,$186,$930
-                    dc.w    $26B1,$FFFE,$186,$940
-                    dc.w    $26C1,$FFFE,$186,$930
-                    dc.w    $26C5,$FFFE,$186,$940
-                    dc.w    $2701,$FF00,$182,$333,$184,$CCC
-                    dc.w    $2751,$FFFE,$186,$C70
-                    dc.w    $2751,$FFFE,$186,$C80
-                    dc.w    $27A1,$FFFE,$186,$C70
-                    dc.w    $27B1,$FFFE,$186,$C80
-                    dc.w    $27C1,$FFFE,$186,$C70
-                    dc.w    $27C5,$FFFE,$186,$C80
-                    dc.w    $2801,$FF00,$182,$444,$184,$DDD
-                    dc.w    $2851,$FFFE,$186,$E90
-                    dc.w    $2851,$FFFE,$186,$EA0
-                    dc.w    $28A1,$FFFE,$186,$E90
-                    dc.w    $28B1,$FFFE,$186,$EA0
-                    dc.w    $28C1,$FFFE,$186,$E90
-                    dc.w    $28C5,$FFFE,$186,$EA0
-                    dc.w    $2901,$FF00,$182,$333,$184,$DDD
-                    dc.w    $2951,$FFFE,$186,$C70
-                    dc.w    $2951,$FFFE,$186,$C80
-                    dc.w    $29A1,$FFFE,$186,$C70
-                    dc.w    $29B1,$FFFE,$186,$C80
-                    dc.w    $29C1,$FFFE,$186,$C70
-                    dc.w    $29C5,$FFFE,$186,$C80
-                    dc.w    $2A01,$FF00,$182,$222,$184,$CCC
-                    dc.w    $2A51,$FFFE,$186,$A30
-                    dc.w    $2A51,$FFFE,$186,$A40
-                    dc.w    $2AA1,$FFFE,$186,$A30
-                    dc.w    $2AB1,$FFFE,$186,$A40
-                    dc.w    $2AC1,$FFFE,$186,$A30
-                    dc.w    $2AC5,$FFFE,$186,$A40
-                    dc.w    $2B01,$FF00,$182,$111,$184,$888
-                    dc.w    $2B51,$FFFE,$186,$710
-                    dc.w    $2B51,$FFFE,$186,$720
-                    dc.w    $2BA1,$FFFE,$186,$710
-                    dc.w    $2BB1,$FFFE,$186,$720
-                    dc.w    $2BC1,$FFFE,$186,$710
-                    dc.w    $2BC5,$FFFE,$186,$720
-                    dc.w    $2C01,$FF00,$182,$111,$184,$444
-                    dc.w    $2C51,$FFFE,$186,$510
-                    dc.w    $2C51,$FFFE,$186,$520
-                    dc.w    $2CA1,$FFFE,$186,$510
-                    dc.w    $2CB1,$FFFE,$186,$520
-                    dc.w    $2CC1,$FFFE,$186,$510
-                    dc.w    $2CC5,$FFFE,$186,$520
-                    dc.w    $2C01,$FF00
-                    dc.w    $9C,$8010
-                    dc.w    $FFFF,$FFFE
+                    dc.w     BPL1PTH,0,BPL1PTL,0
+                    dc.w     BPL2PTH,0,BPL2PTL,0
+                    dc.w     COLOR01,$111,COLOR02,$444
+                    dc.w     $2551,$FFFE,COLOR03,$610
+                    dc.w     $2551,$FFFE,COLOR03,$620
+                    dc.w     $25A1,$FFFE,COLOR03,$610
+                    dc.w     $25B1,$FFFE,COLOR03,$620
+                    dc.w     $25C1,$FFFE,COLOR03,$610
+                    dc.w     $25C5,$FFFE,COLOR03,$620
+                    dc.w     $2601,$FF00,COLOR01,$222,COLOR02,$888
+                    dc.w     $2651,$FFFE,COLOR03,$930
+                    dc.w     $2651,$FFFE,COLOR03,$940
+                    dc.w     $26A1,$FFFE,COLOR03,$930
+                    dc.w     $26B1,$FFFE,COLOR03,$940
+                    dc.w     $26C1,$FFFE,COLOR03,$930
+                    dc.w     $26C5,$FFFE,COLOR03,$940
+                    dc.w     $2701,$FF00,COLOR01,$333,COLOR02,$CCC
+                    dc.w     $2751,$FFFE,COLOR03,$C70
+                    dc.w     $2751,$FFFE,COLOR03,$C80
+                    dc.w     $27A1,$FFFE,COLOR03,$C70
+                    dc.w     $27B1,$FFFE,COLOR03,$C80
+                    dc.w     $27C1,$FFFE,COLOR03,$C70
+                    dc.w     $27C5,$FFFE,COLOR03,$C80
+                    dc.w     $2801,$FF00,COLOR01,$444,COLOR02,$DDD
+                    dc.w     $2851,$FFFE,COLOR03,$E90
+                    dc.w     $2851,$FFFE,COLOR03,$EA0
+                    dc.w     $28A1,$FFFE,COLOR03,$E90
+                    dc.w     $28B1,$FFFE,COLOR03,$EA0
+                    dc.w     $28C1,$FFFE,COLOR03,$E90
+                    dc.w     $28C5,$FFFE,COLOR03,$EA0
+                    dc.w     $2901,$FF00,COLOR01,$333,COLOR02,$DDD
+                    dc.w     $2951,$FFFE,COLOR03,$C70
+                    dc.w     $2951,$FFFE,COLOR03,$C80
+                    dc.w     $29A1,$FFFE,COLOR03,$C70
+                    dc.w     $29B1,$FFFE,COLOR03,$C80
+                    dc.w     $29C1,$FFFE,COLOR03,$C70
+                    dc.w     $29C5,$FFFE,COLOR03,$C80
+                    dc.w     $2A01,$FF00,COLOR01,$222,COLOR02,$CCC
+                    dc.w     $2A51,$FFFE,COLOR03,$A30
+                    dc.w     $2A51,$FFFE,COLOR03,$A40
+                    dc.w     $2AA1,$FFFE,COLOR03,$A30
+                    dc.w     $2AB1,$FFFE,COLOR03,$A40
+                    dc.w     $2AC1,$FFFE,COLOR03,$A30
+                    dc.w     $2AC5,$FFFE,COLOR03,$A40
+                    dc.w     $2B01,$FF00,COLOR01,$111,COLOR02,$888
+                    dc.w     $2B51,$FFFE,COLOR03,$710
+                    dc.w     $2B51,$FFFE,COLOR03,$720
+                    dc.w     $2BA1,$FFFE,COLOR03,$710
+                    dc.w     $2BB1,$FFFE,COLOR03,$720
+                    dc.w     $2BC1,$FFFE,COLOR03,$710
+                    dc.w     $2BC5,$FFFE,COLOR03,$720
+                    dc.w     $2C01,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $2C51,$FFFE,COLOR03,$510
+                    dc.w     $2C51,$FFFE,COLOR03,$520
+                    dc.w     $2CA1,$FFFE,COLOR03,$510
+                    dc.w     $2CB1,$FFFE,COLOR03,$520
+                    dc.w     $2CC1,$FFFE,COLOR03,$510
+                    dc.w     $2CC5,$FFFE,COLOR03,$520
+                    dc.w     $2C01,$FF00
+                    dc.w     INTREQ,INTF_SETCLR|INTF_COPER
+                    dc.w     $FFFF,$FFFE
 
-copper_blank:       dc.w    $100,$200
-                    dc.w    $180,0
-                    dc.w    $FFD7,$FFFE
-                    dc.w    $101,$FF00
-                    dc.w    $2F01,$FF00,$9C,$8010
-                    dc.w    $FFFF,$FFFE
+copper_blank:       dc.w     BPLCON0,$200
+                    dc.w     COLOR00,0
+                    dc.w     $FFD7,$FFFE
+                    dc.w     $0101,$FF00
+                    dc.w     $2F01,$FF00,INTREQ,INTF_SETCLR|INTF_COPER
+                    dc.w     $FFFF,$FFFE
 
-copperlist_overmap: dc.w    $104,$22,$8E
-diwstrt_overmap:    dc.w    $2B8E
-                    dc.w    $90
-diwstop_overmap:    dc.w    $2DB3
-                    dc.w    $92,$38,$94,$D0
-                    dc.w    $96,$20
-                    dc.w    $2901,$FF00,$102,$DD,$100,$2200
-                    dc.w    $108,-2,$10A,-2
-                    dc.w    $96,$8020
+copperlist_overmap: dc.w     BPLCON2,$22
+                    dc.w     DIWSTRT
+diwstrt_overmap:    dc.w     $2B8E
+                    dc.w     DIWSTOP
+diwstop_overmap:    dc.w     $2DB3
+                    dc.w     DDFSTRT,$38,DDFSTOP,$D0
+                    dc.w     DMACON,DMAF_SPRITE
+                    dc.w     $2901,$FF00,BPLCON1,$DD,BPLCON0,$2200
+                    dc.w     BPL1MOD,-2,BPL2MOD,-2
+                    dc.w     DMACON,DMAF_SETCLR|DMAF_SPRITE
 overmap_top_bar_bps:
-                    dc.w    $E0,0,$E2,0
-                    dc.w    $E4,0,$E6,0
-                    dc.w    $2B01,$FF00,$182,$111,$184,$444
-                    dc.w    $2B51,$FFFE,$186,$610
-                    dc.w    $2B51,$FFFE,$186,$620
-                    dc.w    $2BA1,$FFFE,$186,$610
-                    dc.w    $2BB1,$FFFE,$186,$620
-                    dc.w    $2BC1,$FFFE,$186,$610
-                    dc.w    $2BC5,$FFFE,$186,$620
-                    dc.w    $2C01,$FF00,$182,$222,$184,$888
-                    dc.w    $2C51,$FFFE,$186,$930
-                    dc.w    $2C51,$FFFE,$186,$940
-                    dc.w    $2CA1,$FFFE,$186,$930
-                    dc.w    $2CB1,$FFFE,$186,$940
-                    dc.w    $2CC1,$FFFE,$186,$930
-                    dc.w    $2CC5,$FFFE,$186,$940
-                    dc.w    $2D01,$FF00,$182,$333,$184,$CCC
-                    dc.w    $2D51,$FFFE,$186,$C70
-                    dc.w    $2D51,$FFFE,$186,$C80
-                    dc.w    $2DA1,$FFFE,$186,$C70
-                    dc.w    $2DB1,$FFFE,$186,$C80
-                    dc.w    $2DC1,$FFFE,$186,$C70
-                    dc.w    $2DC5,$FFFE,$186,$C80
-                    dc.w    $2E01,$FF00,$182,$444,$184,$DDD
-                    dc.w    $2E51,$FFFE,$186,$E90
-                    dc.w    $2E51,$FFFE,$186,$EA0
-                    dc.w    $2EA1,$FFFE,$186,$E90
-                    dc.w    $2EB1,$FFFE,$186,$EA0
-                    dc.w    $2EC1,$FFFE,$186,$E90
-                    dc.w    $2EC5,$FFFE,$186,$EA0
-                    dc.w    $2F01,$FF00,$182,$333,$184,$DDD
-                    dc.w    $2F51,$FFFE,$186,$C70
-                    dc.w    $2F51,$FFFE,$186,$C80
-                    dc.w    $2FA1,$FFFE,$186,$C70
-                    dc.w    $2FB1,$FFFE,$186,$C80
-                    dc.w    $2FC1,$FFFE,$186,$C70
-                    dc.w    $2FC5,$FFFE,$186,$C80
-                    dc.w    $3001,$FF00,$182,$222,$184,$CCC
-                    dc.w    $3051,$FFFE,$186,$A30
-                    dc.w    $3051,$FFFE,$186,$A40
-                    dc.w    $30A1,$FFFE,$186,$A30
-                    dc.w    $30B1,$FFFE,$186,$A40
-                    dc.w    $30C1,$FFFE,$186,$A30
-                    dc.w    $30C5,$FFFE,$186,$A40
-                    dc.w    $3101,$FF00,$182,$111,$184,$888
-                    dc.w    $3151,$FFFE,$186,$710
-                    dc.w    $3151,$FFFE,$186,$720
-                    dc.w    $31A1,$FFFE,$186,$710
-                    dc.w    $31B1,$FFFE,$186,$720
-                    dc.w    $31C1,$FFFE,$186,$710
-                    dc.w    $31C5,$FFFE,$186,$720
-                    dc.w    $3201,$FF00,$182,$111,$184,$444
-                    dc.w    $3251,$FFFE,$186,$510
-                    dc.w    $3251,$FFFE,$186,$520
-                    dc.w    $32A1,$FFFE,$186,$510
-                    dc.w    $32B1,$FFFE,$186,$520
-                    dc.w    $32C1,$FFFE,$186,$510
-                    dc.w    $32C5,$FFFE,$186,$520
-                    dc.w    $3301,$FF00,$100,$200
-                    dc.w    $3401,$FF00,$100,$6200
-overmap_bps:        dc.w    $E0,0,$E2,0
-                    dc.w    $E4,0,$E6,0
-                    dc.w    $E8,0,$EA,0
-                    dc.w    $EC,0,$EE,0
-                    dc.w    $F0,0,$F2,0
-                    dc.w    $F4,0,$F6,0
-                    dc.w    $108,0,$10A,0
-                    dc.w    $102,0
-overmap_palette:    dc.w    $180,0
-                    dc.w    $182,0,$184,0,$186,0,$188,0,$18A,0,$18C,0,$18E,0
-                    dc.w    $190,0,$192,0,$194,0,$196,0,$198,0,$19A,0,$19C,0,$19E,0
-                    dc.w    $1A0,0,$1A2,0,$1A4,0,$1A6,0,$1A8,0,$1AA,0,$1AC,0,$1AE,0
-                    dc.w    $1B0,0,$1B2,0,$1B4,0,$1B6,0,$1B8,0,$1BA,0,$1BC,0,$1BE,0
-
-                    dc.w    $138,0,$13A,0,$170,0,$172,0,$134,0,$136,0,$168,0,$16A,0
-                    dc.w    $13C,0,$13E,0,$178,0,$17A,0,$120,0,$122,0,$140,0,$142,0
-                    dc.w    $124,0,$126,0,$148,0,$14A,0,$128,0,$12A,0,$150,0,$152,0
-                    dc.w    $12C,0,$12E,0,$158,0,$15A,0,$130,0,$132,0,$160,0,$162,0
-                    dc.w    $FFD7,$FFF2
-                    dc.w    $0601,$FF00
-                    dc.w    $2401,$FF00,$100,0
-                    dc.w    $2501,$FF00
-                    dc.w    $102,$DD,$100,$2200
-                    dc.w    $108,-2,$10A,-2
+                    dc.w     BPL1PTH,0,BPL1PTL,0
+                    dc.w     BPL2PTH,0,BPL2PTL,0
+                    dc.w     $2B01,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $2B51,$FFFE,COLOR03,$610
+                    dc.w     $2B51,$FFFE,COLOR03,$620
+                    dc.w     $2BA1,$FFFE,COLOR03,$610
+                    dc.w     $2BB1,$FFFE,COLOR03,$620
+                    dc.w     $2BC1,$FFFE,COLOR03,$610
+                    dc.w     $2BC5,$FFFE,COLOR03,$620
+                    dc.w     $2C01,$FF00,COLOR01,$222,COLOR02,$888
+                    dc.w     $2C51,$FFFE,COLOR03,$930
+                    dc.w     $2C51,$FFFE,COLOR03,$940
+                    dc.w     $2CA1,$FFFE,COLOR03,$930
+                    dc.w     $2CB1,$FFFE,COLOR03,$940
+                    dc.w     $2CC1,$FFFE,COLOR03,$930
+                    dc.w     $2CC5,$FFFE,COLOR03,$940
+                    dc.w     $2D01,$FF00,COLOR01,$333,COLOR02,$CCC
+                    dc.w     $2D51,$FFFE,COLOR03,$C70
+                    dc.w     $2D51,$FFFE,COLOR03,$C80
+                    dc.w     $2DA1,$FFFE,COLOR03,$C70
+                    dc.w     $2DB1,$FFFE,COLOR03,$C80
+                    dc.w     $2DC1,$FFFE,COLOR03,$C70
+                    dc.w     $2DC5,$FFFE,COLOR03,$C80
+                    dc.w     $2E01,$FF00,COLOR01,$444,COLOR02,$DDD
+                    dc.w     $2E51,$FFFE,COLOR03,$E90
+                    dc.w     $2E51,$FFFE,COLOR03,$EA0
+                    dc.w     $2EA1,$FFFE,COLOR03,$E90
+                    dc.w     $2EB1,$FFFE,COLOR03,$EA0
+                    dc.w     $2EC1,$FFFE,COLOR03,$E90
+                    dc.w     $2EC5,$FFFE,COLOR03,$EA0
+                    dc.w     $2F01,$FF00,COLOR01,$333,COLOR02,$DDD
+                    dc.w     $2F51,$FFFE,COLOR03,$C70
+                    dc.w     $2F51,$FFFE,COLOR03,$C80
+                    dc.w     $2FA1,$FFFE,COLOR03,$C70
+                    dc.w     $2FB1,$FFFE,COLOR03,$C80
+                    dc.w     $2FC1,$FFFE,COLOR03,$C70
+                    dc.w     $2FC5,$FFFE,COLOR03,$C80
+                    dc.w     $3001,$FF00,COLOR01,$222,COLOR02,$CCC
+                    dc.w     $3051,$FFFE,COLOR03,$A30
+                    dc.w     $3051,$FFFE,COLOR03,$A40
+                    dc.w     $30A1,$FFFE,COLOR03,$A30
+                    dc.w     $30B1,$FFFE,COLOR03,$A40
+                    dc.w     $30C1,$FFFE,COLOR03,$A30
+                    dc.w     $30C5,$FFFE,COLOR03,$A40
+                    dc.w     $3101,$FF00,COLOR01,$111,COLOR02,$888
+                    dc.w     $3151,$FFFE,COLOR03,$710
+                    dc.w     $3151,$FFFE,COLOR03,$720
+                    dc.w     $31A1,$FFFE,COLOR03,$710
+                    dc.w     $31B1,$FFFE,COLOR03,$720
+                    dc.w     $31C1,$FFFE,COLOR03,$710
+                    dc.w     $31C5,$FFFE,COLOR03,$720
+                    dc.w     $3201,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $3251,$FFFE,COLOR03,$510
+                    dc.w     $3251,$FFFE,COLOR03,$520
+                    dc.w     $32A1,$FFFE,COLOR03,$510
+                    dc.w     $32B1,$FFFE,COLOR03,$520
+                    dc.w     $32C1,$FFFE,COLOR03,$510
+                    dc.w     $32C5,$FFFE,COLOR03,$520
+                    dc.w     $3301,$FF00,BPLCON0,$200
+                    dc.w     $3401,$FF00,BPLCON0,$6200
+overmap_bps:        dc.w     BPL1PTH,0,BPL1PTL,0
+                    dc.w     BPL2PTH,0,BPL2PTL,0
+                    dc.w     BPL3PTH,0,BPL3PTL,0
+                    dc.w     BPL4PTH,0,BPL4PTL,0
+                    dc.w     BPL5PTH,0,BPL5PTL,0
+                    dc.w     BPL6PTH,0,BPL6PTL,0
+                    dc.w     BPL1MOD,0,BPL2MOD,0
+                    dc.w     BPLCON1,0
+overmap_palette:    dc.w     COLOR00,0,COLOR01,0,COLOR02,0,COLOR03,0,COLOR04,0,COLOR05,0,COLOR06,0,COLOR07,0
+                    dc.w     COLOR08,0,COLOR09,0,COLOR10,0,COLOR11,0,COLOR12,0,COLOR13,0,COLOR14,0,COLOR15,0
+                    dc.w     COLOR16,0,COLOR17,0,COLOR18,0,COLOR19,0,COLOR20,0,COLOR21,0,COLOR22,0,COLOR23,0
+                    dc.w     COLOR24,0,COLOR25,0,COLOR26,0,COLOR27,0,COLOR28,0,COLOR29,0,COLOR30,0,COLOR31,0
+                    dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0,SPR5PTH,0,SPR5PTL,0,SPR5POS,0,SPR5CTL,0
+                    dc.w     SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0,SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0
+                    dc.w     SPR1PTH,0,SPR1PTL,0,SPR1POS,0,SPR1CTL,0,SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0
+                    dc.w     SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0,SPR4PTH,0,SPR4PTL,0,SPR4POS,0,SPR4CTL,0
+                    dc.w     $FFD7,$FFF2
+                    dc.w     $0601,$FF00
+                    dc.w     $2401,$FF00,BPLCON0,$200
+                    dc.w     $2501,$FF00
+                    dc.w     BPLCON1,$DD,BPLCON0,$2200
+                    dc.w     BPL1MOD,-2,BPL2MOD,-2
 overmap_bottom_bar_bps: 
-                    dc.w    $E0,0,$E2,0
-                    dc.w    $E4,0,$E6,0
-                    dc.w    $182,$111,$184,$444
-                    dc.w    $2551,$FFFE,$186,$610
-                    dc.w    $2551,$FFFE,$186,$620
-                    dc.w    $25A1,$FFFE,$186,$610
-                    dc.w    $25B1,$FFFE,$186,$620
-                    dc.w    $25C1,$FFFE,$186,$610
-                    dc.w    $25C5,$FFFE,$186,$620
-                    dc.w    $2601,$FF00,$182,$222,$184,$888
-                    dc.w    $2651,$FFFE,$186,$930
-                    dc.w    $2651,$FFFE,$186,$940
-                    dc.w    $26A1,$FFFE,$186,$930
-                    dc.w    $26B1,$FFFE,$186,$940
-                    dc.w    $26C1,$FFFE,$186,$930
-                    dc.w    $26C5,$FFFE,$186,$940
-                    dc.w    $2701,$FF00,$182,$333,$184,$CCC
-                    dc.w    $2751,$FFFE,$186,$C70
-                    dc.w    $2751,$FFFE,$186,$C80
-                    dc.w    $27A1,$FFFE,$186,$C70
-                    dc.w    $27B1,$FFFE,$186,$C80
-                    dc.w    $27C1,$FFFE,$186,$C70
-                    dc.w    $27C5,$FFFE,$186,$C80
-                    dc.w    $2801,$FF00,$182,$444,$184,$DDD
-                    dc.w    $2851,$FFFE,$186,$E90
-                    dc.w    $2851,$FFFE,$186,$EA0
-                    dc.w    $28A1,$FFFE,$186,$E90
-                    dc.w    $28B1,$FFFE,$186,$EA0
-                    dc.w    $28C1,$FFFE,$186,$E90
-                    dc.w    $28C5,$FFFE,$186,$EA0
-                    dc.w    $2901,$FF00,$182,$333,$184,$DDD
-                    dc.w    $2951,$FFFE,$186,$C70
-                    dc.w    $2951,$FFFE,$186,$C80
-                    dc.w    $29A1,$FFFE,$186,$C70
-                    dc.w    $29B1,$FFFE,$186,$C80
-                    dc.w    $29C1,$FFFE,$186,$C70
-                    dc.w    $29C5,$FFFE,$186,$C80
-                    dc.w    $2A01,$FF00,$182,$222,$184,$CCC
-                    dc.w    $2A51,$FFFE,$186,$A30
-                    dc.w    $2A51,$FFFE,$186,$A40
-                    dc.w    $2AA1,$FFFE,$186,$A30
-                    dc.w    $2AB1,$FFFE,$186,$A40
-                    dc.w    $2AC1,$FFFE,$186,$A30
-                    dc.w    $2AC5,$FFFE,$186,$A40
-                    dc.w    $2B01,$FF00,$182,$111,$184,$888
-                    dc.w    $2B51,$FFFE,$186,$710
-                    dc.w    $2B51,$FFFE,$186,$720
-                    dc.w    $2BA1,$FFFE,$186,$710
-                    dc.w    $2BB1,$FFFE,$186,$720
-                    dc.w    $2BC1,$FFFE,$186,$710
-                    dc.w    $2BC5,$FFFE,$186,$720
-                    dc.w    $2C01,$FF00,$182,$111,$184,$444
-                    dc.w    $2C51,$FFFE,$186,$510
-                    dc.w    $2C51,$FFFE,$186,$520
-                    dc.w    $2CA1,$FFFE,$186,$510
-                    dc.w    $2CB1,$FFFE,$186,$520
-                    dc.w    $2CC1,$FFFE,$186,$510
-                    dc.w    $2CC5,$FFFE,$186,$520
-                    dc.w    $FFFF,$FFFE
-; ------------------------------------------------------
+                    dc.w     BPL1PTH,0,BPL1PTL,0
+                    dc.w     BPL2PTH,0,BPL2PTL,0
+                    dc.w     COLOR01,$111,COLOR02,$444
+                    dc.w     $2551,$FFFE,COLOR03,$610
+                    dc.w     $2551,$FFFE,COLOR03,$620
+                    dc.w     $25A1,$FFFE,COLOR03,$610
+                    dc.w     $25B1,$FFFE,COLOR03,$620
+                    dc.w     $25C1,$FFFE,COLOR03,$610
+                    dc.w     $25C5,$FFFE,COLOR03,$620
+                    dc.w     $2601,$FF00,COLOR01,$222,COLOR02,$888
+                    dc.w     $2651,$FFFE,COLOR03,$930
+                    dc.w     $2651,$FFFE,COLOR03,$940
+                    dc.w     $26A1,$FFFE,COLOR03,$930
+                    dc.w     $26B1,$FFFE,COLOR03,$940
+                    dc.w     $26C1,$FFFE,COLOR03,$930
+                    dc.w     $26C5,$FFFE,COLOR03,$940
+                    dc.w     $2701,$FF00,COLOR01,$333,COLOR02,$CCC
+                    dc.w     $2751,$FFFE,COLOR03,$C70
+                    dc.w     $2751,$FFFE,COLOR03,$C80
+                    dc.w     $27A1,$FFFE,COLOR03,$C70
+                    dc.w     $27B1,$FFFE,COLOR03,$C80
+                    dc.w     $27C1,$FFFE,COLOR03,$C70
+                    dc.w     $27C5,$FFFE,COLOR03,$C80
+                    dc.w     $2801,$FF00,COLOR01,$444,COLOR02,$DDD
+                    dc.w     $2851,$FFFE,COLOR03,$E90
+                    dc.w     $2851,$FFFE,COLOR03,$EA0
+                    dc.w     $28A1,$FFFE,COLOR03,$E90
+                    dc.w     $28B1,$FFFE,COLOR03,$EA0
+                    dc.w     $28C1,$FFFE,COLOR03,$E90
+                    dc.w     $28C5,$FFFE,COLOR03,$EA0
+                    dc.w     $2901,$FF00,COLOR01,$333,COLOR02,$DDD
+                    dc.w     $2951,$FFFE,COLOR03,$C70
+                    dc.w     $2951,$FFFE,COLOR03,$C80
+                    dc.w     $29A1,$FFFE,COLOR03,$C70
+                    dc.w     $29B1,$FFFE,COLOR03,$C80
+                    dc.w     $29C1,$FFFE,COLOR03,$C70
+                    dc.w     $29C5,$FFFE,COLOR03,$C80
+                    dc.w     $2A01,$FF00,COLOR01,$222,COLOR02,$CCC
+                    dc.w     $2A51,$FFFE,COLOR03,$A30
+                    dc.w     $2A51,$FFFE,COLOR03,$A40
+                    dc.w     $2AA1,$FFFE,COLOR03,$A30
+                    dc.w     $2AB1,$FFFE,COLOR03,$A40
+                    dc.w     $2AC1,$FFFE,COLOR03,$A30
+                    dc.w     $2AC5,$FFFE,COLOR03,$A40
+                    dc.w     $2B01,$FF00,COLOR01,$111,COLOR02,$888
+                    dc.w     $2B51,$FFFE,COLOR03,$710
+                    dc.w     $2B51,$FFFE,COLOR03,$720
+                    dc.w     $2BA1,$FFFE,COLOR03,$710
+                    dc.w     $2BB1,$FFFE,COLOR03,$720
+                    dc.w     $2BC1,$FFFE,COLOR03,$710
+                    dc.w     $2BC5,$FFFE,COLOR03,$720
+                    dc.w     $2C01,$FF00,COLOR01,$111,COLOR02,$444
+                    dc.w     $2C51,$FFFE,COLOR03,$510
+                    dc.w     $2C51,$FFFE,COLOR03,$520
+                    dc.w     $2CA1,$FFFE,COLOR03,$510
+                    dc.w     $2CB1,$FFFE,COLOR03,$520
+                    dc.w     $2CC1,$FFFE,COLOR03,$510
+                    dc.w     $2CC5,$FFFE,COLOR03,$520
+                    dc.w     $FFFF,$FFFE
+
 ; ------------------------------------------------------
 
-                    incdir  "src/main/sprites/"
-player_spr1_pic:    incbin  "player_sprite1.raw"
-player_spr2_pic:    incbin  "player_sprite2.raw"
-player_spr3_pic:    incbin  "player_sprite3.raw"
-player_spr4_pic:    incbin  "player_sprite4.raw"
-player_spr5_pic:    incbin  "player_sprite5.raw"
-player_spr6_pic:    incbin  "player_sprite6.raw"
-player_spr7_pic:    incbin  "player_sprite7.raw"
-player_spr8_pic:    incbin  "player_sprite8.raw"
-player_spr9_pic:    incbin  "player_sprite9.raw"
-player_spr10_pic:   incbin  "player_sprite10.raw"
-player_spr11_pic:   incbin  "player_sprite11.raw"
-player_spr12_pic:   incbin  "player_sprite12.raw"
-player_spr13_pic:   incbin  "player_sprite13.raw"
-player_spr14_pic:   incbin  "player_sprite14.raw"
-player_spr15_pic:   incbin  "player_sprite15.raw"
-player_spr16_pic:   incbin  "player_sprite16.raw"
-player_spr17_pic:   incbin  "player_sprite17.raw"
-player_spr18_pic:   incbin  "player_sprite18.raw"
-player_spr19_pic:   incbin  "player_sprite19.raw"
-player_spr20_pic:   incbin  "player_sprite20.raw"
-player_spr21_pic:   incbin  "player_sprite21.raw"
-player_spr22_pic:   incbin  "player_sprite22.raw"
-player_spr23_pic:   incbin  "player_sprite23.raw"
-player_spr24_pic:   incbin  "player_sprite24.raw"
-player_spr25_pic:   incbin  "player_sprite25.raw"
-player_spr26_pic:   incbin  "player_sprite26.raw"
-player_spr27_pic:   incbin  "player_sprite27.raw"
-player_spr28_pic:   incbin  "player_sprite28.raw"
-player_spr29_pic:   incbin  "player_sprite29.raw"
-player_spr30_pic:   incbin  "player_sprite30.raw"
-player_spr31_pic:   incbin  "player_sprite31.raw"
-player_spr32_pic:   incbin  "player_sprite32.raw"
-player_spr33_pic:   incbin  "player_sprite33.raw"
-player_spr34_pic:   incbin  "player_sprite34.raw"
-player_spr35_pic:   incbin  "player_sprite35.raw"
-player_spr36_pic:   incbin  "player_sprite36.raw"
-player_spr37_pic:   incbin  "player_sprite37.raw"
-player_spr38_pic:   incbin  "player_sprite38.raw"
-player_spr39_pic:   incbin  "player_sprite39.raw"
-player_spr40_pic:   incbin  "player_sprite40.raw"
-player_spr41_pic:   incbin  "player_sprite41.raw"
-player_spr42_pic:   incbin  "player_sprite42.raw"
-player_spr43_pic:   incbin  "player_sprite43.raw"
-player_spr44_pic:   incbin  "player_sprite44.raw"
-player_spr45_pic:   incbin  "player_sprite45.raw"
-player_spr46_pic:   incbin  "player_sprite46.raw"
-player_spr47_pic:   incbin  "player_sprite47.raw"
-player_spr48_pic:   incbin  "player_sprite48.raw"
-player_spr49_pic:   incbin  "player_sprite49.raw"
-player_spr50_pic:   incbin  "player_sprite50.raw"
-player_spr51_pic:   incbin  "player_sprite51.raw"
-player_spr52_pic:   incbin  "player_sprite52.raw"
-player_spr53_pic:   incbin  "player_sprite53.raw"
-player_spr54_pic:   incbin  "player_sprite54.raw"
-player_spr55_pic:   incbin  "player_sprite55.raw"
-player_spr56_pic:   incbin  "player_sprite56.raw"
-player_spr57_pic:   incbin  "player_sprite57.raw"
-player_spr58_pic:   incbin  "player_sprite58.raw"
-player_spr59_pic:   incbin  "player_sprite59.raw"
-player_spr60_pic:   incbin  "player_sprite60.raw"
-player_spr61_pic:   incbin  "player_sprite61.raw"
-player_spr62_pic:   incbin  "player_sprite62.raw"
-player_spr63_pic:   incbin  "player_sprite63.raw"
-player_spr64_pic:   incbin  "player_sprite64.raw"
-player_spr65_pic:   incbin  "player_sprite65.raw"
-player_spr66_pic:   incbin  "player_sprite66.raw"
-player_spr67_pic:   incbin  "player_sprite67.raw"
-player_spr68_pic:   incbin  "player_sprite68.raw"
-player_spr69_pic:   incbin  "player_sprite69.raw"
-player_spr70_pic:   incbin  "player_sprite70.raw"
-player_spr71_pic:   incbin  "player_sprite71.raw"
-player_spr72_pic:   incbin  "player_sprite72.raw"
-player_spr73_pic:   incbin  "player_sprite73.raw"
-player_spr74_pic:   incbin  "player_sprite74.raw"
-player_spr75_pic:   incbin  "player_sprite75.raw"
-player_spr76_pic:   incbin  "player_sprite76.raw"
-player_spr77_pic:   incbin  "player_sprite77.raw"
-player_spr78_pic:   incbin  "player_sprite78.raw"
-player_spr79_pic:   incbin  "player_sprite79.raw"
-player_spr80_pic:   incbin  "player_sprite80.raw"
+player_spr1_pic:    incbin   "player_sprite1.raw"
+player_spr2_pic:    incbin   "player_sprite2.raw"
+player_spr3_pic:    incbin   "player_sprite3.raw"
+player_spr4_pic:    incbin   "player_sprite4.raw"
+player_spr5_pic:    incbin   "player_sprite5.raw"
+player_spr6_pic:    incbin   "player_sprite6.raw"
+player_spr7_pic:    incbin   "player_sprite7.raw"
+player_spr8_pic:    incbin   "player_sprite8.raw"
+player_spr9_pic:    incbin   "player_sprite9.raw"
+player_spr10_pic:   incbin   "player_sprite10.raw"
+player_spr11_pic:   incbin   "player_sprite11.raw"
+player_spr12_pic:   incbin   "player_sprite12.raw"
+player_spr13_pic:   incbin   "player_sprite13.raw"
+player_spr14_pic:   incbin   "player_sprite14.raw"
+player_spr15_pic:   incbin   "player_sprite15.raw"
+player_spr16_pic:   incbin   "player_sprite16.raw"
+player_spr17_pic:   incbin   "player_sprite17.raw"
+player_spr18_pic:   incbin   "player_sprite18.raw"
+player_spr19_pic:   incbin   "player_sprite19.raw"
+player_spr20_pic:   incbin   "player_sprite20.raw"
+player_spr21_pic:   incbin   "player_sprite21.raw"
+player_spr22_pic:   incbin   "player_sprite22.raw"
+player_spr23_pic:   incbin   "player_sprite23.raw"
+player_spr24_pic:   incbin   "player_sprite24.raw"
+player_spr25_pic:   incbin   "player_sprite25.raw"
+player_spr26_pic:   incbin   "player_sprite26.raw"
+player_spr27_pic:   incbin   "player_sprite27.raw"
+player_spr28_pic:   incbin   "player_sprite28.raw"
+player_spr29_pic:   incbin   "player_sprite29.raw"
+player_spr30_pic:   incbin   "player_sprite30.raw"
+player_spr31_pic:   incbin   "player_sprite31.raw"
+player_spr32_pic:   incbin   "player_sprite32.raw"
+player_spr33_pic:   incbin   "player_sprite33.raw"
+player_spr34_pic:   incbin   "player_sprite34.raw"
+player_spr35_pic:   incbin   "player_sprite35.raw"
+player_spr36_pic:   incbin   "player_sprite36.raw"
+player_spr37_pic:   incbin   "player_sprite37.raw"
+player_spr38_pic:   incbin   "player_sprite38.raw"
+player_spr39_pic:   incbin   "player_sprite39.raw"
+player_spr40_pic:   incbin   "player_sprite40.raw"
+player_spr41_pic:   incbin   "player_sprite41.raw"
+player_spr42_pic:   incbin   "player_sprite42.raw"
+player_spr43_pic:   incbin   "player_sprite43.raw"
+player_spr44_pic:   incbin   "player_sprite44.raw"
+player_spr45_pic:   incbin   "player_sprite45.raw"
+player_spr46_pic:   incbin   "player_sprite46.raw"
+player_spr47_pic:   incbin   "player_sprite47.raw"
+player_spr48_pic:   incbin   "player_sprite48.raw"
+player_spr49_pic:   incbin   "player_sprite49.raw"
+player_spr50_pic:   incbin   "player_sprite50.raw"
+player_spr51_pic:   incbin   "player_sprite51.raw"
+player_spr52_pic:   incbin   "player_sprite52.raw"
+player_spr53_pic:   incbin   "player_sprite53.raw"
+player_spr54_pic:   incbin   "player_sprite54.raw"
+player_spr55_pic:   incbin   "player_sprite55.raw"
+player_spr56_pic:   incbin   "player_sprite56.raw"
+player_spr57_pic:   incbin   "player_sprite57.raw"
+player_spr58_pic:   incbin   "player_sprite58.raw"
+player_spr59_pic:   incbin   "player_sprite59.raw"
+player_spr60_pic:   incbin   "player_sprite60.raw"
+player_spr61_pic:   incbin   "player_sprite61.raw"
+player_spr62_pic:   incbin   "player_sprite62.raw"
+player_spr63_pic:   incbin   "player_sprite63.raw"
+player_spr64_pic:   incbin   "player_sprite64.raw"
+player_spr65_pic:   incbin   "player_sprite65.raw"
+player_spr66_pic:   incbin   "player_sprite66.raw"
+player_spr67_pic:   incbin   "player_sprite67.raw"
+player_spr68_pic:   incbin   "player_sprite68.raw"
+player_spr69_pic:   incbin   "player_sprite69.raw"
+player_spr70_pic:   incbin   "player_sprite70.raw"
+player_spr71_pic:   incbin   "player_sprite71.raw"
+player_spr72_pic:   incbin   "player_sprite72.raw"
+player_spr73_pic:   incbin   "player_sprite73.raw"
+player_spr74_pic:   incbin   "player_sprite74.raw"
+player_spr75_pic:   incbin   "player_sprite75.raw"
+player_spr76_pic:   incbin   "player_sprite76.raw"
+player_spr77_pic:   incbin   "player_sprite77.raw"
+player_spr78_pic:   incbin   "player_sprite78.raw"
+player_spr79_pic:   incbin   "player_sprite79.raw"
+player_spr80_pic:   incbin   "player_sprite80.raw"
 
 bkgnd_anim_block:   dcb.b    28800,0
 
-                    incdir  "src/main/samples/"
-sample1:            incbin  "sample1.raw"
-sample2:            incbin  "sample2.raw"
-sample3:            incbin  "sample3.raw"
-sample4:            incbin  "sample4.raw"
-sample5:            incbin  "sample5.raw"
-sample6:            incbin  "sample6.raw"
-sample7:            incbin  "sample7.raw"
-sample8:            incbin  "sample8.raw"
-sample9:            incbin  "sample9.raw"
-sample10:           incbin  "sample10.raw"
-sample11:           incbin  "sample11.raw"
-sample12:           incbin  "sample12.raw"
-sample13:           incbin  "sample13.raw"
-sample14:           incbin  "sample14.raw"
-sample15:           incbin  "sample15.raw"
-sample16:           incbin  "sample16.raw"
-sample17:           incbin  "sample17.raw"
-sample18:           incbin  "sample18.raw"
-sample19:           incbin  "sample19.raw"
-sample20:           incbin  "sample20.raw"
-sample21:           incbin  "sample21.raw"
-sample22:           incbin  "sample22.raw"
-sample23:           incbin  "sample23.raw"
-sample24:           incbin  "sample24.raw"
-sample25:           incbin  "sample25.raw"
-sample26:           incbin  "sample26.raw"
-sample27:           incbin  "sample27.raw"
-sample28:           incbin  "sample28.raw"
-sample29:           incbin  "sample29.raw"
-sample30:           incbin  "sample30.raw"
-sample31:           incbin  "sample31.raw"
+sample1:            incbin   "sample1.raw"
+sample2:            incbin   "sample2.raw"
+sample3:            incbin   "sample3.raw"
+sample4:            incbin   "sample4.raw"
+sample5:            incbin   "sample5.raw"
+sample6:            incbin   "sample6.raw"
+sample7:            incbin   "sample7.raw"
+sample8:            incbin   "sample8.raw"
+sample9:            incbin   "sample9.raw"
+sample10:           incbin   "sample10.raw"
+sample11:           incbin   "sample11.raw"
+sample12:           incbin   "sample12.raw"
+sample13:           incbin   "sample13.raw"
+sample14:           incbin   "sample14.raw"
+sample15:           incbin   "sample15.raw"
+sample16:           incbin   "sample16.raw"
+sample17:           incbin   "sample17.raw"
+sample18:           incbin   "sample18.raw"
+sample19:           incbin   "sample19.raw"
+sample20:           incbin   "sample20.raw"
+sample21:           incbin   "sample21.raw"
+sample22:           incbin   "sample22.raw"
+sample23:           incbin   "sample23.raw"
+sample24:           incbin   "sample24.raw"
+sample25:           incbin   "sample25.raw"
+sample26:           incbin   "sample26.raw"
+sample27:           incbin   "sample27.raw"
+sample28:           incbin   "sample28.raw"
+sample29:           incbin   "sample29.raw"
+sample30:           incbin   "sample30.raw"
+sample31:           incbin   "sample31.raw"
+
+; ------------------------------------------------------
 
                     section  uni_chip,bss_c
 

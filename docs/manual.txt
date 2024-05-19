@@ -5,6 +5,7 @@ Manual
 
 THE STORY
 ---------
+
 2191...and the Galaxy stands unwittingly on the brink of war...
 
 The colonisation. It had happened so fast, first the break throughs, initial
@@ -39,6 +40,7 @@ landing bays...they were going in.
 
 USEFUL BACKGROUND INFORMATION
 -----------------------------
+
 Intex systems was the name behind many of the technological breakthroughs
 of the period, they were responsible for the huge increase in colonisation
 and for most of the complex cumputer and droid operated stations.
@@ -56,6 +58,7 @@ were privvy to the exact operations.
 
 LOADING INSTRUCTIONS
 --------------------
+
 Simply reset your Amiga in the conventional way using `CTRL` and 2 Amiga
 Key operation.. [Scooter note; thats load of garbage to avoid virus 
 infection, always turn your Amiga off for a couple of seconds]
@@ -64,6 +67,7 @@ When the menu appears, you can select options and then play the game.
 
 SYSTEM REQUIREMENTS
 -------------------
+
 The game requires 1 megabyte of RAM to play and will run on all Amiga
 systems. Disk access is still necessary between levels, but this is minimal
 and should not detract from play. A joystick is of course needed, two if
@@ -80,6 +84,7 @@ The game features a full attract sequence if left alone...
 
 CONTROLLING THE IPC MEMBERS
 ---------------------------
+
 Both players are controlled using the joystick, simply move the stick in
 the direction that you wish the character to travel, the button will (ammo
 permitting) fire off a round from the current weapon you are using.
@@ -111,6 +116,7 @@ judgement has failed you...by pressing the `ESC` Key.
 
 TIPS
 ----
+
 Alien Breed 92 is a great 1 player game, but like all things in life is
 even better when done with a partner. We recommend a 2 player as the
 atmosphere takes on a new meaning once teamwork is required.
