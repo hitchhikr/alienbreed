@@ -6,12 +6,7 @@
 
 ; -----------------------------------------------------
 
-                    include  "custom.i"
-                    include  "cia.i"
-                    include  "dmabits.i"
-                    include  "intbits.i"
-
-                    mc68000
+                    include  "common.inc"
 
 ; -----------------------------------------------------
 
@@ -1120,7 +1115,7 @@ lbC002354:          move.l   20(a0),a2
 lbC002372:          move.l   16(a0),20(a0)
                     bra.b    lbC002354
 
-lbW002396:          dcb.w    2,$FFE0
+lbW002396:          dc.w     -32,-32
                     dc.w     11,0
                     dc.l     sprites_bps
                     dc.l     lbL0023B2

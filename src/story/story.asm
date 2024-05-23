@@ -6,12 +6,7 @@
 
 ; -----------------------------------------------------
 
-                    include  "custom.i"
-                    include  "cia.i"
-                    include  "dmabits.i"
-                    include  "intbits.i"
-
-                    mc68000
+                    include  "common.inc"
 
 ; -----------------------------------------------------
 
@@ -298,7 +293,7 @@ display_letter:     move.l   32(a1),a3
                     move.l   28(a1),d5
                     move.l   #letter_buffer,d4
                     move.l   #-1,BLTAFWM(a6)
-                    move.l   #$dfc0000,BLTCON0(a6)
+                    move.l   #$DFC0000,BLTCON0(a6)
                     move.l   24(a1),d6
                     addq.w   #2,d6
                     move.w   d6,BLTAMOD(a6)
@@ -315,7 +310,7 @@ blit_letter_mask:
                     subq.w   #1,d2
                     bne.b    blit_letter_mask
                     WAIT_BLIT
-                    move.l   #$ffff0000,BLTAFWM(a6)
+                    move.l   #$FFFF0000,BLTAFWM(a6)
                     move.w   d3,BLTCON1(a6)
                     or.w     #$fe2,d3
                     move.w   d3,BLTCON0(a6)
@@ -353,7 +348,7 @@ blit_letter_on_screen:
 return:             rts
 
 letter_buffer:      dcb.l    32,0
-font_struct:        dc.l     text_bitplane1,10240,2,36,9,11,80,924
+font_struct:        dc.l     text_bitplane1,(256*40),2,36,9,11,80,924
                     dc.l     font_pic
                     dc.l     ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0

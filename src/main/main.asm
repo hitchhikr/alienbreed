@@ -3,146 +3,10 @@
 ; -----------------------------------------------------
 ; Disassembled by Franck 'hitchhikr' Charlet.
 ; -----------------------------------------------------
-; LxMA are the maps.
-; LxAN are the animated tiles (320x144x5).
-; LxBO are the bobs (320x384x5).
-; LxBM are the background tiles (16x16x5x480 (480 tiles, that is)).
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
-                    include  "custom.i"
-                    include  "cia.i"
-                    include  "dmabits.i"
-                    include  "intbits.i"
-
-                    mc68000
-
-; ------------------------------------------------------
-
-; 1 to activate the debug mode
-DEBUG               equ     0
-
-lbW05F7A8           equ     cur_map_datas+612
-map_reactor_up      equ     cur_map_datas+2598
-lbW060644           equ     cur_map_datas+4352
-lbW06188C           equ     cur_map_datas+9032
-lbW0619E8           equ     cur_map_datas+9380
-lbW061AFC           equ     cur_map_datas+9656
-lbW061D6C           equ     cur_map_datas+10280
-lbW061FDC           equ     cur_map_datas+10904
-map_reactor_left    equ     cur_map_datas+10928
-lbW06224C           equ     cur_map_datas+11528
-lbW062296           equ     cur_map_datas+11602
-lbW062366           equ     cur_map_datas+11810
-lbW062368           equ     cur_map_datas+11812
-map_reactor_right   equ     cur_map_datas+11872
-lbW062460           equ     cur_map_datas+12060
-lbW06258C           equ     cur_map_datas+12360
-lbW0627FC           equ     cur_map_datas+12984
-lbW062872           equ     cur_map_datas+13102
-lbW062D52           equ     cur_map_datas+14350
-lbW063124           equ     cur_map_datas+15328
-lbW063804           equ     cur_map_datas+17088
-lbW063806           equ     cur_map_datas+17090
-lbW063CCE           equ     cur_map_datas+18314
-lbW063DB8           equ     cur_map_datas+18548
-lbL063DC6           equ     cur_map_datas+18562
-lbW064204           equ     cur_map_datas+19648
-map_reactor_down    equ     cur_map_datas+20698
-
-; exec
-_LVOSupervisor      equ     -30
-_LVOSuperState      equ     -150
-_LVOUserState       equ     -156
-_LVOAddIntServer    equ     -168
-_LVORemIntServer    equ     -174
-_LVOOldOpenLibrary  equ     -408
-_LVOCloseLibrary    equ     -414
-_LVOOpenLibrary     equ     -552
-_LVOCacheClearU     equ     -636
-_LVOCacheControl    equ     -648
-
-AttnFlags           equ     $128
-LIB_VERSION         equ     20
-
-; dos
-_LVOOpen            equ     -30
-_LVOClose           equ     -36
-_LVORead            equ     -42
-
-MODE_OLDFILE        equ     1005
-
-; gfx
-_LVOLoadView        equ     -222
-_LVOWaitTOF         equ     -270
-
-KEY_P               equ     $19
-KEY_M               equ     $37
-KEY_SPACE           equ     $40
-KEY_RETURN          equ     $44
-KEY_ESC             equ     $45
-KEY_UP              equ     $4c
-KEY_DOWN            equ     $4d
-KEY_RIGHT           equ     $4e
-KEY_LEFT            equ     $4f
-KEY_LEFT_ALT        equ     $64
-KEY_RIGHT_ALT       equ     $65
-
-PLAYER_CUR_WEAPON   equ     256
-PLAYER_POS_X        equ     300
-PLAYER_POS_Y        equ     302
-PLAYER_ALIVE        equ     316
-PLAYER_CUR_SPRITE   equ     320
-PLAYER_HEALTH       equ     336
-PLAYER_LIVES        equ     340
-PLAYER_AMMOPACKS    equ     344
-PLAYER_AMMUNITIONS  equ     348
-PLAYER_KEYS         equ     352
-PLAYER_CREDITS      equ     356
-PLAYER_EXTRA_SPD_X  equ     376
-PLAYER_EXTRA_SPD_Y  equ     378
-PLAYER_OWNEDWEAPONS equ     402
-PLAYER_OLD_POS_X    equ     428
-PLAYER_OLD_POS_Y    equ     432
-PLAYER_SHOTS        equ     436
-PLAYER_SCORE        equ     440
-
-PLAYER_FACE_UP      equ     1
-PLAYER_FACE_UP_LEFT equ     8
-PLAYER_FACE_UP_RIGHT equ    2
-PLAYER_FACE_DOWN    equ     5
-PLAYER_FACE_DOWN_LEFT equ   6
-PLAYER_FACE_DOWN_RIGHT equ  4
-PLAYER_FACE_LEFT    equ     7
-PLAYER_FACE_RIGHT   equ     3
-
-WEAPON_MACHINEGUN   equ     1
-WEAPON_TWINFIRE     equ     2
-WEAPON_FLAMEARC     equ     3
-WEAPON_PLASMAGUN    equ     4
-WEAPON_FLAMETHROWER equ     5
-WEAPON_SIDEWINDERS  equ     6
-WEAPON_LAZER        equ     7
-WEAPON_MAX          equ     8
-
-SUPPLY_MAP_OVERVIEW equ     1
-SUPPLY_AMMO_CHARGE  equ     2
-SUPPLY_NRG_INJECT   equ     4
-SUPPLY_KEY_PACK     equ     8
-SUPPLY_EXTRA_LIFE   equ     16
-
-SAMPLE_KEY          equ     22
-SAMPLE_AMMO         equ     24
-SAMPLE_1UP          equ     27
-SAMPLE_1STAID_CREDS equ     30
-SAMPLE_ACID_POOL    equ     34
-
-ALIEN_SPEED         equ     10
-ALIEN_POS_X         equ     30
-ALIEN_POS_Y         equ     32
-ALIEN_STRENGTH      equ     60
-
-TILE_DOOR           equ     3
+                    include  'common.inc'
 
 ; ------------------------------------------------------
 
@@ -360,16 +224,15 @@ input_enabled:      dc.w     0
 done_holocode_jump: dc.w     0
 
 ; structure passed to the intex exe
-cur_credits:        dc.l     0
-aliens_killed:      dc.l     0
-intex_shots_fired:  dc.l     0
-                    dc.l     0              ; unused
-doors_opened:       dc.l     0
-
-intex_ammopacks:    dc.l     0
-intex_health:       dc.l     0
-intex_cur_weapon:   dc.l     0
-lbL000518:          dc.l     10000
+cur_credits:        dc.l     0              ; 0
+aliens_killed:      dc.l     0              ; 4
+intex_shots_fired:  dc.l     0              ; 8
+                    dc.l     0              ; 12 (unused)
+doors_opened:       dc.l     0              ; 16
+intex_ammopacks:    dc.l     0              ; 20
+intex_health:       dc.l     0              ; 24
+intex_cur_weapon:   dc.l     0              ; 28
+intex_player_score: dc.l     10000          ; 32
 
 lbL00051C:          dc.l     0
 lbL000520:          dcb.l    10,0
@@ -1166,10 +1029,10 @@ init_player_dats:   clr.l    PLAYER_SHOTS(a0)
                     move.l   #WEAPON_MACHINEGUN,PLAYER_CUR_WEAPON(a0)
                     move.w   #1,PLAYER_ALIVE(a0)
                     move.w   #3,PLAYER_CUR_SPRITE(a0)
-                    move.w   #64,PLAYER_HEALTH(a0)
+                    move.w   #PLAYER_MAX_HEALTH,PLAYER_HEALTH(a0)
                     move.w   #4,PLAYER_LIVES(a0)
                     move.w   #2,PLAYER_AMMOPACKS(a0)
-                    move.w   #32,PLAYER_AMMUNITIONS(a0)
+                    move.w   #PLAYER_MAX_AMMO,PLAYER_AMMUNITIONS(a0)
                     clr.w    PLAYER_KEYS(a0)
                     clr.w    368(a0)
                     clr.w    278(a0)
@@ -1802,7 +1665,7 @@ lbC003878:          bsr      lbC003832
                     jsr      set_bitplanes_nbr
                     jsr      lbC010F22
                     jsr      wait
-                    clr.w    lbW023126
+                    clr.w    lbW023124+2
                     rts
 
 lbC003954:          move.l   #-1,lbL0035D8
@@ -4102,12 +3965,12 @@ lbC006CD0:          tst.w    PLAYER_HEALTH(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #60,lbW02314E
-                    move.w   #65,lbW02313A
+                    move.w   #VOICE_FIRST_AID,lbW02314C+2
+                    move.w   #VOICE_ONE,lbW023138+2
                     cmp.l    #player_1_dats,a0
                     beq.b    lbC006D14
-                    move.w   #66,lbW02313A
-lbC006D14:          jsr      lbC02325A
+                    move.w   #VOICE_TWO,lbW023138+2
+lbC006D14:          jsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     beq.b    lbC006D2A
                     move.w   #1,424(a0)
@@ -4860,7 +4723,7 @@ lbC007796:          move.l   16(a0),a5
                     bsr      lbC00799A
                     bra      lbC0077C0
 
-lbC0077C0:          move.w   #64,PLAYER_HEALTH(a0)
+lbC0077C0:          move.w   #PLAYER_MAX_HEALTH,PLAYER_HEALTH(a0)
                     tst.w    276(a0)
                     beq.b    lbC0077D4
                     subq.w   #1,276(a0)
@@ -4918,7 +4781,7 @@ lbC00787A:          move.l   16(a0),a5
                     bsr      lbC011346
                     bra      lbC00E08A
 
-lbC00788E:          move.w   #64,PLAYER_HEALTH(a0)
+lbC00788E:          move.w   #PLAYER_MAX_HEALTH,PLAYER_HEALTH(a0)
                     clr.w    292(a0)
                     move.w   #1,274(a0)
                     move.w   #50,276(a0)
@@ -5369,11 +5232,11 @@ tile_door:          tst.w    lbW007B48
                     bhi.b    force_door
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #63,lbW02314E
-                    move.w   #65,lbW02313A
+                    move.w   #VOICE_KEYS,lbW02314C+2
+                    move.w   #VOICE_ONE,lbW023138+2
                     cmp.l    #player_1_dats,a0
                     beq.b    lbC007F30
-                    move.w   #66,lbW02313A
+                    move.w   #VOICE_TWO,lbW023138+2
 lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
                     bra      tile_wall
 
@@ -5473,7 +5336,7 @@ tile_key:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      patch_tiles                        ; possibly changing the tile's gfx
                     tst.w    lbW00AD50
                     beq.b    lbC008078
-                    and.w    #$FFC0,(a3)                        ; change the property of the tile to "floor"
+                    and.w    #$FFC0,(a3)                        ; change the property of the tile to 'floor'
                     move.w   #SAMPLE_KEY,sample_to_play
                     jsr      trigger_sample
                     addq.w   #1,PLAYER_KEYS(a0)
@@ -5483,12 +5346,12 @@ lbC008078:          movem.l  (sp)+,d0-d7/a0-a6
 tile_first_aid:     movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
                     move.w   PLAYER_HEALTH(a0),d0
-                    cmp.w    #64,d0
+                    cmp.w    #PLAYER_MAX_HEALTH,d0
                     bpl.b    .max
                     add.w    #20,d0
-                    cmp.w    #65,d0
+                    cmp.w    #PLAYER_MAX_HEALTH+1,d0
                     bmi.b    .max
-                    move.w   #64,d0
+                    move.w   #PLAYER_MAX_HEALTH,d0
 .max:               move.w   d0,PLAYER_HEALTH(a0)
                     lea      lbL020ED2,a2
                     bsr      patch_tiles
@@ -5502,11 +5365,11 @@ lbC0080CC:          movem.l  (sp)+,d0-d7/a0-a6
 
 tile_ammo:          movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
-                    move.w   #32,PLAYER_AMMUNITIONS(a0)
+                    move.w   #PLAYER_MAX_AMMO,PLAYER_AMMUNITIONS(a0)
                     addq.w   #1,PLAYER_AMMOPACKS(a0)
-                    cmp.w    #4,PLAYER_AMMOPACKS(a0)
+                    cmp.w    #PLAYER_MAX_AMMOPCKS,PLAYER_AMMOPACKS(a0)
                     bmi.b    .max
-                    move.w   #4,PLAYER_AMMOPACKS(a0)
+                    move.w   #PLAYER_MAX_AMMOPCKS,PLAYER_AMMOPACKS(a0)
 .max:               lea      lbL020F2A,a2
                     bsr      patch_tiles
                     tst.w    lbW00AD50
@@ -5753,7 +5616,7 @@ lbC008614:          tst.w    328(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
                     move.w   #5,d0
-                    jsr      lbC02325A
+                    jsr      schedule_sample_to_play
                     movem.l  (sp)+,d0-d7/a0-a6
                     cmp.l    #lbW007B22,a4
                     beq      void
@@ -5769,7 +5632,7 @@ lbC008654:          tst.w    $148(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
                     move.w   #5,d0
-                    jsr      lbC02325A
+                    jsr      schedule_sample_to_play
                     movem.l  (sp)+,d0-d7/a0-a6
                     cmp.l    #lbW007B16,a4
                     beq      void
@@ -5793,7 +5656,7 @@ lbC0086BA:          move.w   (a0)+,(a1)+
                     clr.w    bpchannel3_status
                     clr.w    bpchannel4_status
                     jsr      start_music
-                    move.w   #61,sample_to_play
+                    move.w   #VOICE_DANGER,sample_to_play
                     jsr      trigger_sample
                     cmp.w    #1,boss_nbr
                     beq      boss_nbr_1
@@ -5802,7 +5665,7 @@ lbC0086BA:          move.w   (a0)+,(a1)+
                     cmp.w    #3,boss_nbr
                     beq      boss_nbr_3
                     cmp.w    #4,boss_nbr
-                    beq      boss_nbr_4
+                    beq.b    boss_nbr_4
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
@@ -5894,8 +5757,6 @@ boss_nbr_2:         tst.w    lbW0004D8
                     cmp.l    #lbW009254,$1A(a0)
                     beq.b    lbC008974
                     bsr      lbC00D2BA
-;                    movem.l  d0-d7/a0-a6,-(sp)
- ;                   movem.l  (sp)+,d0-d7/a0-a6
                     lea      lbW008C9C(pc),a0
                     lea      lbW009254(pc),a1
                     lea      lbW05F7A8,a3
@@ -6978,7 +6839,7 @@ lbC009DEE:          addq.w   #1,lbW009CDE
                     bne.b    lbC009E1A
                     clr.w    lbW009CDE
                     move.w   #55,d0
-                    add.w    lbW009CE0,d0
+                    add.w    lbW009CE0(pc),d0
                     move.w   d0,sample_to_play
                     jsr      trigger_sample
 
@@ -7114,11 +6975,9 @@ lbC009F62:          tst.w    lbW0004D8
                     add.w    #30,d1
                     lea      lbW008CF6(pc),a0
                     add.w    #32,d0
-                    ;add.w    #0,d1
                     bsr      lbC00A212
                     lea      lbW008D50(pc),a0
                     add.w    #28,d0
-                    ;add.w    #0,d1
                     bsr      lbC00A212
                     lea      lbW008DAA(pc),a0
                     sub.w    #32,d0
@@ -7134,7 +6993,6 @@ lbC009F62:          tst.w    lbW0004D8
                     bsr      lbC00A212
                     lea      lbW008EB8(pc),a0
                     add.w    #18,d0
-                    ;add.w    #0,d1
                     bsr      lbC00A212
                     cmp.w    #1,boss_nbr
                     beq.b    lbC00A056
@@ -7462,7 +7320,7 @@ lbC00A63A:          clr.w    lbW0004EA
                     clr.w    52(a0)
                     clr.w    56(a0)
                     move.w   #13,58(a0)
-                    move.l   #lbC00987C,64(a0)              ;;
+                    move.l   #lbC00987C,64(a0)              ;
                     move.l   #lbW008F14,26(a0)
                     rts
 
@@ -7592,7 +7450,7 @@ lbC00A872:          move.w   34(a1),ALIEN_STRENGTH(a0)
                     move.w   global_aliens_extra_strength,d0
                     add.w    d0,ALIEN_STRENGTH(a0)
                     move.w   (sp)+,d0
-                    move.l   (a1),64(a0)                            ;;
+                    move.l   (a1),64(a0)                            ;
                     movem.w  (sp)+,d0/d1
                     move.w   #1,62(a0)
                     move.w   d0,ALIEN_POS_X(a0)
@@ -8040,21 +7898,21 @@ lbC00AF20:          move.l   a3,66(a0)
                     move.l   a3,a4
                     add.w    d0,a4
 lbC00AF42:          move.l   a4,50(a0)
-                    move.l   #lbL00051C,a4
+                    lea      lbL00051C,a4
                     move.w   -6(a1),d0
                     cmp.w    #-1,d0
                     beq.b    lbC00AF5A
                     move.l   a3,a4
                     add.w    d0,a4
 lbC00AF5A:          move.l   a4,54(a0)
-                    move.l   #lbL00051C,a4
+                    lea      lbL00051C,a4
                     move.w   -4(a1),d0
                     cmp.w    #-1,d0
                     beq.b    lbC00AF72
                     move.l   a3,a4
                     add.w    d0,a4
 lbC00AF72:          move.l   a4,58(a0)
-                    move.l   #lbL00051C,a4
+                    lea      lbL00051C,a4
                     move.w   -2(a1),d0
                     cmp.w    #-1,d0
                     beq.b    lbC00AF8A
@@ -8186,29 +8044,29 @@ move_map_datas:     move.b   (a0)+,(a1)+
                     bne.b    move_map_datas
                     rts
 
-file_name:          dc.b     "    ", 0
+file_name:          dc.b     '    ',0
                     even
-exe_intex:          dc.b     "intex", 0
+exe_intex:          dc.b     'intex',0
                     even
-exe_menu:           dc.b     "menu", 0
+exe_menu:           dc.b     'menu',0
                     even
-exe_end:            dc.b     "end", 0
+exe_end:            dc.b     'end',0
                     even
-exe_gameover:       dc.b     "gameover", 0
+exe_gameover:       dc.b     'gameover',0
                     even
-exe_story:          dc.b     "story", 0
+exe_story:          dc.b     'story',0
                     even
-exe_briefingcore:   dc.b     "briefingcore", 0
+exe_briefingcore:   dc.b     'briefingcore',0
                     even
-exe_briefingstart:  dc.b     "briefingstart", 0
+exe_briefingstart:  dc.b     'briefingstart',0
                     even
-pic_mapbkgnd:       dc.b     "mapbkgnd_320x256x4.raw", 0
+pic_mapbkgnd:       dc.b     'mapbkgnd_320x256x4.raw',0
                     even
-soundmon_level:     dc.b     "level.soundmon", 0
+soundmon_level:     dc.b     'level.soundmon',0
                     even
-soundmon_boss:      dc.b     "boss.soundmon", 0
+soundmon_boss:      dc.b     'boss.soundmon',0
                     even
-soundmon_title:     dc.b     "title.soundmon", 0
+soundmon_title:     dc.b     'title.soundmon',0
                     even
 
 get_map_datas:      move.l   a0,a1
@@ -8249,7 +8107,7 @@ starting_pos_next_line:
                     move.w   #320,start_pos_y
                     rts
 
-lbC00B58A:          add.w    #4,d2
+lbC00B58A:          addq.w   #4,d2
                     add.w    #58,d3
                     tst.w    d2
                     bpl.b    lbC00B598
@@ -8302,9 +8160,9 @@ search_PALB_chunk:  cmp.l    #'PALB',(a0)+
 copy_PALB_chunk:    add.l    #68,a0
                     moveq    #32,d0
                     lea      level_palette2,a1
-.copy:              move.w   (a0)+,(a1)+
+.copy_loop:         move.w   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    .copy
+                    bne.b    .copy_loop
                     rts
 
 cur_holocode:       dc.l     0
@@ -8312,11 +8170,11 @@ cur_holocode:       dc.l     0
 lbC00B6B2:          move.l   a0,cur_holocode
                     move.l   a0,a1
                     lea      current_keysequence(pc),a2
-lbC00B6C0:          move.b   (a1)+,d0
+.loop:              move.b   (a1)+,d0
                     bsr      get_ascii_keycode
                     move.b   d0,(a2)+
                     tst.b    (a1)
-                    bpl.b    lbC00B6C0
+                    bpl.b    .loop
                     bra      search_keysequence
 
 lbL00B6D0:          dc.l     0
@@ -8372,9 +8230,9 @@ run_keysequence_routine:
 reset_keysequence:  move.l   #current_keysequence,keysequence_ptr
                     moveq    #64,d7
                     lea      current_keysequence(pc),a6
-lbC00B7AA:          clr.w    (a6)+
+.clear_loop:        clr.w    (a6)+
                     subq.w   #1,d7
-                    bne.b    lbC00B7AA
+                    bne.b    .clear_loop
                     rts
 
 keysequence_ptr:    dc.l     current_keysequence
@@ -8416,12 +8274,12 @@ lbC00C006:          move.b   (a1),d0
 
 get_ascii_keycode:  lea      keycode_ascii_letters(pc),a5
                     lea      ascii_keycodes_table(pc),a6
-.loop:              cmp.b    (a5)+,d0
+.loop_search:       cmp.b    (a5)+,d0
                     beq.b    .search_done
                     tst.b    (a5)
                     beq.b    .search_done
                     add.l    #1,a6
-                    bra      .loop
+                    bra.b    .loop_search
 
 .search_done:       move.b   (a6),d0
                     rts
@@ -8512,11 +8370,11 @@ jump_to_level:      tst.l    level_to_go
 check_players_invincibility:
                     tst.w    player_1_invincible
                     beq.b    player_1_not_invincible
-                    move.w   #64,player_1_health
+                    move.w   #PLAYER_MAX_HEALTH,player_1_health
 player_1_not_invincible:
                     tst.w    player_2_invincible
                     beq.b    player_2_not_invincible
-                    move.w   #64,player_2_health
+                    move.w   #PLAYER_MAX_HEALTH,player_2_health
 player_2_not_invincible:
                     rts
 
@@ -8541,8 +8399,8 @@ lbC00CF00:          btst     #4,player_2_input
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a0
                     move.l   #304,d0
-lbC00CF56:          move.b   #$FF,(a0)+
-                    move.b   #$FF,(a1)+
+lbC00CF56:          st.b     (a0)+
+                    st.b     (a1)+
                     subq.w   #1,d0
                     bne.b    lbC00CF56
 lbC00CF62:          lea      lbL099B34,a0
@@ -8572,11 +8430,11 @@ lbC00CFDA:          subq.w   #1,lbW00CEE2
 
 lbC00CFE8:          subq.w   #1,d0
                     bne.b    lbC00CF8C
-                    lea      game_paused_pic,a0
+                    lea      game_paused_pic(pc),a0
                     lea      lbB099B40,a1
                     lea      lbL099DA0,a2
                     moveq    #7,d0
-lbC00D004:          move.l   (a0),(a1)
+.copy_pic_loop:     move.l   (a0),(a1)
                     move.l   (a0)+,(a2)
                     move.l   (a0),4(a1)
                     move.l   (a0)+,4(a2)
@@ -8585,7 +8443,7 @@ lbC00D004:          move.l   (a0),(a1)
                     add.l    #38,a1
                     add.l    #38,a2
                     subq.w   #1,d0
-                    bne.b    lbC00D004
+                    bne.b    .copy_pic_loop
                     moveq    #25,d0
 lbC00D02E:          btst     #4,player_2_input
                     bne.b    remove_pause
@@ -8625,7 +8483,7 @@ lbC00D092:          btst     #4,player_2_input
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
-game_paused_pic:    incbin   "game_paused_96x7x1.raw"
+game_paused_pic:    incbin   'game_paused_96x7x1.raw'
 
 lbC00D144:          move.l   a0,-(sp)
                     lea      lbW012A28(pc),a0
@@ -8654,7 +8512,7 @@ lbC00D17E:          move.w   lbW0035D6(pc),d0
                     lea      lbL00D2AA(pc),a0
                     ; no rts
 
-lbC00D1B4:          tst.l    0(a0)
+lbC00D1B4:          tst.l    (a0)
                     beq      return
                     move.w   4(a0),d4
                     cmp.w    d0,d4
@@ -8670,7 +8528,7 @@ lbC00D1B4:          tst.l    0(a0)
                     bpl      return
                     move.l   12(a0),a1
                     move.w   44(a1),8(a0)
-                    move.l   0(a0),a3
+                    move.l   (a0),a3
                     movem.l  d0-d3,-(sp)
                     bsr      lbC00A718
                     tst.w    play_alien_spawning_sample
@@ -8719,31 +8577,29 @@ lbC00D24C:          cmp.l    lbL00D29A(pc),a3
                     move.w   #20,8(a0)
                     rts
 
-lbL00D29A:          dcb.l    2,0
-                    dc.l     50,0
-lbL00D2AA:          dcb.l    2,0
-                    dc.l     50,0
+lbL00D29A:          dc.l     0,0,50,0
+lbL00D2AA:          dc.l     0,0,50,0
 
 lbC00D2BA:          lea      lbW008C9C(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008CF6(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008D50(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008DAA(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008E04(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008E5E(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bsr      lbC00A63A
                     lea      lbW008EB8(pc),a0
-                    move.l   0(a0),a2
+                    move.l   (a0),a2
                     bra      lbC00A63A
 
 display_map_overview:
@@ -8766,7 +8622,7 @@ display_map_overview:
                     lea      overmap_palette,a0
                     bsr      wait_raster
                     lea      lbL02266A,a1
-                    move.l   #32,d0
+                    moveq    #32,d0
                     bsr      lbC010906
                     lea      text_scanning(pc),a0
                     lea      font_struct(pc),a1
@@ -9078,7 +8934,7 @@ lbC00D8E2:          clr.l    run_intex_ptr
                     rts
 
 run_intex:          tst.w    self_destruct_initiated
-                    bne      lbC00D8E2
+                    bne.b    lbC00D8E2
                     jsr      lbC023210
                     clr.w    lbW0004C2
                     move.w   #1,lbW0004D0
@@ -9087,7 +8943,7 @@ run_intex:          tst.w    self_destruct_initiated
                     lea      copper_main_palette,a0
                     lea      lbL0226EA,a1
                     bsr      lbC0108DA
-                    move.l   #32,d0
+                    moveq    #32,d0
                     move.w   #1,lbW010CDE
                     bsr      lbC010AA4
                     jsr      wait
@@ -9100,7 +8956,7 @@ run_intex:          tst.w    self_destruct_initiated
                     move.w   PLAYER_AMMOPACKS(a0),intex_ammopacks+2
                     move.w   PLAYER_HEALTH(a0),intex_health+2
                     move.l   PLAYER_CUR_WEAPON(a0),intex_cur_weapon
-                    move.l   PLAYER_SCORE(a0),lbL000518
+                    move.l   PLAYER_SCORE(a0),intex_player_score
                     moveq    #0,d0
                     moveq    #0,d1
                     move.w   PLAYER_POS_X(a0),d0
@@ -9110,25 +8966,24 @@ run_intex:          tst.w    self_destruct_initiated
                     move.l   0(a0),a1
                     moveq    #0,d2
                     move.w   PLAYER_OWNEDWEAPONS(a0),d2
-                    move.w   d2,lbW00DC04
+                    move.w   d2,save_player_owned_weapons
                     lea      key_pressed,a2
                     move.l   cur_briefing_text,a3
                     lea      cur_map_top,a4
                     lea      trigger_sample_select_channel,a5
-                    lea      lbC02325A,a6
+                    lea      schedule_sample_to_play,a6
                     move.l   PLAYER_CREDITS(a0),d7
                     tst.w    share_credits
-                    beq.b    lbC00DA06
+                    beq.b    .dont_add_credits
                     cmp.l    #1,number_players
-                    beq.b    lbC00DA06
+                    beq.b    .dont_add_credits
                     move.l   player_1_credits(pc),d7
                     add.l    player_2_credits(pc),d7
-lbC00DA06:          lea      cur_credits,a0
+.dont_add_credits:  lea      cur_credits,a0
                     ifne     DEBUG
                     move.l   #1000000000,d7
                     endif
                     move.l   d7,(a0)
-                    lea      cur_credits,a0
                     jsr      temp_buffer                            ; run the prog
                     move.l   #copper_blank,CUSTOM+COP1LCH
                     movem.l  d0-d7/a0-a6,-(sp)
@@ -9170,22 +9025,22 @@ lbC00DABA:          move.w   d1,d2
                     and.w    #SUPPLY_AMMO_CHARGE,d1
                     cmp.w    #SUPPLY_AMMO_CHARGE,d1
                     bne.b    .max_ammo_packs
-                    move.w   #32,PLAYER_AMMUNITIONS(a0)
+                    move.w   #PLAYER_MAX_AMMO,PLAYER_AMMUNITIONS(a0)
                     addq.w   #2,PLAYER_AMMOPACKS(a0)
-                    cmp.w    #4,PLAYER_AMMOPACKS(a0)
+                    cmp.w    #PLAYER_MAX_AMMOPCKS,PLAYER_AMMOPACKS(a0)
                     bmi.b    .max_ammo_packs
-                    move.w   #4,PLAYER_AMMOPACKS(a0)
+                    move.w   #PLAYER_MAX_AMMOPCKS,PLAYER_AMMOPACKS(a0)
 .max_ammo_packs:    move.w   d2,d1
                     and.w    #SUPPLY_NRG_INJECT,d1
                     cmp.w    #SUPPLY_NRG_INJECT,d1
                     bne.b    .no_extra_energy
                     move.w   PLAYER_HEALTH(a0),d3
-                    cmp.w    #64,d3
+                    cmp.w    #PLAYER_MAX_HEALTH,d3
                     bpl.b    .max_health
                     add.w    #20,d3
-                    cmp.w    #65,d3
+                    cmp.w    #PLAYER_MAX_HEALTH+1,d3
                     bmi.b    .max_health
-                    move.w   #64,d3
+                    move.w   #PLAYER_MAX_HEALTH,d3
 .max_health:        move.w   d3,PLAYER_HEALTH(a0)
 .no_extra_energy    move.w   d2,d1
                     and.w    #SUPPLY_KEY_PACK,d1
@@ -9199,7 +9054,7 @@ lbC00DABA:          move.w   d1,d2
                     addq.w   #1,PLAYER_LIVES(a0)
 .no_extra_life:     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   lbW00DC04(pc),d1
+                    move.w   save_player_owned_weapons(pc),d1
                     cmp.w    d0,d1
                     beq.b    lbC00DB8E
                     move.l   player_using_intex,a0
@@ -9237,7 +9092,8 @@ lbC00DB8E:          movem.l  (sp)+,d0-d7/a0-a6
                     move.w   #1,lbW0004C2
                     rts
 
-lbW00DC04:          dc.w     0
+save_player_owned_weapons:
+                    dc.w     0
 
 set_main_copperlist:
                     move.w   #DMAF_SETCLR|DMAF_RASTER|DMAF_BLITTER|DMAF_COPPER,CUSTOM+DMACON
@@ -9375,25 +9231,21 @@ lbC00DE6E:          addq.l   #4,lbL00DF32
                     bne      return
                     clr.w    lbW00DC74
                     movem.l  d0-d7/a0-a6,-(sp)
-
                     moveq    #2,d0
                     jsr      rand
                     clr.l    lbL023200
                     tst.w    d0
-                    beq      lbC00DEFE
+                    beq.b    lbC00DEFE
                     cmp.w    #1,d0
                     beq.b    lbC00DF0A
                     cmp.w    #2,d0
                     beq.b    lbC00DF16
 lbC00DEFE:          move.w   #10,sample_to_play
-                    bra      lbC00DF22
-
+                    bra.b    lbC00DF22
 lbC00DF0A:          move.w   #10,sample_to_play
-                    bra      lbC00DF22
-
+                    bra.b    lbC00DF22
 lbC00DF16:          move.w   #11,sample_to_play
-                    bra      lbC00DF22
-
+                    ; no rts
 lbC00DF22:          jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
@@ -9438,15 +9290,15 @@ lbL00DF82:          dc.l     lbW013308
                     dc.l     0
 
 lbC00DFEE:          move.l   #19200,d0
-lbC00DFF4:          clr.l    (a0)+
+.clear_loop:        clr.l    (a0)+
                     subq.l   #1,d0
-                    bne.b    lbC00DFF4
+                    bne.b    .clear_loop
                     rts
 
 get_rnd_number:     movem.l  d2/d3,-(sp)
-                    movem.l  (random_seed),d0/d1
-                    and.b    #14,d0
-                    or.b     #32,d0
+                    movem.l  (random_seed)(pc),d0/d1
+                    and.b    #$E,d0
+                    or.b     #$20,d0
                     move.l   d0,d2
                     move.l   d1,d3
                     add.l    d2,d2
@@ -9510,12 +9362,12 @@ lbC00E0C8:          subq.w   #1,360(a0)
                     bne.b    lbC00E13A
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL02312E,a6
-                    move.w   #59,lbW02314E
-                    move.w   #65,lbW02313A
+                    move.w   #VOICE_AMMO,lbW02314C+2
+                    move.w   #VOICE_ONE,lbW023138+2
                     cmp.l    #player_1_dats,a0
                     beq      lbC00E118
-                    move.w   #66,lbW02313A
-lbC00E118:          jsr      lbC02325A
+                    move.w   #VOICE_TWO,lbW023138+2
+lbC00E118:          jsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     beq      lbC00E12E
                     move.w   #1,420(a0)
@@ -9531,13 +9383,15 @@ lbC00E14A:          addq.l   #1,PLAYER_SHOTS(a0)
                     subq.w   #1,394(a0)
                     bpl.b    lbC00E178
                     move.w   398(a0),394(a0)
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_AMMUNITIONS(a0)
+                    endif
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
                     bpl.b    lbC00E178
                     tst.w    PLAYER_AMMOPACKS(a0)
                     beq      lbC00E098
                     subq.w   #1,PLAYER_AMMOPACKS(a0)
-                    move.w   #32,PLAYER_AMMUNITIONS(a0)
+                    move.w   #PLAYER_MAX_AMMO,PLAYER_AMMUNITIONS(a0)
 lbC00E178:          moveq    #0,d0
                     move.w   384(a0),d0
                     move.w   #1,d2
@@ -9622,7 +9476,7 @@ lbC00E264:          move.l   16(a0),a4
 
 calc_shot_impact:   move.w   d2,d1
                     swap     d2
-                    lea      lbW00EA82,a4
+                    lea      lbW00EA82(pc),a4
                     move.w   12(a3),d0
                     add.w    d0,d0
                     add.w    d0,d0
@@ -9640,10 +9494,7 @@ calc_shot_impact:   move.w   d2,d1
                     and.l    #$3F,d2
                     add.w    d2,d2
                     add.w    d2,d2
-                    lea      weapons_special_impact_table(pc),a6
-                    jmp      0(a6,d2.w)
-
-                    rts                             ; dunno, maybe there's a negative offset ?
+                    jmp      weapons_special_impact_table(pc,d2.w)
 
 weapons_special_impact_table:
                     bra.w    impact_none                            ; 0x00
@@ -9796,7 +9647,9 @@ lbC00E520:          move.w   16(a3),d0
                     bmi.b    lbC00E556
                     clr.w    lbW00E4F0
                     move.l   20(a3),a4
+                    ifeq     DEBUG
                     subq.w   #1,PLAYER_AMMUNITIONS(a4)
+                    endif
                     cmp.w    #1,PLAYER_AMMUNITIONS(a4)
                     bpl.b    lbC00E556
                     clr.w    PLAYER_AMMUNITIONS(a4)
@@ -10456,10 +10309,6 @@ start_game_selected:
                     move.l   d3,364(a0)
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-;                    movem.l  d0-d7/a0-a6,-(sp)
-;                    cmp.w    #2,d4
-;                    bpl      lbC00F378
-;lbC00F378:          movem.l  (sp)+,d0-d7/a0-a6
                     move.l   d6,number_players
                     cmp.w    #2,d4
                     rts
@@ -16905,12 +16754,12 @@ lbC022D1E:          tst.w    lbW0004C2
                     beq      return2
                     move.w   lbW008C9A,d7
                     subq.w   #1,d7
-                    add.w    #65,d7
-                    cmp.w    lbW023126(pc),d7
+                    add.w    #VOICE_ONE,d7
+                    cmp.w    lbW023124+2(pc),d7
                     beq      return2
-                    move.w   d7,lbW023126
+                    move.w   d7,lbW023124+2
                     lea      lbL02311A(pc),a6
-                    bsr      lbC02325A
+                    bsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     bne      return2
                     lea      lbL02311A(pc),a6
@@ -17164,53 +17013,55 @@ lbW0230F8:          dc.w     0
 lbL0230FA:          dc.l     0
 lbL0230FE:          dc.l     0
 
-lbL02311A:          dc.w     $1E,$33
-                    dc.w     3
+lbL02311A:          dc.w     30,VOICE_ZONE,3
                     dc.l     lbW023124
-lbW023124:          dc.w     12
-lbW023126:          dc.w     0,3,0,0
-lbL02312E:          dc.w     $1E,$39
-                    dc.w     3
+lbW023124:          dc.w     12,0,3
+                    dc.l     0
+
+lbL02312E:          dc.w     30,VOICE_PLAYER,3
                     dc.l     lbW023138
-lbW023138:          dc.w     13
-lbW02313A:          dc.w     $42,3
+lbW023138:          dc.w     13,VOICE_TWO,3
                     dc.l     lbW023142
-lbW023142:          dc.w     13,$3A,3
+lbW023142:          dc.w     13,VOICE_REQUIRES,3
                     dc.l     lbW02314C
-lbW02314C:          dc.w     $10
-lbW02314E:          dc.w     0,3,0,0
-lbW023156:          dc.w     1,$19,1
+lbW02314C:          dc.w     16,0,3
+                    dc.l     0
+
+lbW023156:          dc.w     1,25,1
                     dc.l     lbW023160
-lbW023160:          dc.w     15,$1A,1,0,0
-lbW02316A:          dc.w     1,$1A,2
+lbW023160:          dc.w     15,26,1
+                    dc.l     0
+lbW02316A:          dc.w     1,26,2
                     dc.l     lbW023174
-lbW023174:          dc.w     $14,15,2
+lbW023174:          dc.w     20,15,2
                     dc.l     lbW02317E
-lbW02317E:          dc.w     1,$11,3
+lbW02317E:          dc.w     1,17,3
                     dc.l     lbW023188
-lbW023188:          dc.w     $1E,$12,3
+lbW023188:          dc.w     30,18,3
                     dc.l     lbW023192
-lbW023192:          dc.w     $DC,$11,3
+lbW023192:          dc.w     220,17,3
                     dc.l     lbW02319C
-lbW02319C:          dc.w     $1E,$12,3
+lbW02319C:          dc.w     30,18,3
                     dc.l     lbW023192
-lbW0231A6:          dc.w     1,$10,2
+lbW0231A6:          dc.w     1,16,2
                     dc.l     lbW0231B0
-lbW0231B0:          dc.w     $3C,$12,3
+lbW0231B0:          dc.w     60,18,3
                     dc.l     lbW0231B0
 lbW0231BA:          dc.w     1,10,2
                     dc.l     lbW0231C4
 lbW0231C4:          dc.w     10,11,2
                     dc.l     lbW0231CE
-lbW0231CE:          dc.w     $14,10,1
+lbW0231CE:          dc.w     20,10,1
                     dc.l     lbW0231D8
-lbW0231D8:          dc.w     $32,11,2
+lbW0231D8:          dc.w     50,11,2
                     dc.l     lbW0231C4
-                    dc.w     1,$29,1
+                    dc.w     1,41,1
                     dc.l     lbW0231EC
-lbW0231EC:          dc.w     $96,$2A,2
+lbW0231EC:          dc.w     150,42,2
                     dc.l     lbW0231F6
-lbW0231F6:          dc.w     $32,$4C,1,0,0
+lbW0231F6:          dc.w     50,76,1
+                    dc.l     0
+
 lbL023200:          dc.l     0
 lbW023204:          dcb.w    2,0
 lbL023208:          dc.l     0
@@ -17230,15 +17081,16 @@ lbC023210:          clr.l    lbL023200
                     clr.w    lbW023EA2
                     rts
 
-lbC02325A:          tst.l    lbL023200
-                    bne      lbC023280
+schedule_sample_to_play:
+                    tst.l    lbL023200
+                    bne.b    lbC023280
                     move.l   a6,lbL023200
                     move.l   a6,lbL02320C
                     clr.w    lbL023208
                     move.w   #1,lbW02328A
                     rts
 
-lbC023280:          move.w   #0,lbW02328A
+lbC023280:          clr.w    lbW02328A
                     rts
 
 lbW02328A:          dc.w     0
@@ -17254,7 +17106,7 @@ lbC0232A4:          lea      lbL02328C(pc),a0
                     cmp.l    #0,a6
                     beq.b    lbC0232BC
                     clr.l    (a0)
-                    bra      lbC02325A
+                    bra      schedule_sample_to_play
 
 lbC0232BC:          rts
 
@@ -17263,14 +17115,14 @@ lbC023D20:          move.l   lbL023200(pc),a0
                     beq      lbC0232A4
                     addq.w   #1,lbW023204
                     move.w   lbW023204(pc),d0
-                    cmp.w    0(a0),d0
-                    bmi      lbC0232BC
+                    cmp.w    (a0),d0
+                    bmi.b    lbC0232BC
                     move.w   2(a0),d0
                     move.w   4(a0),d2
                     bsr      trigger_sample_select_channel
                     move.l   lbL023200(pc),a0
                     move.l   6(a0),d0
-                    cmp.l    #0,d0
+                    ;cmp.l    #0,d0
                     beq.b    lbC023D72
                     move.l   d0,lbL023200
                     clr.w    lbW023204
@@ -18509,7 +18361,7 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     2081,4,1000,0,57,0,260
                     dc.l     sample29
                     dc.w     2081,62,690,0,40,0,504
-                    dc.l     voice_players
+                    dc.l     voice_player
                     dc.w     1897,32,440,0,25,0,0
                     dc.l     voice_requires
                     dc.w     2880,32,390,0,31,0,0
@@ -18692,31 +18544,31 @@ end_map_datas:      dcb.w    124*4,0
 
 ; ------------------------------------------------------
 
-voice_warning:      incbin   "warning.raw"
+voice_warning:      incbin   'warning.raw'
 voice_destruction_imminent:
-                    incbin   "destruction_imminent.raw"
-voice_entering:     incbin   "entering.raw"
-voice_zone:         incbin   "zone.raw"
-voice_welcome_to:   incbin   "welcome_to.raw"
+                    incbin   'destruction_imminent.raw'
+voice_entering:     incbin   'entering.raw'
+voice_zone:         incbin   'zone.raw'
+voice_welcome_to:   incbin   'welcome_to.raw'
 voice_intex_systems:
-                    incbin   "intex_systems.raw"
-voice_death:        incbin   "death.raw"
-voice_players:      incbin   "player.raw"
-voice_requires:     incbin   "requires.raw"
-voice_ammo:         incbin   "ammo.raw"
-voice_first_aid:    incbin   "first_aid.raw"
-voice_danger:       incbin   "danger.raw"
-voice_insert_disk:  incbin   "insert_disk.raw"
-voice_keys:         incbin   "keys.raw"
-voice_game_over:    incbin   "game_over.raw"
-voice_one:          incbin   "one.raw"
-voice_two:          incbin   "two.raw"
-voice_three:        incbin   "three.raw"
-voice_four:         incbin   "four.raw"
-voice_five:         incbin   "five.raw"
-voice_six:          incbin   "six.raw"
-voice_seven:        incbin   "seven.raw"
-voice_eight:        incbin   "eight.raw"
+                    incbin   'intex_systems.raw'
+voice_death:        incbin   'death.raw'
+voice_player:       incbin   'player.raw'
+voice_requires:     incbin   'requires.raw'
+voice_ammo:         incbin   'ammo.raw'
+voice_first_aid:    incbin   'first_aid.raw'
+voice_danger:       incbin   'danger.raw'
+voice_insert_disk:  incbin   'insert_disk.raw'
+voice_keys:         incbin   'keys.raw'
+voice_game_over:    incbin   'game_over.raw'
+voice_one:          incbin   'one.raw'
+voice_two:          incbin   'two.raw'
+voice_three:        incbin   'three.raw'
+voice_four:         incbin   'four.raw'
+voice_five:         incbin   'five.raw'
+voice_six:          incbin   'six.raw'
+voice_seven:        incbin   'seven.raw'
+voice_eight:        incbin   'eight.raw'
 
 ; ------------------------------------------------------
 
@@ -18728,28 +18580,28 @@ bkgnd_tiles_block:  ds.b     76800
 
                     section  data_chip,data_c
 
-font_pic:           incbin   "font_16x504x5.raw"
+font_pic:           incbin   'font_16x504x5.raw'
 
 letter_buffer:      dcb.b    128,0
 
-timer_digit_0:      incbin   "timer_digit_0.raw"
-timer_digit_1:      incbin   "timer_digit_1.raw"
-timer_digit_2:      incbin   "timer_digit_2.raw"
-timer_digit_3:      incbin   "timer_digit_3.raw"
-timer_digit_4:      incbin   "timer_digit_4.raw"
-timer_digit_5:      incbin   "timer_digit_5.raw"
-timer_digit_6:      incbin   "timer_digit_6.raw"
-timer_digit_7:      incbin   "timer_digit_7.raw"
-timer_digit_8:      incbin   "timer_digit_8.raw"
-timer_digit_9:      incbin   "timer_digit_9.raw"
+timer_digit_0:      incbin   'timer_digit_0.raw'
+timer_digit_1:      incbin   'timer_digit_1.raw'
+timer_digit_2:      incbin   'timer_digit_2.raw'
+timer_digit_3:      incbin   'timer_digit_3.raw'
+timer_digit_4:      incbin   'timer_digit_4.raw'
+timer_digit_5:      incbin   'timer_digit_5.raw'
+timer_digit_6:      incbin   'timer_digit_6.raw'
+timer_digit_7:      incbin   'timer_digit_7.raw'
+timer_digit_8:      incbin   'timer_digit_8.raw'
+timer_digit_9:      incbin   'timer_digit_9.raw'
 
 lbL098E0C:          dcb.l    8,0
 lbL098E2C:          dcb.l    150,0
 
 player_1_status_pic:
-                    incbin   "player_1_status_304x8x2.raw"
+                    incbin   'player_1_status_304x8x2.raw'
 player_2_status_pic:
-                    incbin   "player_2_status_304x8x2.raw"
+                    incbin   'player_2_status_304x8x2.raw'
 
 player_1_status_bar:
                     dcb.b    37,0
@@ -19119,120 +18971,120 @@ overmap_bottom_bar_bps:
 
 ; ------------------------------------------------------
 
-player_spr1_pic:    incbin   "player_sprite1.raw"
-player_spr2_pic:    incbin   "player_sprite2.raw"
-player_spr3_pic:    incbin   "player_sprite3.raw"
-player_spr4_pic:    incbin   "player_sprite4.raw"
-player_spr5_pic:    incbin   "player_sprite5.raw"
-player_spr6_pic:    incbin   "player_sprite6.raw"
-player_spr7_pic:    incbin   "player_sprite7.raw"
-player_spr8_pic:    incbin   "player_sprite8.raw"
-player_spr9_pic:    incbin   "player_sprite9.raw"
-player_spr10_pic:   incbin   "player_sprite10.raw"
-player_spr11_pic:   incbin   "player_sprite11.raw"
-player_spr12_pic:   incbin   "player_sprite12.raw"
-player_spr13_pic:   incbin   "player_sprite13.raw"
-player_spr14_pic:   incbin   "player_sprite14.raw"
-player_spr15_pic:   incbin   "player_sprite15.raw"
-player_spr16_pic:   incbin   "player_sprite16.raw"
-player_spr17_pic:   incbin   "player_sprite17.raw"
-player_spr18_pic:   incbin   "player_sprite18.raw"
-player_spr19_pic:   incbin   "player_sprite19.raw"
-player_spr20_pic:   incbin   "player_sprite20.raw"
-player_spr21_pic:   incbin   "player_sprite21.raw"
-player_spr22_pic:   incbin   "player_sprite22.raw"
-player_spr23_pic:   incbin   "player_sprite23.raw"
-player_spr24_pic:   incbin   "player_sprite24.raw"
-player_spr25_pic:   incbin   "player_sprite25.raw"
-player_spr26_pic:   incbin   "player_sprite26.raw"
-player_spr27_pic:   incbin   "player_sprite27.raw"
-player_spr28_pic:   incbin   "player_sprite28.raw"
-player_spr29_pic:   incbin   "player_sprite29.raw"
-player_spr30_pic:   incbin   "player_sprite30.raw"
-player_spr31_pic:   incbin   "player_sprite31.raw"
-player_spr32_pic:   incbin   "player_sprite32.raw"
-player_spr33_pic:   incbin   "player_sprite33.raw"
-player_spr34_pic:   incbin   "player_sprite34.raw"
-player_spr35_pic:   incbin   "player_sprite35.raw"
-player_spr36_pic:   incbin   "player_sprite36.raw"
-player_spr37_pic:   incbin   "player_sprite37.raw"
-player_spr38_pic:   incbin   "player_sprite38.raw"
-player_spr39_pic:   incbin   "player_sprite39.raw"
-player_spr40_pic:   incbin   "player_sprite40.raw"
-player_spr41_pic:   incbin   "player_sprite41.raw"
-player_spr42_pic:   incbin   "player_sprite42.raw"
-player_spr43_pic:   incbin   "player_sprite43.raw"
-player_spr44_pic:   incbin   "player_sprite44.raw"
-player_spr45_pic:   incbin   "player_sprite45.raw"
-player_spr46_pic:   incbin   "player_sprite46.raw"
-player_spr47_pic:   incbin   "player_sprite47.raw"
-player_spr48_pic:   incbin   "player_sprite48.raw"
-player_spr49_pic:   incbin   "player_sprite49.raw"
-player_spr50_pic:   incbin   "player_sprite50.raw"
-player_spr51_pic:   incbin   "player_sprite51.raw"
-player_spr52_pic:   incbin   "player_sprite52.raw"
-player_spr53_pic:   incbin   "player_sprite53.raw"
-player_spr54_pic:   incbin   "player_sprite54.raw"
-player_spr55_pic:   incbin   "player_sprite55.raw"
-player_spr56_pic:   incbin   "player_sprite56.raw"
-player_spr57_pic:   incbin   "player_sprite57.raw"
-player_spr58_pic:   incbin   "player_sprite58.raw"
-player_spr59_pic:   incbin   "player_sprite59.raw"
-player_spr60_pic:   incbin   "player_sprite60.raw"
-player_spr61_pic:   incbin   "player_sprite61.raw"
-player_spr62_pic:   incbin   "player_sprite62.raw"
-player_spr63_pic:   incbin   "player_sprite63.raw"
-player_spr64_pic:   incbin   "player_sprite64.raw"
-player_spr65_pic:   incbin   "player_sprite65.raw"
-player_spr66_pic:   incbin   "player_sprite66.raw"
-player_spr67_pic:   incbin   "player_sprite67.raw"
-player_spr68_pic:   incbin   "player_sprite68.raw"
-player_spr69_pic:   incbin   "player_sprite69.raw"
-player_spr70_pic:   incbin   "player_sprite70.raw"
-player_spr71_pic:   incbin   "player_sprite71.raw"
-player_spr72_pic:   incbin   "player_sprite72.raw"
-player_spr73_pic:   incbin   "player_sprite73.raw"
-player_spr74_pic:   incbin   "player_sprite74.raw"
-player_spr75_pic:   incbin   "player_sprite75.raw"
-player_spr76_pic:   incbin   "player_sprite76.raw"
-player_spr77_pic:   incbin   "player_sprite77.raw"
-player_spr78_pic:   incbin   "player_sprite78.raw"
-player_spr79_pic:   incbin   "player_sprite79.raw"
-player_spr80_pic:   incbin   "player_sprite80.raw"
+player_spr1_pic:    incbin   'player_sprite1.raw'
+player_spr2_pic:    incbin   'player_sprite2.raw'
+player_spr3_pic:    incbin   'player_sprite3.raw'
+player_spr4_pic:    incbin   'player_sprite4.raw'
+player_spr5_pic:    incbin   'player_sprite5.raw'
+player_spr6_pic:    incbin   'player_sprite6.raw'
+player_spr7_pic:    incbin   'player_sprite7.raw'
+player_spr8_pic:    incbin   'player_sprite8.raw'
+player_spr9_pic:    incbin   'player_sprite9.raw'
+player_spr10_pic:   incbin   'player_sprite10.raw'
+player_spr11_pic:   incbin   'player_sprite11.raw'
+player_spr12_pic:   incbin   'player_sprite12.raw'
+player_spr13_pic:   incbin   'player_sprite13.raw'
+player_spr14_pic:   incbin   'player_sprite14.raw'
+player_spr15_pic:   incbin   'player_sprite15.raw'
+player_spr16_pic:   incbin   'player_sprite16.raw'
+player_spr17_pic:   incbin   'player_sprite17.raw'
+player_spr18_pic:   incbin   'player_sprite18.raw'
+player_spr19_pic:   incbin   'player_sprite19.raw'
+player_spr20_pic:   incbin   'player_sprite20.raw'
+player_spr21_pic:   incbin   'player_sprite21.raw'
+player_spr22_pic:   incbin   'player_sprite22.raw'
+player_spr23_pic:   incbin   'player_sprite23.raw'
+player_spr24_pic:   incbin   'player_sprite24.raw'
+player_spr25_pic:   incbin   'player_sprite25.raw'
+player_spr26_pic:   incbin   'player_sprite26.raw'
+player_spr27_pic:   incbin   'player_sprite27.raw'
+player_spr28_pic:   incbin   'player_sprite28.raw'
+player_spr29_pic:   incbin   'player_sprite29.raw'
+player_spr30_pic:   incbin   'player_sprite30.raw'
+player_spr31_pic:   incbin   'player_sprite31.raw'
+player_spr32_pic:   incbin   'player_sprite32.raw'
+player_spr33_pic:   incbin   'player_sprite33.raw'
+player_spr34_pic:   incbin   'player_sprite34.raw'
+player_spr35_pic:   incbin   'player_sprite35.raw'
+player_spr36_pic:   incbin   'player_sprite36.raw'
+player_spr37_pic:   incbin   'player_sprite37.raw'
+player_spr38_pic:   incbin   'player_sprite38.raw'
+player_spr39_pic:   incbin   'player_sprite39.raw'
+player_spr40_pic:   incbin   'player_sprite40.raw'
+player_spr41_pic:   incbin   'player_sprite41.raw'
+player_spr42_pic:   incbin   'player_sprite42.raw'
+player_spr43_pic:   incbin   'player_sprite43.raw'
+player_spr44_pic:   incbin   'player_sprite44.raw'
+player_spr45_pic:   incbin   'player_sprite45.raw'
+player_spr46_pic:   incbin   'player_sprite46.raw'
+player_spr47_pic:   incbin   'player_sprite47.raw'
+player_spr48_pic:   incbin   'player_sprite48.raw'
+player_spr49_pic:   incbin   'player_sprite49.raw'
+player_spr50_pic:   incbin   'player_sprite50.raw'
+player_spr51_pic:   incbin   'player_sprite51.raw'
+player_spr52_pic:   incbin   'player_sprite52.raw'
+player_spr53_pic:   incbin   'player_sprite53.raw'
+player_spr54_pic:   incbin   'player_sprite54.raw'
+player_spr55_pic:   incbin   'player_sprite55.raw'
+player_spr56_pic:   incbin   'player_sprite56.raw'
+player_spr57_pic:   incbin   'player_sprite57.raw'
+player_spr58_pic:   incbin   'player_sprite58.raw'
+player_spr59_pic:   incbin   'player_sprite59.raw'
+player_spr60_pic:   incbin   'player_sprite60.raw'
+player_spr61_pic:   incbin   'player_sprite61.raw'
+player_spr62_pic:   incbin   'player_sprite62.raw'
+player_spr63_pic:   incbin   'player_sprite63.raw'
+player_spr64_pic:   incbin   'player_sprite64.raw'
+player_spr65_pic:   incbin   'player_sprite65.raw'
+player_spr66_pic:   incbin   'player_sprite66.raw'
+player_spr67_pic:   incbin   'player_sprite67.raw'
+player_spr68_pic:   incbin   'player_sprite68.raw'
+player_spr69_pic:   incbin   'player_sprite69.raw'
+player_spr70_pic:   incbin   'player_sprite70.raw'
+player_spr71_pic:   incbin   'player_sprite71.raw'
+player_spr72_pic:   incbin   'player_sprite72.raw'
+player_spr73_pic:   incbin   'player_sprite73.raw'
+player_spr74_pic:   incbin   'player_sprite74.raw'
+player_spr75_pic:   incbin   'player_sprite75.raw'
+player_spr76_pic:   incbin   'player_sprite76.raw'
+player_spr77_pic:   incbin   'player_sprite77.raw'
+player_spr78_pic:   incbin   'player_sprite78.raw'
+player_spr79_pic:   incbin   'player_sprite79.raw'
+player_spr80_pic:   incbin   'player_sprite80.raw'
 
 bkgnd_anim_block:   dcb.b    28800,0
 
-sample1:            incbin   "sample1.raw"
-sample2:            incbin   "sample2.raw"
-sample3:            incbin   "sample3.raw"
-sample4:            incbin   "sample4.raw"
-sample5:            incbin   "sample5.raw"
-sample6:            incbin   "sample6.raw"
-sample7:            incbin   "sample7.raw"
-sample8:            incbin   "sample8.raw"
-sample9:            incbin   "sample9.raw"
-sample10:           incbin   "sample10.raw"
-sample11:           incbin   "sample11.raw"
-sample12:           incbin   "sample12.raw"
-sample13:           incbin   "sample13.raw"
-sample14:           incbin   "sample14.raw"
-sample15:           incbin   "sample15.raw"
-sample16:           incbin   "sample16.raw"
-sample17:           incbin   "sample17.raw"
-sample18:           incbin   "sample18.raw"
-sample19:           incbin   "sample19.raw"
-sample20:           incbin   "sample20.raw"
-sample21:           incbin   "sample21.raw"
-sample22:           incbin   "sample22.raw"
-sample23:           incbin   "sample23.raw"
-sample24:           incbin   "sample24.raw"
-sample25:           incbin   "sample25.raw"
-sample26:           incbin   "sample26.raw"
-sample27:           incbin   "sample27.raw"
-sample28:           incbin   "sample28.raw"
-sample29:           incbin   "sample29.raw"
-sample30:           incbin   "sample30.raw"
-sample31:           incbin   "sample31.raw"
+sample1:            incbin   'sample1.raw'
+sample2:            incbin   'sample2.raw'
+sample3:            incbin   'sample3.raw'
+sample4:            incbin   'sample4.raw'
+sample5:            incbin   'sample5.raw'
+sample6:            incbin   'sample6.raw'
+sample7:            incbin   'sample7.raw'
+sample8:            incbin   'sample8.raw'
+sample9:            incbin   'sample9.raw'
+sample10:           incbin   'sample10.raw'
+sample11:           incbin   'sample11.raw'
+sample12:           incbin   'sample12.raw'
+sample13:           incbin   'sample13.raw'
+sample14:           incbin   'sample14.raw'
+sample15:           incbin   'sample15.raw'
+sample16:           incbin   'sample16.raw'
+sample17:           incbin   'sample17.raw'
+sample18:           incbin   'sample18.raw'
+sample19:           incbin   'sample19.raw'
+sample20:           incbin   'sample20.raw'
+sample21:           incbin   'sample21.raw'
+sample22:           incbin   'sample22.raw'
+sample23:           incbin   'sample23.raw'
+sample24:           incbin   'sample24.raw'
+sample25:           incbin   'sample25.raw'
+sample26:           incbin   'sample26.raw'
+sample27:           incbin   'sample27.raw'
+sample28:           incbin   'sample28.raw'
+sample29:           incbin   'sample29.raw'
+sample30:           incbin   'sample30.raw'
+sample31:           incbin   'sample31.raw'
 
 ; ------------------------------------------------------
 

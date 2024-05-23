@@ -1,4 +1,4 @@
-maps files format:
+Maps files format:
 ------------------
 
  Note: Data are big endian.
@@ -225,3 +225,24 @@ maps files format:
                          up floor
           
      Bits 6-15: Index of the tile gfx (*16 to obtain gfx offset in the background picture).
+
+Map files associations:
+-----------------------
+
+LxMA are the maps.
+LxAN are the animated tiles (320x144x5).
+LxBO are the bobs (320x384x5).
+LxBM are the background tiles (16x16x5x480 (480 tiles, that is)).
+
+Level  1: L0MA - L0AN - L0BO - LABM
+Level  2: L1MA - L1AN - L1BO - LEBM
+Level  3: L2MA - L3AN - L3BO - LCBM
+Level  4: L3MA - L4AN - L4BO - LBBM
+Level  5: L4MA - L4AN - L4BO - LBBM
+Level  6: L5MA - L3AN - L3BO - LCBM
+Level  7: L6MA - L3AN - L2BO - LDBM
+Level  8: L7MA - L3AN - L2BO - LDBM
+Level  9: L8MA - L2AN - L2BO - LDBM
+Level 10: L9MA - L1AN - L1BO - LEBM
+Level 11: LAMA - L1AN - L2BO - LEBM
+Level 12: LBMA - L5AN - L5BO - LFBM

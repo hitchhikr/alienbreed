@@ -7,12 +7,7 @@
 
 ; -----------------------------------------------------
 
-                    include  "custom.i"
-                    include  "cia.i"
-                    include  "dmabits.i"
-                    include  "intbits.i"
-
-                    mc68000
+                    include  "common.inc"
 
 ; -----------------------------------------------------
 
@@ -28,19 +23,19 @@ wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
 start:              move.l   d0,lbL00715E
                     move.l   d1,lbL007162
                     move.l   d2,owned_weapons
-                    move.l   a0,lbL00717E
+                    move.l   a0,player_struct
                     move.l   a0,cur_credits
                     move.l   a1,gameport_register
-                    move.l   a2,lbL007176
-                    move.l   a3,lbL007166
-                    move.l   a4,lbL00716A
+                    move.l   a2,key_pressed
+                    move.l   a3,briefing_text
+                    move.l   a4,cur_map_top
                     move.l   a5,sound_routine
-                    move.l   a6,lbL00715A
+                    move.l   a6,schedule_sample_to_play
                     bsr      lbC0017A6
                     bsr      lbC001BA6
                     bsr      lbC0011BA
                     lea      lbW0071B4(pc),a6
-                    move.l   lbL00715A(pc),a5
+                    move.l   schedule_sample_to_play(pc),a5
                     jsr      (a5)
 lbC0000AC:          bsr      lbC0019CC
                     lea      lbW002730(pc),a0
@@ -115,13 +110,6 @@ lbC0001E4:          bsr      lbC0019CC
                     move.l   owned_weapons(pc),d0
                     move.l   purchased_supplies(pc),d1
                     rts
-
-;                    dc.b     'HERWQERQWERQWERQWERQWERQWERWQERWQERÿ'
-;lbW0002D6:          dc.w     $10,$E4
-;lbW0002DA:          dcb.w    $1D,$2020
-;                    dcb.w    $3F,$FFFF
-;;                    dcb.w    $11,$FFFF
-;                    dc.w     $FF79
 
 lbC0003B6:          cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    lbC0003B6
@@ -218,62 +206,62 @@ lbC00054A:          move.b   #' ',(a0)
                     move.b   #'N',1(a0)
                     move.b   #'O',2(a0)
 lbC00055A:          addq.w   #1,d1
-                    add.l    #$29,a0
+                    add.l    #41,a0
                     subq.w   #1,d2
                     bne.b    lbC000534
-                    move.l   lbL00717E(pc),a0
-                    move.l   4(a0),d0
-                    move.l   d0,lbL001CFA
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_ALIENS_KILLED(a0),d0
+                    move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
                     lea      ascii_MSG0(pc),a1
                     bsr      lbC000A8E
-                    move.l   lbL00717E(pc),a0
-                    move.l   8(a0),d0
-                    move.l   d0,lbL001CFA
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_SHOTS_FIRED(a0),d0
+                    move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
                     lea      BULLETS_MSG(pc),a1
                     bsr      lbC000A8E
-                    move.l   lbL00717E(pc),a0
-                    move.l   (a0),d0
-                    divu     #$32,d0
-                    move.l   d0,12(a0)
-                    move.l   d0,lbL001CFA
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_CUR_CREDITS(a0),d0
+                    divu     #50,d0
+                    move.l   d0,INTEX_UNUSED(a0)
+                    move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
                     lea      CR_MSG,a1
                     bsr      lbC000A8E
-                    move.l   lbL00717E(pc),a0
-                    move.l   $10(a0),d0
-                    move.l   d0,lbL001CFA
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_DOORS_OPENED(a0),d0
+                    move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
                     lea      ascii_MSG1(pc),a1
                     bsr      lbC000A8E
-                    move.l   lbL00717E(pc),a0
-                    move.l   $14(a0),d0
-                    move.l   d0,lbL001CFA
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_AMMO_PACKS(a0),d0
+                    move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
                     lea      CLIP_MSG(pc),a1
                     bsr      lbC000A8E
-                    move.l   lbL00717E(pc),a0
-                    move.l   $18(a0),d0
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_HEALTH(a0),d0
                     lea      LOWAVERAGEGOO_MSG(pc),a0
                     lea      ascii_MSG2(pc),a1
-                    cmp.w    #$15,d0
+                    cmp.w    #21,d0
                     bls.b    lbC00064E
                     add.l    #8,a0
-                    cmp.w    #$2A,d0
+                    cmp.w    #42,d0
                     bls.b    lbC00064E
                     add.l    #8,a0
 lbC00064E:          move.l   #8,d0
 lbC000654:          move.b   (a0)+,(a1)+
                     subq.w   #1,d0
                     bne.b    lbC000654
-                    move.l   lbL00717E(pc),a0
-                    move.l   $1C(a0),d0
+                    move.l   player_struct(pc),a0
+                    move.l   INTEX_CUR_WEAPON(a0),d0
                     lea      ascii_MSG3(pc),a1
                     lea      lbL0006DC(pc),a0
 lbC000670:          cmp.l    #-1,(a0)
@@ -285,7 +273,7 @@ lbC000670:          cmp.l    #-1,(a0)
 
 lbC000684:          add.l    #4,a0
                     move.l   (a0),a0
-                    move.l   #14,d0
+                    moveq    #14,d0
 lbC000692:          move.b   (a0)+,(a1)+
                     subq.w   #1,d0
                     bne.b    lbC000692
@@ -437,16 +425,16 @@ lbC000BB4:          lea      lbW0020CC(pc),a0
                     bra      lbC001FE6
 
 lbC000BD4:          movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   #14,d0
-                    move.l   #0,d2
+                    moveq    #14,d0
+                    moveq    #0,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
 lbC000BF2:          movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   #48,d0
-                    move.l   #0,d2
+                    moveq    #48,d0
+                    moveq    #0,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -513,9 +501,9 @@ enough_money:       sub.l    d1,(a5)
                     cmp.w    #2,d0                      ; energy injection
                     bne.b    lbC000D52
                     add.l    #32,player_health
-                    cmp.l    #64,player_health
+                    cmp.l    #PLAYER_MAX_HEALTH,player_health
                     bmi.b    lbC000D52
-                    move.l   #64,player_health
+                    move.l   #PLAYER_MAX_HEALTH,player_health
 lbC000D52:          movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC000DF6
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -554,7 +542,7 @@ text_insufficient_funds:
                     dc.b     '                  INSUFFICIENT FUNDS'
                     dc.b     $FF,$20
 
-lbC000DF6:          move.l   lbL00715A(pc),a5
+lbC000DF6:          move.l   schedule_sample_to_play(pc),a5
                     tst.w    d0
                     bne.b    lbC000E0A
                     lea      lbW0071C8(pc),a6
@@ -613,7 +601,7 @@ lbC0010EE:          lea      lbW0020CC(pc),a0
 lbC001112:          move.l   cur_credits(pc),a0
                     move.l   (a0),d0
                     divu     #50,d0
-                    move.l   d0,lbL001CFA
+                    move.l   d0,number_to_display
                     bsr      lbC001C14
                     lea      lbL001CFE(pc),a0
                     lea      lbB0010C9(pc),a1
@@ -628,7 +616,7 @@ lbC001112:          move.l   cur_credits(pc),a0
                     rts
 
 lbC001146:          bsr      lbC0019CC
-                    move.l   lbL007166(pc),a0
+                    move.l   briefing_text(pc),a0
                     lea      font_struct(pc),a1
                     bsr      lbC002214
                     bra      lbC001190
@@ -719,7 +707,7 @@ lbC0012D6:          btst     #7,CIAA
                     btst     #6,CIAA
                     beq.b    lbC001336
                     bsr      lbC001F96
-                    move.b   $bfd800,d1
+                    move.b   CIAB+CIATODLOW,d1
                     ext.w    d1
                     move.b   d1,lbW006FBA
                     neg.w    d1
@@ -752,7 +740,7 @@ lbC001348:          bsr      lbC001164
 lbC00135E:          addq.l   #4,sp
                     bra      lbC00129E
 
-lbC001364:          mulu     #$32,d0
+lbC001364:          mulu     #50,d0
 lbC001368:          btst     #7,CIAA
                     beq.b    lbC001388
                     btst     #6,CIAA
@@ -774,8 +762,8 @@ lbC001392:          bsr      lbC0019CC
                     move.l   lbL007162(pc),d1
                     lsr.l    #3,d0
                     lsr.l    #3,d1
-                    add.l    #$1E,d0
-                    add.l    #$1C,d1
+                    add.l    #30,d0
+                    add.l    #28,d1
                     move.w   d0,lbW0020CC
                     move.w   d1,lbW0020CE
                     lea      lbW0020CC(pc),a0
@@ -795,7 +783,7 @@ lbL001412:          dc.l     $CA
 lbL001416:          dc.l     $61D8
 
 lbC00141A:          lea      lbL027102,a5
-                    move.l   lbL00716A(pc),a0
+                    move.l   cur_map_top(pc),a0
                     add.l    lbL001416(pc),a0
                     move.l   lbL00140E(pc),d0
                     move.l   lbL001412(pc),d1
@@ -811,8 +799,8 @@ lbC00143A:          move.w   -(a0),d2
                     move.l   d0,d4
                     move.l   d1,d5
                     move.l   a5,a4
-                    add.l    #$20,d4
-                    add.l    #$20,d5
+                    add.l    #32,d4
+                    add.l    #32,d5
                     mulu     #40,d5
                     add.l    d5,a4
                     move.w   d4,d5
@@ -825,8 +813,8 @@ lbC00143A:          move.w   -(a0),d2
                     move.l   d0,d4
                     move.l   d1,d5
                     move.l   a5,a4
-                    add.l    #$21,d4
-                    add.l    #$20,d5
+                    add.l    #33,d4
+                    add.l    #32,d5
                     mulu     #40,d5
                     add.l    d5,a4
                     move.w   d4,d5
@@ -847,8 +835,8 @@ lbC0014BA:          move.l   d0,d4
                     move.l   d1,d5
                     move.l   a5,a4
                     sub.l    #(256*40*4),a4
-                    add.l    #$20,d4
-                    add.l    #$20,d5
+                    add.l    #32,d4
+                    add.l    #32,d5
                     mulu     #40,d5
                     add.l    d5,a4
                     move.w   d4,d5
@@ -874,8 +862,8 @@ lbC0014BA:          move.l   d0,d4
                     move.l   d1,d5
                     move.l   a5,a4
                     sub.l    #(256*40*4),a4
-                    add.l    #$21,d4
-                    add.l    #$20,d5
+                    add.l    #33,d4
+                    add.l    #32,d5
                     mulu     #40,d5
                     add.l    d5,a4
                     move.w   d4,d5
@@ -916,7 +904,7 @@ lbC0015BA:          bsr      lbC001F96
                     beq.b    lbC0015CA
                     bsr      lbC001F6C
 lbC0015CA:          bsr      lbC00162A
-                    move.l   lbL007176(pc),a0
+                    move.l   key_pressed(pc),a0
                     bra      lbC0015BA
 
 lbC0015D8:          rts
@@ -924,7 +912,7 @@ lbC0015D8:          rts
 lbC0015DA:          lea      lbW0020CC(pc),a0
                     move.l   lbL007188(pc),d0
                     mulu     #12,d0
-                    add.l    #$44,d0
+                    add.l    #68,d0
                     move.w   d0,2(a0)
                     move.w   #$30,(a0)
                     bra      lbC001FE6
@@ -934,7 +922,7 @@ lbC0015FE:          lea      lbW0020CC(pc),a0
                     not.l    d0
                     and.l    #1,d0
                     mulu     #12,d0
-                    add.l    #$E3,d0
+                    add.l    #227,d0
                     move.w   d0,2(a0)
                     move.w   #$80,(a0)
                     bra      lbC001FE6
@@ -982,7 +970,7 @@ lbC001670:          move.l   owned_weapons(pc),d1
                     move.l   d1,(a0)
                     or.l     d2,owned_weapons
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   lbL00715A(pc),a5
+                    move.l   schedule_sample_to_play(pc),a5
                     lea      lbW0071D2(pc),a6
                     jsr      (a5)
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -1011,13 +999,13 @@ lbC001670:          move.l   owned_weapons(pc),d1
                     addq.l   #4,sp
                     bra      lbC00159E
 
-lbL00174A:          dc.l    10000
-                    dc.l    24000
-                    dc.l    35000
-                    dc.l    48000
-                    dc.l    60000
-                    dc.l    75000
-                    dc.l    0
+lbL00174A:          dc.l     10000
+                    dc.l     24000
+                    dc.l     35000
+                    dc.l     48000
+                    dc.l     60000
+                    dc.l     75000
+                    dc.l     0
 
 lbC001766:          lea      lbW0026E4(pc),a0
                     lea      font_struct(pc),a1
@@ -1047,7 +1035,7 @@ lbC0017D2:          move.w   d0,6(a0)
                     addq.l   #8,a0
                     subq.b   #1,d1
                     bne.b    lbC0017D2
-                    lea      background_pic+(40*256*4),a0
+                    lea      background_pic+(256*40*4),a0
                     lea      copper_palette(pc),a1
                     moveq    #16,d0
 lbC0017FC:          move.w   (a0)+,(a1)
@@ -1061,7 +1049,7 @@ lbC00180E:          rts
 
 lbC001810:          addq.w   #1,lbW001852
                     cmp.w    #2,lbW001852
-                    bmi      lbC00180E
+                    bmi.b    lbC00180E
                     clr.w    lbW001852
                     move.l   lbL001854(pc),a0
                     tst.w    (a0)
@@ -1165,7 +1153,7 @@ lbC001A88:          clr.b    (a0)+
                     WAIT_BLIT
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #-1,CUSTOM+BLTAFWM
-                    move.l   #$dfc0000,CUSTOM+BLTCON0
+                    move.l   #$DFC0000,CUSTOM+BLTCON0
                     clr.w    CUSTOM+BLTDMOD
                     clr.w    CUSTOM+BLTBMOD
                     move.w   #$14,CUSTOM+BLTAMOD
@@ -1175,13 +1163,13 @@ lbC001ADC:          move.l   a0,CUSTOM+BLTAPTH
                     move.l   #lbL007222,CUSTOM+BLTBPTH
                     move.w   #(88*64)+10,CUSTOM+BLTSIZE
                     WAIT_BLIT
-                    add.l    #10560,a0
+                    add.l    #(264*40),a0
                     subq.w   #1,d0
                     bne.b    lbC001ADC
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   #-1,CUSTOM+BLTAFWM
-                    move.l   #$fe20000,CUSTOM+BLTCON0
+                    move.l   #$FE20000,CUSTOM+BLTCON0
                     move.w   #20,CUSTOM+BLTDMOD
                     move.w   #20,CUSTOM+BLTAMOD
                     move.w   #20,CUSTOM+BLTCMOD
@@ -1215,14 +1203,14 @@ lbC001BA6:          move.l   #copperlist_main,CUSTOM+COP1LCH
                     bra      lbC001FE6
 
 lbC001BCA:          lea      lbW0020CC(pc),a0
-                    move.w   #$FFF0,(a0)
-                    move.w   #$FFF0,2(a0)
+                    move.w   #-16,(a0)
+                    move.w   #-16,2(a0)
                     bra      lbC001FE6
 
 lbC001BE0:          move.l   cur_credits(pc),a0
                     move.l   (a0),d0
                     divu     #50,d0
-                    move.l   d0,lbL001CFA
+                    move.l   d0,number_to_display
                     bsr      lbC001C14
                     lea      lbL001CFE(pc),a0
                     lea      lbL006154(pc),a1
@@ -1241,19 +1229,19 @@ lbC001C14:          lea      lbL001CFE(pc),a2
 lbC001C20:          clr.b    (a2)+
                     subq.w   #1,d7
                     bne.b    lbC001C20
-                    move.l   lbL001CFA(pc),d0
+                    move.l   number_to_display(pc),d0
                     lea      lbL001CFE(pc),a0
                     lea      decimal_table(pc),a1
                     cmp.l    #$3B9AC9FF,d0
                     bhi.b    lbC001CA2
                     clr.l    lbL001CF6
-                    move.l   #$30,d2
+                    moveq    #'0',d2
 lbC001C4E:          tst.l    (a1)
                     beq.b    lbC001CBC
                     move.l   (a1),d1
                     sub.l    d1,d0
                     addq.b   #1,d2
-                    cmp.l    #0,d0
+                    tst.l    d0
                     beq.b    lbC001C76
                     bgt.b    lbC001C4E
                     add.l    d1,d0
@@ -1261,11 +1249,11 @@ lbC001C4E:          tst.l    (a1)
 lbC001C76:          addq.l   #4,a1
                     tst.b    lbL001CF6
                     bne.b    lbC001C8E
-                    cmp.b    #$30,d2
+                    cmp.b    #'0',d2
                     beq.b    lbC001C98
 lbC001C8E:          move.b   d2,(a0)+
                     move.b   #1,lbL001CF6
-lbC001C98:          move.l   #$30,d2
+lbC001C98:          moveq    #'0',d2
                     bra.b    lbC001C4E
 
 lbC001CA2:          move.l   #'9999',(a0)
@@ -1278,32 +1266,32 @@ lbC001CBC:          move.b   #' ',(a0)+
                     move.b   #$FF,(a0)
                     rts
 
-decimal_table:      dc.l    100000000
-                    dc.l    10000000
-                    dc.l    1000000
-                    dc.l    100000
-                    dc.l    10000
-                    dc.l    1000
-                    dc.l    100
-                    dc.l    10
-                    dc.l    1
-                    dc.l    0
-lbL001CF6:          dc.l    0
-lbL001CFA:          dc.l    0
-lbL001CFE:          dcb.l   80,0
+decimal_table:      dc.l     100000000
+                    dc.l     10000000
+                    dc.l     1000000
+                    dc.l     100000
+                    dc.l     10000
+                    dc.l     1000
+                    dc.l     100
+                    dc.l     10
+                    dc.l     1
+                    dc.l     0
+lbL001CF6:          dc.l     0
+number_to_display:  dc.l     0
+lbL001CFE:          dcb.l    80,0
 
 lbC001E3E:          lea      lbL001CFE(pc),a2
                     moveq    #32,d7
 lbC001E4A:          clr.b    (a2)+
                     subq.w   #1,d7
                     bne.b    lbC001E4A
-                    move.l   lbL001CFA(pc),d0
+                    move.l   number_to_display(pc),d0
                     lea      lbL001CFE(pc),a0
                     lea      decimal_table(pc),a1
                     cmp.l    #$3B9AC9FF,d0
                     bhi.b    lbC001ECC
                     clr.l    lbL001CF6
-                    move.l   #$30,d2
+                    moveq    #'0',d2
 lbC001E78:          tst.l    (a1)
                     beq.b    lbC001EE6
                     move.l   (a1),d1
@@ -1317,11 +1305,11 @@ lbC001E78:          tst.l    (a1)
 lbC001EA0:          add.l    #4,a1
                     tst.b    lbL001CF6
                     bne.b    lbC001EB8
-                    cmp.b    #$30,d2
+                    cmp.b    #'0',d2
                     beq.b    lbC001EC2
 lbC001EB8:          move.b   d2,(a0)+
                     move.b   #1,lbL001CF6
-lbC001EC2:          move.l   #$30,d2
+lbC001EC2:          moveq    #'0',d2
                     bra.b    lbC001E78
 
 lbC001ECC:          move.l   #'9999',(a0)
@@ -1369,7 +1357,7 @@ lbC001F6C:          bsr      lbC001888
 lbC001F7E:          move.l   gameport_register(pc),a0
                     move.w   (a0),d0
                     and.w    #$303,d0
-                    tst.w    d0
+                    ;tst.w    d0
                     bne.b    lbC001F7E
                     bra      lbC000BD4
 
@@ -1379,7 +1367,7 @@ lbC001FA0:          cmp.b    #44,CUSTOM+VHPOSR
                     bne.b    lbC001FA0
                     bra      lbC001810
 
-lbC001FB0:          tst.l    $10(a0)
+lbC001FB0:          tst.l    16(a0)
                     bne.b    lbC001FD2
                     move.l   12(a0),d0
 lbC001FBA:          move.l   8(a0),a1
@@ -1390,14 +1378,14 @@ lbC001FBA:          move.l   8(a0),a1
                     move.w   d0,2(a1)
                     rts
 
-lbC001FD2:          move.l   $10(a0),a1
-                    move.l   a1,$14(a0)
-                    move.w   6(a1),$18(a0)
+lbC001FD2:          move.l   16(a0),a1
+                    move.l   a1,20(a0)
+                    move.w   6(a1),24(a0)
                     move.l   (a1),d0
                     bra.b    lbC001FBA
 
 lbC001FE6:          move.l   8(a0),a1
-                    tst.l    $10(a0)
+                    tst.l    16(a0)
                     bne      lbC00207E
 lbC001FF2:          and.w    #$80,14(a1)
                     move.w   0(a0),d0
@@ -1423,8 +1411,8 @@ lbC002030:          move.b   d1,14(a1)
 lbC002044:          move.b   d0,10(a1)
                     tst.w    6(a0)
                     beq.b    lbC00207C
-                    move.w   10(a1),$1A(a1)
-                    move.w   14(a1),$1E(a1)
+                    move.w   10(a1),26(a1)
+                    move.w   14(a1),30(a1)
                     move.w   2(a1),d0
                     swap     d0
                     move.w   6(a1),d0
@@ -1434,25 +1422,25 @@ lbC002044:          move.b   d0,10(a1)
                     add.l    d1,d1
                     addq.l   #4,d1
                     add.l    d1,d0
-                    move.w   d0,$16(a1)
+                    move.w   d0,22(a1)
                     swap     d0
-                    move.w   d0,$12(a1)
+                    move.w   d0,18(a1)
 lbC00207C:          rts
 
-lbC00207E:          subq.w   #1,$18(a0)
+lbC00207E:          subq.w   #1,24(a0)
                     bpl      lbC001FF2
-                    addq.l   #8,$14(a0)
+                    addq.l   #8,20(a0)
 lbC00208A:          move.l   $14(a0),a2
                     move.l   (a2),d0
                     tst.l    d0
                     bmi.b    lbC0020A8
-                    move.w   6(a2),$18(a0)
+                    move.w   6(a2),24(a0)
                     move.w   d0,6(a1)
                     swap     d0
                     move.w   d0,2(a1)
                     bra      lbC001FF2
 
-lbC0020A8:          move.l   $10(a0),$14(a0)
+lbC0020A8:          move.l   16(a0),20(a0)
                     bra.b    lbC00208A
 
 lbW0020CC:          dc.w     -16
@@ -1494,7 +1482,7 @@ lbC002252:          move.l   0(a1),a2
                     move.b   (a0)+,d2
                     cmp.b    #' ',d2
                     beq      lbC0023E0
-                    move.l   $24(a1),a3
+                    move.l   36(a1),a3
 lbC002284:          cmp.b    (a3)+,d2
                     beq.b    lbC002292
                     addq.l   #2,d4
@@ -1511,11 +1499,11 @@ lbC002292:          move.l   $20(a1),a3
                     move.w   #(16*64)+1,BLTSIZE(a6)
                     WAIT_BLIT
                     move.l   8(a1),d2
-                    move.l   $1C(a1),d5
+                    move.l   28(a1),d5
                     move.l   #lbL00240E,d4
                     move.l   #-1,BLTAFWM(a6)
-                    move.l   #$dfc0000,BLTCON0(a6)
-                    move.l   $18(a1),d6
+                    move.l   #$DFC0000,BLTCON0(a6)
+                    move.l   24(a1),d6
                     addq.w   #2,d6
                     move.w   d6,BLTAMOD(a6)
                     move.w   #2,BLTDMOD(a6)
@@ -1536,7 +1524,7 @@ lbC0022FE:
                     or.w     #$FE2,d3
                     move.w   d3,BLTCON0(a6)
                     clr.w    BLTBMOD(a6)
-                    move.w   $1A(a1),BLTAMOD(a6)
+                    move.w   26(a1),BLTAMOD(a6)
                     move.w   14(a1),BLTDMOD(a6)
                     move.w   14(a1),BLTCMOD(a6)
                     move.l   8(a1),d5
@@ -1565,20 +1553,20 @@ lbC002372:
                     bsr      lbC001FE6
                     addq.w   #1,lbW00240C
                     cmp.w    #3,lbW00240C
-                    bne      lbC0023CE
+                    bne.b    lbC0023CE
                     clr.w    lbW00240C
                     bsr      lbC000BF2
 lbC0023CE:          not.w    lbW00240A
                     beq.b    lbC0023DC
                     bsr      lbC001F96
 lbC0023DC:          movem.l  (sp)+,d0-d7/a0-a6
-lbC0023E0:          add.l    $10(a1),d0
+lbC0023E0:          add.l    16(a1),d0
                     tst.b    (a0)
                     bmi.b    lbC0023FA
                     bne      lbC002224
                     addq.l   #1,a0
                     move.l   d7,d0
-                    add.l    $14(a1),d1
+                    add.l    20(a1),d1
                     bra      lbC002224
 
 lbC0023FA:          lea      lbW0020CC(pc),a0
@@ -2234,16 +2222,17 @@ lbW00713E:          dc.w     0
 ; -----------------------------------------------------
 
 sound_routine:      dc.l     0
-lbL00715A:          dc.l     0
+schedule_sample_to_play:
+                    dc.l     0
 lbL00715E:          dc.l     0
 lbL007162:          dc.l     0
-lbL007166:          dc.l     0
-lbL00716A:          dc.l     0
+briefing_text:      dc.l     0
+cur_map_top:        dc.l     0
 lbL00716E:          dc.l     0
 gameport_register:  dc.l     0
-lbL007176:          dc.l     0
+key_pressed:        dc.l     0
 owned_weapons:      dc.l     0
-lbL00717E:          dc.l     0
+player_struct:      dc.l     0
 lbL007182:          dc.l     1
 lbL007188:          dc.l     0
 cur_credits:        dc.l     0
@@ -2259,22 +2248,28 @@ player_health:      dc.l     2
                     dc.l     7
                     dc.l     11111
 
-lbW0071B4:          dc.w     1,$34,3
+lbW0071B4:          dc.w     1,VOICE_WELCOME_TO,3
                     dc.l     lbW0071BE
-lbW0071BE:          dc.w     $12,$35,3,0,0
-lbW0071C8:          dc.w     1,13,3,0,0
+lbW0071BE:          dc.w     18,VOICE_INTEX_SYSTEM,3
+                    dc.l     0
+lbW0071C8:          dc.w     1,13,3
+                    dc.l     0
 lbW0071D2:          dc.w     1,13,3
                     dc.l     lbW0071DC
-lbW0071DC:          dc.w     $15,$18,3,0,0
+lbW0071DC:          dc.w     21,24,3
+                    dc.l     0
 lbW0071E6:          dc.w     1,13,3
                     dc.l     lbW0071F0
-lbW0071F0:          dc.w     $15,$1B,3,0,0
+lbW0071F0:          dc.w     21,27,3
+                    dc.l     0
 lbW0071FA:          dc.w     1,13,3
                     dc.l     lbW007204
-lbW007204:          dc.w     $15,$17,3,0,0
+lbW007204:          dc.w     21,23,3
+                    dc.l     0
 lbW00720E:          dc.w     1,13,3
                     dc.l     lbW007218
-lbW007218:          dc.w     $15,$49,3,0,0
+lbW007218:          dc.w     21,73,3
+                    dc.l     0
 lbL007222:          dcb.b    2560,0
 
 ; -----------------------------------------------------

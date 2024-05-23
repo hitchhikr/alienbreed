@@ -6,12 +6,7 @@
 
 ; ------------------------------------------------------
 
-                    include  "custom.i"
-                    include  "cia.i"
-                    include  "dmabits.i"
-                    include  "intbits.i"
-
-                    mc68000
+                    include  "common.inc"
 
 ; ------------------------------------------------------
 
