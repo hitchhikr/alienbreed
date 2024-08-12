@@ -32,7 +32,7 @@ set_bkgnd_bps:      move.w   d0,6(a0)
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     move.l   #$1A,d0
 scroll_background:  bsr.b    wait_frame
-                    sub.b    #8,diwstrt
+                    subq.b   #8,diwstrt
                     subq.w   #1,d0
                     bne.b    scroll_background
                     move.b   #$2C,diwstrt
@@ -54,7 +54,7 @@ scroll_text:        btst     #CIAB_GAMEPORT1,CIAA
                     add.l    #40,d0
                     subq.w   #1,d1
                     bne.b    scroll_text
-exit:               move.l   #26,d0
+exit:               moveq    #26,d0
 remove_background:  bsr.b    wait_frame
                     add.b    #8,diwstrt
                     subq.w   #1,d0

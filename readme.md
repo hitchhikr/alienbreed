@@ -6,6 +6,6 @@ This is not fully decoded yet but it can be re-assembled into a fully working ga
 I made a few changes to the original game:
 
 - Removed the cheat codes and added a debug mode.
-- Fixed the bug in level 6 (taking the evil smiley isn't necessary to reach exit).
+- Fixed the bug in level 6 (taking the evil smiley isn't necessary to reach exit anymore).
 
 A work in progress...

@@ -1571,7 +1571,7 @@ display_text:       movem.l  d0-d7/a0-a6,-(sp)
 next_letter:        move.l   (a1),a2
                     move.l   d0,d2
                     move.l   d2,d3
-                    and.w    #15,d3
+                    and.w    #$F,d3
                     swap     d3
                     lsr.l    #4,d3
                     and.w    #$F000,d3
@@ -1678,12 +1678,8 @@ wait_sync:          cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    .wait
                     rts
 
-lbL003DAE:          dc.l     lbL0052E4,9600,3,36,16,16,80,1344
-                    dc.l     font_pic
-                    dc.l     ascii_letters
-lbL003DD6:          dc.l     lbL01F0E4,5840,3,36,16,16,80,1344
-                    dc.l     font_pic
-                    dc.l     ascii_letters
+lbL003DAE:          dc.l     lbL0052E4,9600,3,36,16,16,80,1344,font_pic,ascii_letters
+lbL003DD6:          dc.l     lbL01F0E4,5840,3,36,16,16,80,1344,font_pic,ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?:'
 lbB003E27:          dc.b     ' '
 lbW003E28:          dc.w     0

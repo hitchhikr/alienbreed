@@ -271,16 +271,17 @@ lbC0005B6:          move.w   #2,lbW000902
                     move.l   a0,lbL000910
                     move.l   a1,lbL00090C
                     clr.w    done_fade
+done_fade_palette:
                     rts
 
 fade_palette:       cmp.w    #2,lbW000902
-                    bne      return
+                    bne      done_fade_palette
                     tst.w    done_fade
-                    bne      return
+                    bne      done_fade_palette
                     addq.w   #1,lbW000906
                     move.w   lbW000906(pc),d0
                     cmp.w    lbW000904(pc),d0
-                    bmi      return
+                    bmi      done_fade_palette
                     clr.w    lbW000906
                     move.l   lbL000910(pc),a0
                     move.l   lbL00090C(pc),a1
@@ -360,119 +361,7 @@ lbL000914:          dcb.l    24,0
 lbL000976:          dcb.l    48,0
 lbL000A36:          dcb.l    48,0
 
-display_text:       lea      CUSTOM,a6
-                    clr.l    d0
-                    clr.l    d1
-                    move.w   (a0)+,d0
-                    move.w   (a0)+,d1
-                    move.l   d0,d7
-next_letter:        move.l   0(a1),a2
-                    move.l   d0,d2
-                    move.l   d2,d3
-                    and.w    #15,d3
-                    swap     d3
-                    lsr.l    #4,d3
-                    and.w    #$F000,d3
-                    lsr.l    #3,d2
-                    add.l    d2,a2
-                    move.l   12(a1),d2
-                    addq.l   #4,d2
-                    mulu     d1,d2
-                    add.l    d2,a2
-                    clr.l    d4
-                    move.b   (a0)+,d2
-                    cmp.b    #' ',d2
-                    beq      space_letter
-                    move.l   36(a1),a3
-search_letter:      cmp.b    (a3)+,d2
-                    beq.b    display_letter
-                    addq.l   #2,d4
-                    tst.b    (a3)
-                    bne.b    search_letter
-                    bra      return
-
-display_letter:     move.l   32(a1),a3
-                    add.l    d4,a3
-                    WAIT_BLIT
-                    move.l   #$1000000,BLTCON0(a6)
-                    move.l   #letter_buffer,BLTDPTH(a6)
-                    move.w   #2,BLTDMOD(a6)
-                    move.w   #(16*64)+1,BLTSIZE(a6)
-                    WAIT_BLIT
-                    move.l   8(a1),d2
-                    move.l   28(a1),d5
-                    move.l   #letter_buffer,d4
-                    move.l   #-1,BLTAFWM(a6)
-                    move.l   #$DFC0000,BLTCON0(a6)
-                    move.l   24(a1),d6
-                    addq.w   #2,d6
-                    move.w   d6,BLTAMOD(a6)
-                    move.w   #2,BLTDMOD(a6)
-                    move.w   #2,BLTBMOD(a6)
-                    move.l   a3,d6
-blit_letter_mask:
-                    WAIT_BLIT
-                    move.l   d6,BLTAPTH(a6)
-                    move.l   d4,BLTBPTH(a6)
-                    move.l   d4,BLTDPTH(a6)
-                    move.w   #(16*64)+1,BLTSIZE(a6)
-                    add.l    d5,d6
-                    subq.w   #1,d2
-                    bne.b    blit_letter_mask
-                    WAIT_BLIT
-                    move.l   #$FFFF0000,BLTAFWM(a6)
-                    move.w   d3,BLTCON1(a6)
-                    or.w     #$FE2,d3
-                    move.w   d3,BLTCON0(a6)
-                    clr.w    BLTBMOD(a6)
-                    move.w   26(a1),BLTAMOD(a6)
-                    move.w   14(a1),BLTDMOD(a6)
-                    move.w   14(a1),BLTCMOD(a6)
-                    move.l   8(a1),d5
-                    move.l   4(a1),d2
-                    move.l   28(a1),d3
-                    move.l   #letter_buffer,d4
-                    move.w   22(a1),d6
-                    lsl.w    #6,d6
-                    add.w    #2,d6
-blit_letter_on_screen:
-                    WAIT_BLIT
-                    move.l   d4,BLTBPTH(a6)
-                    move.l   a3,BLTAPTH(a6)
-                    move.l   a2,BLTCPTH(a6)
-                    move.l   a2,BLTDPTH(a6)
-                    move.w   d6,BLTSIZE(a6)
-                    add.l    d2,a2
-                    add.l    d3,a3
-                    subq.b   #1,d5
-                    bne.b    blit_letter_on_screen
-                    bsr      pause
-                    add.w    #1,wait_play_sound
-                    cmp.w    #9,wait_play_sound
-                    bne      space_letter
-                    clr.w    wait_play_sound
-                    bsr      play_sound
-space_letter:       add.l    16(a1),d0
-                    addq.l   #1,d0
-                    tst.b    (a0)
-                    bmi.b    return
-                    bne      next_letter
-                    addq.l   #1,a0
-                    move.l   d7,d0
-                    add.l    20(a1),d1
-                    bra      next_letter
-
-return:             rts
-
-letter_buffer:      dcb.l    32,0
-wait_play_sound:    dcb.w    2,0
-
-pause:              move.l   d0,-(sp)
-                    move.l   #3000,d0
-.loop:              subq.l   #1,d0
-                    bne.b    .loop
-                    move.l   (sp)+,d0
-                    rts
+                    include  "typewriter.asm"
 
 play_sound:         movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #48,d0
@@ -484,12 +373,7 @@ play_sound:         movem.l  d0-d7/a0-a6,-(sp)
 
 ; ------------------------------------------------------
 
-font_struct:        dc.l     background_pic,(256*40),5,36,8,12,80,1008
-                    dc.l     font_pic
-                    dc.l     ascii_letters
-ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0
-                    even
-
+font_struct:        dc.l     background_pic,(256*40),5,36,8,12,80,1008,font_pic,ascii_letters
 sound_routine:      dc.l     0
 cur_text:           dc.l     0
 

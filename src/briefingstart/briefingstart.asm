@@ -31,7 +31,7 @@ start:              lea      CUSTOM,a6
                     lea      font_struct(pc),a1
                     bsr      display_text
                     bsr      wait_sync
-                    lea      copper_palette(pc),a0               ; return this to the main program
+                    lea      copper_palette(pc),a0                  ; return this to the main program
                     lea      copperlist_main(pc),a1
                     move.w   #INTF_SETCLR|INTF_INTEN,INTENA(a6)
                     rts
@@ -105,119 +105,7 @@ wait_sync:          cmp.b    #255,VHPOSR(a6)
                     bne.b    .wait
                     rts
 
-display_text:       moveq    #0,d0
-                    moveq    #0,d1
-                    move.w   (a0)+,d0
-                    move.w   (a0)+,d1
-                    move.l   d0,d7
-next_letter:        move.l   (a1),a2
-                    move.l   d0,d2
-                    move.l   d2,d3
-                    and.w    #$F,d3
-                    swap     d3
-                    lsr.l    #4,d3
-                    and.w    #$F000,d3
-                    lsr.l    #3,d2
-                    add.l    d2,a2
-                    move.l   12(a1),d2
-                    addq.l   #4,d2
-                    mulu     d1,d2
-                    add.l    d2,a2
-                    clr.l    d4
-                    move.b   (a0)+,d2
-                    cmp.b    #' ',d2
-                    beq      space_letter
-                    move.l   36(a1),a3
-search_letter:      cmp.b    (a3)+,d2
-                    beq.b    display_letter
-                    addq.l   #2,d4
-                    tst.b    (a3)
-                    bne.b    search_letter
-                    bra      return
-
-display_letter:     move.l   32(a1),a3
-                    add.l    d4,a3
-                    WAIT_BLIT
-                    move.l   #$1000000,BLTCON0(a6)
-                    move.l   #letter_buffer,BLTDPTH(a6)
-                    move.w   #2,BLTDMOD(a6)
-                    move.w   #(16*64)+1,BLTSIZE(a6)
-                    WAIT_BLIT
-                    move.l   8(a1),d2
-                    move.l   28(a1),d5
-                    move.l   #letter_buffer,d4
-                    move.l   #-1,BLTAFWM(a6)
-                    move.l   #$dfc0000,BLTCON0(a6)
-                    move.l   24(a1),d6
-                    addq.w   #2,d6
-                    move.w   d6,BLTAMOD(a6)
-                    move.w   #2,BLTDMOD(a6)
-                    move.w   #2,BLTBMOD(a6)
-                    move.l   a3,d6
-blit_letter_mask:
-                    WAIT_BLIT
-                    move.l   d6,BLTAPTH(a6)
-                    move.l   d4,BLTBPTH(a6)
-                    move.l   d4,BLTDPTH(a6)
-                    move.w   #(16*64)+1,BLTSIZE(a6)
-                    add.l    d5,d6
-                    subq.w   #1,d2
-                    bne.b    blit_letter_mask
-                    WAIT_BLIT
-                    move.l   #$ffff0000,BLTAFWM(a6)
-                    move.w   d3,BLTCON1(a6)
-                    or.w     #$fe2,d3
-                    move.w   d3,BLTCON0(a6)
-                    clr.w    BLTBMOD(a6)
-                    move.w   26(a1),BLTAMOD(a6)
-                    move.w   14(a1),BLTDMOD(a6)
-                    move.w   14(a1),BLTCMOD(a6)
-                    move.l   8(a1),d5
-                    move.l   4(a1),d2
-                    move.l   28(a1),d3
-                    move.l   #letter_buffer,d4
-                    move.w   22(a1),d6
-                    lsl.w    #6,d6
-                    addq.w   #2,d6
-blit_letter_on_screen:
-                    WAIT_BLIT
-                    move.l   d4,BLTBPTH(a6)
-                    move.l   a3,BLTAPTH(a6)
-                    move.l   a2,BLTCPTH(a6)
-                    move.l   a2,BLTDPTH(a6)
-                    move.w   d6,BLTSIZE(a6)
-                    add.l    d2,a2
-                    add.l    d3,a3
-                    subq.b   #1,d5
-                    bne.b    blit_letter_on_screen
-                    bsr      pause
-                    addq.w   #1,wait_play_sound
-                    cmp.w    #9,wait_play_sound
-                    bne.b    space_letter
-                    clr.w    wait_play_sound
-                    bsr      play_sound
-space_letter:       add.l    16(a1),d0
-                    addq.l   #1,d0
-                    tst.b    (a0)
-                    bmi.b    return
-                    bne      next_letter
-                    addq.l   #1,a0
-                    move.l   d7,d0
-                    add.l    20(a1),d1
-                    bra      next_letter
-
-return:             rts
-
-letter_buffer:      dcb.l    32,0
-
-pause:              move.l   d0,-(sp)
-                    move.l   #3000,d0
-.loop:              subq.l   #1,d0
-                    bne.b    .loop
-                    move.l   (sp)+,d0
-                    rts
-
-wait_play_sound:    dcb.w    2,0
+                    include  "typewriter.asm"
 
 play_sound:         movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #48,d0
@@ -238,12 +126,7 @@ set_palette:        moveq    #32,d0
 
 ; -----------------------------------------------------
 
-font_struct:        dc.l     bitplanes,(256*40),5,36,8,12,80,1008
-                    dc.l     font_pic
-                    dc.l     ascii_letters
-ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0
-                    even
-
+font_struct:        dc.l     bitplanes,(256*40),5,36,8,12,80,(16*63),font_pic,ascii_letters
 text_to_display:    dc.l     0
 sound_routine:      dc.l     0
 

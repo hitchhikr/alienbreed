@@ -38,9 +38,9 @@ start:              move.l   d0,lbL00715E
                     move.l   schedule_sample_to_play(pc),a5
                     jsr      (a5)
 lbC0000AC:          bsr      lbC0019CC
-                    lea      lbW002730(pc),a0
+                    lea      text_main_menu(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     bsr      lbC0015DA
 lbC0000C4:          move.l   gameport_register(pc),a0
                     move.w   (a0),d0
@@ -95,9 +95,9 @@ lbC0001D0:          cmp.l    #6,lbL007188
 lbC0001E0:          bra      lbC0000AC
 
 lbC0001E4:          bsr      lbC0019CC
-                    lea      lbW00268E(pc),a0
+                    lea      text_disconnecting(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     move.l   #1,d0
                     bsr      lbC001364
                     move.l   #6,d0
@@ -134,7 +134,7 @@ lbC000416:          bsr      lbC0019CC
                     lea      font_struct(pc),a1
                     move.w   #1,lbW0012B8
                     clr.w    lbW0012B6
-                    bsr      lbC002214
+                    bsr      display_text
                     clr.w    lbW0012B8
                     move.w   lbW0012B6(pc),d7
                     clr.w    lbW0012B6
@@ -169,25 +169,25 @@ lbC0004B8:          move.l   #$968020,lbW006FD4
                     rts
 
 lbL0004C4:          dc.l     lbL0004C8
-lbL0004C8:          dc.l     lbW002A38
-                    dc.l     lbW002CF6
-                    dc.l     lbW002FB4
-                    dc.l     lbW003272
-                    dc.l     lbW003530
-                    dc.l     lbW0037EE
-                    dc.l     lbW003AAC
-                    dc.l     lbW003D6A
-                    dc.l     lbW004028
-                    dc.l     lbW0042E6
-                    dc.l     lbW0045A4
-                    dc.l     lbW004862
-                    dc.l     lbW004B20
-                    dc.l     lbW004DDE
-                    dc.l     lbW00509C
-                    dc.l     lbW00535A
-                    dc.l     lbW005618
-                    dc.l     lbW0058D6
-                    dc.l     lbW005B94
+lbL0004C8:          dc.l     text_infos_page_1
+                    dc.l     text_infos_page_2
+                    dc.l     text_infos_page_3
+                    dc.l     text_infos_page_4
+                    dc.l     text_infos_page_5
+                    dc.l     text_infos_page_6
+                    dc.l     text_infos_page_7
+                    dc.l     text_infos_page_8
+                    dc.l     text_infos_page_9
+                    dc.l     text_infos_page_10
+                    dc.l     text_infos_page_11
+                    dc.l     text_infos_page_12
+                    dc.l     text_infos_page_13
+                    dc.l     text_infos_page_14
+                    dc.l     text_infos_page_15
+                    dc.l     text_infos_page_16
+                    dc.l     text_infos_page_17
+                    dc.l     text_infos_page_18
+                    dc.l     text_infos_page_19
                     dc.l     0
 
 lbC000518:          bsr      lbC0019CC
@@ -214,14 +214,14 @@ lbC00055A:          addq.w   #1,d1
                     move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
-                    lea      ascii_MSG0(pc),a1
+                    lea      text_aliens_killed(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_SHOTS_FIRED(a0),d0
                     move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
-                    lea      BULLETS_MSG(pc),a1
+                    lea      text_bullets_fired(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_CUR_CREDITS(a0),d0
@@ -230,26 +230,26 @@ lbC00055A:          addq.w   #1,d1
                     move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
-                    lea      CR_MSG,a1
+                    lea      text_credits_owned,a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_DOORS_OPENED(a0),d0
                     move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
-                    lea      ascii_MSG1(pc),a1
+                    lea      text_doors_opened(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_AMMO_PACKS(a0),d0
                     move.l   d0,number_to_display
                     bsr      lbC001E3E
                     lea      lbL001CFE(pc),a0
-                    lea      CLIP_MSG(pc),a1
+                    lea      text_ammopacks_owned(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_HEALTH(a0),d0
-                    lea      LOWAVERAGEGOO_MSG(pc),a0
-                    lea      ascii_MSG2(pc),a1
+                    lea      text_health_levels(pc),a0
+                    lea      text_energy_left(pc),a1
                     cmp.w    #21,d0
                     bls.b    lbC00064E
                     add.l    #8,a0
@@ -262,8 +262,8 @@ lbC000654:          move.b   (a0)+,(a1)+
                     bne.b    lbC000654
                     move.l   player_struct(pc),a0
                     move.l   INTEX_CUR_WEAPON(a0),d0
-                    lea      ascii_MSG3(pc),a1
-                    lea      lbL0006DC(pc),a0
+                    lea      text_current_weapon(pc),a1
+                    lea      table_text_owned_weapons(pc),a0
 lbC000670:          cmp.l    #-1,(a0)
                     beq.b    lbC000684
                     cmp.l    (a0),d0
@@ -277,16 +277,17 @@ lbC000684:          add.l    #4,a0
 lbC000692:          move.b   (a0)+,(a1)+
                     subq.w   #1,d0
                     bne.b    lbC000692
-                    lea      lbW00077E(pc),a0
+                    lea      text_statistics(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     move.l   #$960020,lbW006FD4
                     bsr      lbC001190
                     move.l   #$968020,lbW006FD4
                     rts
 
-LOWAVERAGEGOO_MSG:  dc.b     'LOW     AVERAGE GOOD    '
-lbL0006DC:          dc.l     1,MACHINEGUN_MSG
+text_health_levels: dc.b     'LOW     AVERAGE GOOD    '
+table_text_owned_weapons:
+                    dc.l     1,MACHINEGUN_MSG
                     dc.l     2,TWINFIRE_MSG
                     dc.l     3,FLAMEARC_MSG
                     dc.l     4,PLASMAGUN_MSG
@@ -301,24 +302,27 @@ PLASMAGUN_MSG:      dc.b     'PLASMA GUN    '
 FLAMETHROWER_MSG:   dc.b     'FLAME THROWER '
 SIDEWINDERS_MSG:    dc.b     'SIDEWINDERS   '
 LAZER_MSG:          dc.b     'LAZER         '
-lbW00077E:          dc.w     0,16
+                    even
+text_statistics:    dc.w     0,16
                     dc.b     '           INTEX STATISTICS             ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '     ALIENS KILLED:  '
-ascii_MSG0:         dc.b     '                   ',0
+text_aliens_killed: dc.b     '                   ',0
                     dc.b     '       SHOTS FIRED:  '
-BULLETS_MSG:        dc.b     '       BULLETS     ',0
+text_bullets_fired: dc.b     '       BULLETS     ',0
                     dc.b     '      CREDIT LIMIT:  '
-CR_MSG:             dc.b     '       CR          ',0
+text_credits_owned: dc.b     '       CR          ',0
                     dc.b     '      DOORS OPENED:  '
-ascii_MSG1:         dc.b     '                   ',0
+text_doors_opened:  dc.b     '                   ',0
                     dc.b     '        AMMO PACKS:  '
-CLIP_MSG:           dc.b     '       CLIP        ',0
+text_ammopacks_owned:
+                    dc.b     '       CLIP        ',0
                     dc.b     '      ENERGY STATE:  '
-ascii_MSG2:         dc.b     '                   ',0
+text_energy_left:   dc.b     '                   ',0
                     dc.b     '    CURRENT WEAPON:  '
-ascii_MSG3:         dc.b     '                   ',0
+text_current_weapon:
+                    dc.b     '                   ',0
                     dc.b     ' WEAPONS AVAILABLE:                     ',0
                     dc.b     '                                        ',0
                     dc.b     '       MACHINE GUN.....     YES         ',0
@@ -347,20 +351,22 @@ lbC000AA8:          move.b   #' ',(a1)+
                     bpl.b    lbC000AA8
                     rts
 
-lbW000AB2:          dc.w     128,120
+text_holocode:      dc.w     128,120
 cur_holocode:       dc.b     '00000'
-                    dc.b     $FF
-lbW000ABC:          dc.w     0
+                    dc.b     -1
+                    even
+cur_holocode_position:
+                    dc.w     0
 
 enter_holocode:     bsr      lbC0019CC
-                    lea      lbW0028EC(pc),a0
+                    lea      text_enter_holocode(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     bsr      lbC000BB4
 lbC000AD8:          move.l   gameport_register(pc),a0
                     move.w   (a0),d0
                     and.w    #$303,d0
-                    move.w   lbW000ABC(pc),d1
+                    move.w   cur_holocode_position(pc),d1
                     lea      cur_holocode(pc),a1
                     cmp.w    #$100,d0
                     bne.b    lbC000B12
@@ -388,7 +394,7 @@ lbC000B38:          cmp.w    #$300,d0
                     bne.b    lbC000B54
                     tst.w    d1
                     beq.b    lbC000B70
-                    subq.w   #1,lbW000ABC
+                    subq.w   #1,cur_holocode_position
                     bsr      lbC000BB4
                     bsr      lbC001F7E
                     bra.b    lbC000B70
@@ -397,7 +403,7 @@ lbC000B54:          cmp.w    #3,d0
                     bne.b    lbC000B70
                     cmp.w    #4,d1
                     beq.b    lbC000B70
-                    addq.w   #1,lbW000ABC
+                    addq.w   #1,cur_holocode_position
                     bsr      lbC000BB4
                     bsr      lbC001F7E
 lbC000B70:          bsr      lbC001F96
@@ -411,13 +417,13 @@ lbC000B8A:          btst     d0,CIAA
                     bra      lbC00015E
 
 lbC000B98:          bsr      lbC001960
-                    lea      lbW000AB2(pc),a0
+                    lea      text_holocode(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     ; no rts
 
 lbC000BB4:          lea      lbW0020CC(pc),a0
-                    move.w   lbW000ABC(pc),d0
+                    move.w   cur_holocode_position(pc),d0
                     lsl.w    #3,d0
                     add.w    #$80,d0
                     move.w   d0,(a0)
@@ -444,7 +450,7 @@ scr_tools_supplies: bsr      lbC0019CC
                     bsr      lbC001112
                     lea      text_tool_supplies(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     clr.l    lbL000DC4
 lbC000C4E:          move.l   gameport_register(pc),a0
                     move.w   (a0),d0
@@ -489,9 +495,9 @@ lbC000CBC:          btst     d0,CIAA
                     move.l   (a5),d2
                     cmp.l    d1,d2
                     bge.b    enough_money
-                    lea      text_insufficient_funds(pc),a0
+                    lea      text_insufficient_funds_2(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     moveq    #1,d0
                     bsr      lbC001364
                     bsr      lbC0018F4
@@ -511,7 +517,7 @@ lbC000D52:          movem.l  d0-d7/a0-a6,-(sp)
                     bset     d0,d1
                     or.l     d1,purchased_supplies
                     add.l    d0,d0
-                    lea      REMOTELOCATIO_MSG(pc),a0
+                    lea      text_tool_bought(pc),a0
                     mulu     #41,d0
                     add.l    #29,d0
                     add.l    d0,a0
@@ -537,10 +543,6 @@ supplies_prices_list:
                     dc.l     0
 lbL000DC4:          dc.l     0
 purchased_supplies: dc.l     0
-text_insufficient_funds:
-                    dc.w     0,232
-                    dc.b     '                  INSUFFICIENT FUNDS'
-                    dc.b     $FF,$20
 
 lbC000DF6:          move.l   schedule_sample_to_play(pc),a5
                     tst.w    d0
@@ -574,7 +576,7 @@ text_tool_supplies: dc.w     0,36
                     dc.b     '          INTEX TOOL SUPPLIES           ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
-REMOTELOCATIO_MSG:  dc.b     '    REMOTE LOCATION SCANNER  10000 CR   ',0
+text_tool_bought:   dc.b     '    REMOTE LOCATION SCANNER  10000 CR   ',0
                     dc.b     '                                        ',0
                     dc.b     '    AMMO CHARGE               2000 CR   ',0
                     dc.b     '                                        ',0
@@ -587,8 +589,10 @@ REMOTELOCATIO_MSG:  dc.b     '    REMOTE LOCATION SCANNER  10000 CR   ',0
                     dc.b     '                  EXIT                  ',0
                     dc.b     '                                       ',0
                     dc.b     '             CREDIT LIMIT: '
-lbB0010C9:          dcb.b    33,0
-                    dcb.b    4,-1
+text_tool_credit_limit:
+                    dcb.b    8,0
+                    dc.b    -1
+                    even
 
 lbC0010EE:          lea      lbW0020CC(pc),a0
                     move.l   lbL000DC4(pc),d0
@@ -604,7 +608,7 @@ lbC001112:          move.l   cur_credits(pc),a0
                     move.l   d0,number_to_display
                     bsr      lbC001C14
                     lea      lbL001CFE(pc),a0
-                    lea      lbB0010C9(pc),a1
+                    lea      text_tool_credit_limit(pc),a1
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
@@ -618,7 +622,7 @@ lbC001112:          move.l   cur_credits(pc),a0
 lbC001146:          bsr      lbC0019CC
                     move.l   briefing_text(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     bra      lbC001190
 
 lbC001164:          moveq    #CIAB_GAMEPORT1,d1
@@ -665,9 +669,9 @@ lbC0011BA:          move.b   CIAB+CIATODLOW,d1
                     tst.w    lbW0012B6
                     bne.b    lbC00129E
 lbC00122A:          move.w   #1,lbW0012B8
-                    lea      lbW002558(pc),a0
+                    lea      text_connecting(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     tst.w    lbW0012B6
                     bne.b    lbC00129E
                     bsr      lbC001164
@@ -675,9 +679,9 @@ lbC00122A:          move.w   #1,lbW0012B8
                     bmi      lbC00129E
                     move.l   #1,d0
                     bsr      lbC001342
-                    lea      lbW0025A4(pc),a0
+                    lea      text_system_status(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     tst.w    lbW0012B6
                     bne.b    lbC00129E
                     bsr      lbC001164
@@ -685,9 +689,9 @@ lbC00122A:          move.w   #1,lbW0012B8
                     bmi      lbC00129E
                     move.l   #2,d0
                     bsr      lbC001342
-                    lea      lbW002640(pc),a0
+                    lea      text_downloading(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
 lbC00129E:          clr.w    lbW0012B8
                     clr.w    lbW0012B6
                     move.l   #1,d0
@@ -755,9 +759,9 @@ lbC001388:          move.w   #1,lbW0012B6
 
 lbC001392:          bsr      lbC0019CC
                     bsr      lbC00141A
-                    lea      lbW0024E2(pc),a0
+                    lea      text_map_system(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     move.l   lbL00715E(pc),d0
                     move.l   lbL007162(pc),d1
                     lsr.l    #3,d0
@@ -894,9 +898,9 @@ lbC001596:          clr.b    (a0)+
 
 lbC00159E:          bsr      lbC0019CC
                     bsr      lbC001BE0
-                    lea      lbW005E52(pc),a0
+                    lea      text_weapons(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     bsr      lbC001F6C
 lbC0015BA:          bsr      lbC001F96
                     bsr      lbC001EF4
@@ -978,7 +982,7 @@ lbC001670:          move.l   owned_weapons(pc),d1
                     or.l     #2,d0
                     move.l   d0,purchased_supplies
                     move.l   #2,d0
-                    lea      REMOTELOCATIO_MSG(pc),a0
+                    lea      text_tool_bought(pc),a0
                     mulu     #41,d0
                     add.l    #29,d0
                     add.l    d0,a0
@@ -991,9 +995,9 @@ lbC001670:          move.l   owned_weapons(pc),d1
                     move.b   #'T',(a0)+
                     move.b   #'.',(a0)+
                     bsr      lbC0019CC
-                    lea      lbW0026B0(pc),a0
+                    lea      text_credits_debited(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     moveq    #1,d0
                     bsr      lbC001364
                     addq.l   #4,sp
@@ -1007,17 +1011,17 @@ lbL00174A:          dc.l     10000
                     dc.l     75000
                     dc.l     0
 
-lbC001766:          lea      lbW0026E4(pc),a0
+lbC001766:          lea      text_already_owned(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     moveq    #2,d0
                     bsr      lbC001364
                     addq.l   #4,sp
                     bra      lbC00159E
 
-lbC001786:          lea      lbW00270A(pc),a0
+lbC001786:          lea      text_insufficient_funds(pc),a0
                     lea      font_struct(pc),a1
-                    bsr      lbC002214
+                    bsr      display_text
                     moveq    #2,d0
                     bsr      lbC001364
                     addq.l   #4,sp
@@ -1213,7 +1217,7 @@ lbC001BE0:          move.l   cur_credits(pc),a0
                     move.l   d0,number_to_display
                     bsr      lbC001C14
                     lea      lbL001CFE(pc),a0
-                    lea      lbL006154(pc),a1
+                    lea      text_credit_limit(pc),a1
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
@@ -1344,10 +1348,10 @@ lbC001F4A:          rts
 lbC001F4C:          move.l   lbL00716E(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
-                    lea      lbL006178(pc),a0
+                    lea      table_text_weapons(pc),a0
                     move.l   0(a0,d0.l),a0
                     lea      font_struct(pc),a1
-                    bra      lbC002214
+                    bra      display_text
 
 lbC001F6C:          bsr      lbC001888
                     bsr      lbC001A7C
@@ -1451,7 +1455,7 @@ lbW0020CE:          dc.w     -16,11,0
 lbW0020E8:          dcb.w    22,-256
                     dcb.w    128,0
 
-lbC002214:          lea      CUSTOM,a6
+display_text:       lea      CUSTOM,a6
                     moveq    #0,d0
                     moveq    #0,d1
                     move.w   (a0)+,d0
@@ -1465,10 +1469,10 @@ lbC002224:          tst.w    lbW0012B8
                     btst     #6,CIAA
                     beq      lbC0023FA
                     clr.w    lbW0012B6
-lbC002252:          move.l   0(a1),a2
+lbC002252:          move.l   (a1),a2
                     move.l   d0,d2
                     move.l   d2,d3
-                    and.w    #15,d3
+                    and.w    #$F,d3
                     swap     d3
                     lsr.l    #4,d3
                     and.w    #$F000,d3
@@ -1494,13 +1498,13 @@ lbC002292:          move.l   $20(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
                     move.l   #$1000000,BLTCON0(a6)
-                    move.l   #lbL00240E,BLTDPTH(a6)
+                    move.l   #letter_buffer,BLTDPTH(a6)
                     move.w   #2,BLTDMOD(a6)
                     move.w   #(16*64)+1,BLTSIZE(a6)
                     WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   28(a1),d5
-                    move.l   #lbL00240E,d4
+                    move.l   #letter_buffer,d4
                     move.l   #-1,BLTAFWM(a6)
                     move.l   #$DFC0000,BLTCON0(a6)
                     move.l   24(a1),d6
@@ -1530,7 +1534,7 @@ lbC0022FE:
                     move.l   8(a1),d5
                     move.l   4(a1),d2
                     move.l   $1C(a1),d3
-                    move.l   #lbL00240E,d4
+                    move.l   #letter_buffer,d4
                     move.w   $16(a1),d6
                     lsl.w    #6,d6
                     addq.w   #2,d6
@@ -1545,6 +1549,7 @@ lbC002372:
                     add.l    d3,a3
                     subq.b   #1,d5
                     bne.b    lbC002372
+
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW0020CC(pc),a0
                     move.w   d0,(a0)
@@ -1560,7 +1565,8 @@ lbC0023CE:          not.w    lbW00240A
                     beq.b    lbC0023DC
                     bsr      lbC001F96
 lbC0023DC:          movem.l  (sp)+,d0-d7/a0-a6
-lbC0023E0:          add.l    16(a1),d0
+lbC0023E0:          
+                    add.l    16(a1),d0
                     tst.b    (a0)
                     bmi.b    lbC0023FA
                     bne      lbC002224
@@ -1575,13 +1581,11 @@ lbC0023FA:          lea      lbW0020CC(pc),a0
 
 lbW00240A:          dc.w     0
 lbW00240C:          dc.w     0
-lbL00240E:          dcb.l    32,0
-font_struct:        dc.l     bitplanes,(256*40),4,36,8,12,80,1008
-                    dc.l     font_pic
-                    dc.l     ascii_letters
+letter_buffer:      dcb.l    (16*2),0
+font_struct:        dc.l     bitplanes,(256*40),4,36,8,12,80,1008,font_pic,ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
-                    dc.b     'A'
-lbW0024E2:          dc.w     0,12
+                    even
+text_map_system:    dc.w     0,12
                     dc.b     '        INTEX MAPSYSTEM V2.0          ',0
                     dc.b     ' ',0
                     dc.b     ' ',0
@@ -1603,41 +1607,51 @@ lbW0024E2:          dc.w     0,12
                     dc.b     ' ',0
                     dc.b     '  YOU ARE LOCATED AT CURSORS POSITION!'
                     dc.b     -1
-lbW002558:          dc.w     0,48
+                    even
+text_connecting:    dc.w     0,48
                     dc.b     'INTEX NETWORK CONNECT: CODE ABF01DCC61',0
                     dc.b     'CONNECTING.....................'
                     dc.b     -1
                     even
-lbW0025A4:          dc.w     0,84
+text_system_status: dc.w     0,84
                     dc.b     'INTEX NETWORK SYSTEM V10.1',0
                     dc.b     '2.5G RAM:         OK',0
                     dc.b     'EXTERNAL DEVICE:  OK',0
                     dc.b     'SYSTEM V1.32 CS:  OK',0
                     dc.b     'VIDEODISPLAY:     CCC2.A2',0
-                    dc.b     'TEXTUPDATE ACCCELERATOR INSTALLED.'
+                    dc.b     'TEXT UPDATE ACCCELERATOR INSTALLED.'
                     dc.b     -1
                     even
-lbW002640:          dc.w     0,168
+text_downloading:   dc.w     0,168
                     dc.b     'EXECUTING DOS 6.0',0
-                    dc.b     'SYSTEM DOWNLOADING NETWORKDATA..... OK',0
+                    dc.b     'SYSTEM DOWNLOADING NETWORK DATA.... OK',0
                     dc.b     'INTEX EXECUTED!'
                     dc.b     -1
                     even
-lbW00268E:          dc.w     0,64
+text_disconnecting: dc.w     0,64
                     dc.b     '  DISCONNECTING..............'
                     dc.b     -1
-lbW0026B0:          dc.w     0,62
-                    dc.b     '     CREDITS DEBITED.',$ff,0,0
-                    dc.b     0
-                    dc.b     '@     CREDITS DEBITED.'
+                    even
+text_credits_debited:
+                    dc.w     0,62
+                    dc.b     '     CREDITS DEBITED.'
                     dc.b     -1
-lbW0026E4:          dc.w     0,211
+                    even
+text_already_owned: dc.w     0,211
                     dc.b     '     YOU ALREADY OWN THAT WEAPON.'
                     dc.b     -1
-lbW00270A:          dc.w     0,211
+                    even
+text_insufficient_funds:
+                    dc.w     0,211
                     dc.b     '              INSUFFUCIENT FUNDS.'
                     dc.b     -1
-lbW002730:          dc.w     0,32
+                    even
+text_insufficient_funds_2:
+                    dc.w     0,232
+                    dc.b     '                  INSUFFICIENT FUNDS'
+                    dc.b     -1
+                    even
+text_main_menu:     dc.w     0,32
                     dc.b     '            INTEX MAIN MENU             ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1650,7 +1664,9 @@ lbW002730:          dc.w     0,32
                     dc.b     '               INFO BASE                ',0
                     dc.b     '          ABORT INTEX NETWORK'
                     dc.b     -1
-lbW0028EC:          dc.w     0,96
+                    even
+text_enter_holocode:
+                    dc.w     0,96
                     dc.b     '            ENTER HOLOCODE              ',0
                     dc.b     '                                        ',0
                     dc.b     '                00000                   ',0
@@ -1660,7 +1676,8 @@ lbW0028EC:          dc.w     0,96
                     dc.b     '      LEFT AND RIGHT MOVES CURSOR       ',0
                     dc.b     '        PRESS BUTTON WHEN READY         '
                     dc.b     -1
-lbW002A38:          dc.w     0,24
+                    even
+text_infos_page_1:  dc.w     0,24
                     dc.b     '      I N T E X  I N F O  B A S E       ',0
                     dc.b     '                                        ',0
                     dc.b     ' ON LINE HELP AND INFORMATION DATABASE. ',0
@@ -1680,7 +1697,7 @@ lbW002A38:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW002CF6:          dc.w     0,24
+text_infos_page_2:  dc.w     0,24
                     dc.b     ' INTEX SPACE RESEARCH STATION ISRC 4.   ',0
                     dc.b     '                                        ',0
                     dc.b     ' THIS STATION IS A BASE FOR PREPATORY   ',0
@@ -1700,7 +1717,7 @@ lbW002CF6:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW002FB4:          dc.w     0,24
+text_infos_page_3:  dc.w     0,24
                     dc.b     ' INTEX TRANSPORTATION HOLO CODES..      ',0
                     dc.b     '                                        ',0
                     dc.b     ' AT LEAST FIVE HOLO CODES EXIST THAT    ',0
@@ -1720,7 +1737,7 @@ lbW002FB4:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW003272:          dc.w     0,24
+text_infos_page_4:  dc.w     0,24
                     dc.b     ' STATION FACILITIES INVENTORY..         ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1740,7 +1757,7 @@ lbW003272:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW003530:          dc.w     0,24
+text_infos_page_5:  dc.w     0,24
                     dc.b     ' SLIDE DOOR.                            ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... REQUIRES PASS KEY      ',0
@@ -1760,7 +1777,7 @@ lbW003530:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW0037EE:          dc.w     0,24
+text_infos_page_6:  dc.w     0,24
                     dc.b     ' FIRE DOOR.                             ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... ONCE SHUT, STAYS SHUT. ',0
@@ -1780,7 +1797,7 @@ lbW0037EE:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW003AAC:          dc.w     0,24
+text_infos_page_7:  dc.w     0,24
                     dc.b     ' LASER DOOR.                            ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... ALLOWS PASSAGE IN ONE  ',0
@@ -1800,7 +1817,7 @@ lbW003AAC:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW003D6A:          dc.w     0,24
+text_infos_page_8:  dc.w     0,24
                     dc.b     ' AIR SHAFTS, DUCTS AND VENTS.           ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY....... VERY LOW               ',0
@@ -1820,7 +1837,7 @@ lbW003D6A:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW004028:          dc.w     0,24
+text_infos_page_9:  dc.w     0,24
                     dc.b     ' REFUGE IRIS.                           ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY........ VERY LOW              ',0
@@ -1840,7 +1857,7 @@ lbW004028:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW0042E6:          dc.w     0,24
+text_infos_page_10: dc.w     0,24
                     dc.b     ' ACID VAT.                              ',0
                     dc.b     '                                        ',0
                     dc.b     ' SECURITY........ NOMINAL               ',0
@@ -1860,7 +1877,7 @@ lbW0042E6:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW0045A4:          dc.w     0,24
+text_infos_page_11: dc.w     0,24
                     dc.b     ' REMOTE LOCATION SCANNER.               ',0
                     dc.b     '                                        ',0
                     dc.b     ' THIS HANDY TOOL CAN BE BOUGHT VIA THE  ',0
@@ -1880,7 +1897,7 @@ lbW0045A4:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW004862:          dc.w     0,24
+text_infos_page_12: dc.w     0,24
                     dc.b     ' ESCAPE SHUTTLE BAY.                    ',0
                     dc.b     '                                        ',0
                     dc.b     ' LOCATION....... U N K N O W N          ',0
@@ -1900,7 +1917,7 @@ lbW004862:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW004B20:          dc.w     0,24
+text_infos_page_13: dc.w     0,24
                     dc.b     ' CENTRAL CORE REACTOR.                  ',0
                     dc.b     '                                        ',0
                     dc.b     ' THE KEY TO THE BURNING POWER OF THE    ',0
@@ -1920,7 +1937,7 @@ lbW004B20:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW004DDE:          dc.w     0,24
+text_infos_page_14: dc.w     0,24
                     dc.b     ' CORE ENERGY REACTORS.                  ',0
                     dc.b     '                                        ',0
                     dc.b     ' THE POWER DECK SUPPLIES AUXILLARY      ',0
@@ -1940,7 +1957,7 @@ lbW004DDE:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW00509C:          dc.w     0,24
+text_infos_page_15: dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1960,7 +1977,7 @@ lbW00509C:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW00535A:          dc.w     0,24
+text_infos_page_16: dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -1980,7 +1997,7 @@ lbW00535A:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW005618:          dc.w     0,24
+text_infos_page_17: dc.w     0,24
                     dc.b     '         SYSTEM SOFTWARE CREDITS        ',0
                     dc.b     '                                        ',0
                     dc.b     ' CODE........  ANDREAS TADIC            ',0
@@ -2000,7 +2017,7 @@ lbW005618:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW0058D6:          dc.w     0,24
+text_infos_page_18: dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
@@ -2020,7 +2037,7 @@ lbW0058D6:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW005B94:          dc.w     0,24
+text_infos_page_19: dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     '                                        ',0
                     dc.b     '         C O M I N G   S O O N          ',0
@@ -2040,7 +2057,7 @@ lbW005B94:          dc.w     0,24
                     dc.b     ' MAIN MENU:      PRESS FIREBUTTON.      '
                     dc.b     -1
                     even
-lbW005E52:          dc.w     0,24
+text_weapons:       dc.w     0,24
                     dc.b     '         INTEX WEAPON SUPPLIES          ',0
                     dc.b     '                                        ',0
                     dc.b     '   WEAPON SUPPLIES REQUEST:             ',0
@@ -2060,15 +2077,16 @@ lbW005E52:          dc.w     0,24
                     dc.b     '                                        ',0
                     dc.b     ' PURCHASE?            YOUR CREDIT LIMIT ',0
                     dc.b     '                        IS: '
-lbL006154:          dcb.l    8,0
-                    dc.l     -1
-lbL006178:          dc.l     lbW006190
-                    dc.l     lbW0063D2
-                    dc.l     lbW006614
-                    dc.l     lbW006856
-                    dc.l     lbW006A98
-                    dc.l     lbW006CDA
-lbW006190:          dc.w     0,84
+text_credit_limit:  dcb.b    8,0
+                    dc.b     -1
+                    even
+table_text_weapons: dc.l     text_weapon_1
+                    dc.l     text_weapon_2
+                    dc.l     text_weapon_3
+                    dc.l     text_weapon_4
+                    dc.l     text_weapon_5
+                    dc.l     text_weapon_6
+text_weapon_1:      dc.w     0,84
                     dc.b     '        BROADHURST DJ TWINFIRE 3LG      ',0
                     dc.b     '               RAPID FIRE               ',0
                     dc.b     '                                        ',0
@@ -2084,7 +2102,8 @@ lbW006190:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
-lbW0063D2:          dc.w     0,84
+                    even
+text_weapon_2:      dc.w     0,84
                     dc.b     '             DALTON ARC FLAME           ',0
                     dc.b     '                RAPID FIRE              ',0
                     dc.b     '                                        ',0
@@ -2100,7 +2119,8 @@ lbW0063D2:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
-lbW006614:          dc.w     0,84
+                    even
+text_weapon_3:      dc.w     0,84
                     dc.b     '           ROBINSON PLASMA GUN          ',0
                     dc.b     '               PUMP ACTION              ',0
                     dc.b     '                                        ',0
@@ -2116,7 +2136,8 @@ lbW006614:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
-lbW006856:          dc.w     0,84
+                    even
+text_weapon_4:      dc.w     0,84
                     dc.b     '           RYXX FIREBOLT MK22           ',0
                     dc.b     '              FLAMETHROWER              ',0
                     dc.b     '                                        ',0
@@ -2132,7 +2153,8 @@ lbW006856:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
-lbW006A98:          dc.w     0,84
+                    even
+text_weapon_5:      dc.w     0,84
                     dc.b     '            STIRLING MULTIMATIC         ',0
                     dc.b     '               TRIPLE BARREL            ',0
                     dc.b     '                                        ',0
@@ -2148,7 +2170,8 @@ lbW006A98:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
-lbW006CDA:          dc.w     0,84
+                    even
+text_weapon_6:      dc.w     0,84
                     dc.b     '          HIGH IMPACT ASTRO LAZER       ',0
                     dc.b     '                  LAZER                 ',0
                     dc.b     '                                        ',0
@@ -2164,6 +2187,7 @@ lbW006CDA:          dc.w     0,84
                     dc.b     '             YES                        ',0
                     dc.b     '             NO                         '
                     dc.b     -1
+                    even
 
 ; -----------------------------------------------------
 

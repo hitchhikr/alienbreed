@@ -16,7 +16,7 @@
 ; ------------------------------------------------------
 
 ; 1 to activate the debug mode
-DEBUG               equ      0
+DEBUG               equ      1
 
 lbW05F7A8           equ      cur_map_datas+612
 map_reactor_up      equ      cur_map_datas+2598
@@ -176,3 +176,15 @@ INTEX_DOORS_OPENED  equ      16
 INTEX_AMMO_PACKS    equ      20
 INTEX_HEALTH        equ      24
 INTEX_CUR_WEAPON    equ      28
+
+                    rsset    0
+TEXT_DEST_BP:       rs.l     1                                      ; 0 
+TEXT_DEST_BP_SIZE:  rs.l     1                                      ; 4
+TEXT_DEST_BPS:      rs.l     1                                      ; 8
+TEXT_DEST_WIDTH:    rs.l     1                                      ; 12
+TEXT_LETTER_WIDTH:  rs.l     1                                      ; 16
+TEXT_LETTER_HEIGHT: rs.l     1                                      ; 20
+TEXT_FONT_MODULO:   rs.l     1                                      ; 24
+TEXT_FONT_BP_SIZE:  rs.l     1                                      ; 28
+TEXT_FONT_PIC:      rs.l     1                                      ; 32
+TEXT_ASCII_LETTERS: rs.l     1                                      ; 36
