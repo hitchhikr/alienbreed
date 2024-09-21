@@ -10,13 +10,6 @@
 
 ; -----------------------------------------------------
 
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
-                    bne.b    wait\@
-                    ENDM
-
-; -----------------------------------------------------
-
                     section  story,code_c
 
 start:              bsr      set_planet_pic
@@ -941,14 +934,14 @@ text_bps:           dc.w     BPL5PTH,0,BPL5PTL,0
 
 ; -----------------------------------------------------
 
-font_pic:           incbin   "font_16x462x2.raw"
+font_pic:           incbin   "font_16x462.lo2"
 
 text_bitplane1:     dcb.b    (256*40),0
 
 text_bitplane2:     dcb.b    (256*40),0
 
-planet_pic:         incbin   "planet_320x256x4.raw"
-title_pic:          incbin   "title_320x256x5.raw"
+planet_pic:         incbin   "planet_320x256.lo4"
+title_pic:          incbin   "title_320x256.lo5"
 
 lbL01D36E:          dc.w     3,244
 lbL01D372:          dcb.l    5,-1

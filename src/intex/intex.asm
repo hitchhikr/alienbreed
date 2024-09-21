@@ -11,13 +11,6 @@
 
 ; -----------------------------------------------------
 
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
-                    bne.b    wait\@
-                    ENDM
-
-; -----------------------------------------------------
-
                     section  intex,code_c
 
 start:              move.l   d0,lbL00715E
@@ -2298,9 +2291,9 @@ lbL007222:          dcb.b    2560,0
 
 ; -----------------------------------------------------
 
-font_pic:           incbin   "font_16x504x6.raw"
-background_pic:     incbin   "bkgnd_320x256x4.raw"
-weapons_pic:        incbin   "weapons_264x40x4.raw"
+font_pic:           incbin   "font_16x504.lo6"
+background_pic:     incbin   "bkgnd_320x256.lo4"
+weapons_pic:        incbin   "weapons_264x40.lo4"
 
 ; -----------------------------------------------------
 

@@ -95,7 +95,7 @@ scroll_bp:          dc.w     BPL5PTH,0,BPL5PTL,0
 
 ; -----------------------------------------------------
 
-background_pic:     incbin   "bkgnd_320x256x4.raw"
-scroll_pic:         incbin   "scroll_320x1024x1.raw"
+background_pic:     incbin   "bkgnd_320x256.lo4"
+scroll_pic:         incbin   "scroll_320x1024.lo1"
 
                     end

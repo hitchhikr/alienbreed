@@ -10,13 +10,6 @@
 
 ; -----------------------------------------------------
 
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
-                    bne.b    wait\@
-                    ENDM
-
-; -----------------------------------------------------
-
                     section  menu,code_c
 
 start:              move.l   d5,number_players
@@ -1880,7 +1873,7 @@ lbL0042E4:          dcb.l    16,0
 
 ; -----------------------------------------------------
 
-font_pic:           incbin   "font_16x672x3.raw"
+font_pic:           incbin   "font_16x672.lo3"
 
 lbL0052E4:          dcb.b    3600,0
 lbL0060F4:          dcb.b    240,0
@@ -1889,7 +1882,7 @@ lbL007044:          dcb.b    21280,0
 stars_bitplane1:    dcb.b    (256*48*3),0
 stars_bitplane2:    dcb.b    (256*48*3),0
 
-copyright_pic:      incbin   "copyright_320x16x3.raw"
+copyright_pic:      incbin   "copyright_320x16.lo3"
 
 copyright_palette:  dc.w     $000,$620,$720,$830,$940,$A40,$B50,$C60
 empty_pic:          dcb.b    1280,0
@@ -1897,6 +1890,6 @@ stars_3d_coords:    dcb.w    120,0
 lbL01F0E4:          dcb.b    3760,0
 lbL01FF94:          dcb.b    17520,0
 
-title_pic:          incbin   "title_320x90x6.raw"
+title_pic:          incbin   "title_320x90.lo6"
 
                     end

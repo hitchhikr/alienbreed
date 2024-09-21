@@ -6,20 +6,9 @@
 
 ; -----------------------------------------------------
 
-                    include  'common.inc'
+                    include  "common.inc"
 
-; ------------------------------------------------------
-
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
-                    bne.b    wait\@
-                    ENDM
-WAIT_BLIT2          MACRO
-wait\@:             btst     #DMAB_BLITTER,DMACONR(a6)
-                    bne.b    wait\@
-                    ENDM
-
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     section  start,code
 
@@ -88,7 +77,7 @@ wait:               tst.w    some_variable
 error_flash:        move.w   d0,CUSTOM+COLOR00
                     bra.b    error_flash
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     mc68020
 
@@ -192,7 +181,7 @@ lev5irq:            movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #0,d0
                     rts
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 lbW0003A2:          dc.w     1
 music_enabled:      dc.w     0
@@ -260,7 +249,7 @@ rnd_number:         dc.w     0
 global_aliens_extra_strength:
                     dc.w     0
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 begin:              bsr      obtain_vbr_register
                     bsr      disable_cache
@@ -1350,6 +1339,7 @@ display_timer_digits:
                     add.w    d2,d2
                     add.w    d2,d2
                     move.l   0(a0,d2.w),d0
+                    clr.w    d2
                     move.b   cur_timer_digit_lo(pc),d2
                     add.w    d2,d2
                     add.w    d2,d2
@@ -8483,7 +8473,7 @@ lbC00D092:          btst     #4,player_2_input
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
 
-game_paused_pic:    incbin   'game_paused_96x7x1.raw'
+game_paused_pic:    incbin   'game_paused_96x7.lo1'
 
 lbC00D144:          move.l   a0,-(sp)
                     lea      lbW012A28(pc),a0
@@ -10627,13 +10617,13 @@ return_text:        rts
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
                     even
 font_struct:        dc.l    lbL0FBF6C
-                    dc.l    10240
+                    dc.l    (256*40)
                     dc.l    1               ; 1 bitplane
                     dc.l    36
                     dc.l    9
                     dc.l    12
                     dc.l    80
-                    dc.l    1008
+                    dc.l    (16*63)
                     dc.l    font_pic
                     dc.l    ascii_letters
 
@@ -12920,7 +12910,7 @@ clear_sprites_bps:  clr.w    2(a0)
                     rts
 
                     dc.w     656,656
-lbW01227C:          dcb.w    2,60
+lbW01227C:          dc.w     60,60
                     dc.w     32,128
                     dc.l     lbW005BCC
                     dc.l     player_spr1_pic
@@ -12929,7 +12919,7 @@ lbW01227C:          dcb.w    2,60
 lbW012298:          dc.w     76,60,32,128
                     dc.l     lbW005BEC
                     dcb.w    8,0
-                    dcb.w    2,60
+                    dc.w     60,60
 lbW0122B8:          dc.w     160,60,32,128
                     dc.l     lbW005C0C
                     dc.l     player_spr41_pic
@@ -18542,7 +18532,7 @@ cur_map_top:        dcb.w    3*124,0
 cur_map_datas:      dcb.w    124*98,0
 end_map_datas:      dcb.w    124*4,0
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 voice_warning:      incbin   'warning.raw'
 voice_destruction_imminent:
@@ -18570,17 +18560,17 @@ voice_six:          incbin   'six.raw'
 voice_seven:        incbin   'seven.raw'
 voice_eight:        incbin   'eight.raw'
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     section  pub_bss,bss
 
 bkgnd_tiles_block:  ds.b     76800
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     section  data_chip,data_c
 
-font_pic:           incbin   'font_16x504x5.raw'
+font_pic:           incbin   'font_16x504.lo5'
 
 letter_buffer:      dcb.b    128,0
 
@@ -18599,9 +18589,9 @@ lbL098E0C:          dcb.l    8,0
 lbL098E2C:          dcb.l    150,0
 
 player_1_status_pic:
-                    incbin   'player_1_status_304x8x2.raw'
+                    incbin   'player_1_status_304x8.lo2'
 player_2_status_pic:
-                    incbin   'player_2_status_304x8x2.raw'
+                    incbin   'player_2_status_304x8.lo2'
 
 player_1_status_bar:
                     dcb.b    37,0
@@ -18629,7 +18619,7 @@ bottom_owned_keys_gfx:
 
 empty_sample:       dcb.b    16,0
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 copperlist_main:    dc.w     BPLCON2,$22
                     dc.w     DIWSTRT,$2B8E,DIWSTOP,$2DB3
@@ -18969,7 +18959,7 @@ overmap_bottom_bar_bps:
                     dc.w     $2CC5,$FFFE,COLOR03,$520
                     dc.w     $FFFF,$FFFE
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 player_spr1_pic:    incbin   'player_sprite1.raw'
 player_spr2_pic:    incbin   'player_sprite2.raw'
@@ -19086,7 +19076,7 @@ sample29:           incbin   'sample29.raw'
 sample30:           incbin   'sample30.raw'
 sample31:           incbin   'sample31.raw'
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     section  uni_chip,bss_c
 

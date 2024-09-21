@@ -10,13 +10,6 @@
 
 ; -----------------------------------------------------
 
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,DMACONR(a6)
-                    bne.b    wait\@
-                    ENDM
-
-; -----------------------------------------------------
-
                     section  briefingstart,code_c
 
 start:              lea      CUSTOM,a6
@@ -165,7 +158,7 @@ bitplanes:          dcb.b    256*40*5,0
 
 ; -----------------------------------------------------
 
-background_pic:     incbin   "bkgnd_320x256x5.raw"
-font_pic:           incbin   "font_16x504x6.raw"
+background_pic:     incbin   "bkgnd_320x256.lo5"
+font_pic:           incbin   "font_16x504.lo6"
 
                     end

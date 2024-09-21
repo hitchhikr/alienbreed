@@ -4,18 +4,11 @@
 ; Disassembled by Franck 'hitchhikr' Charlet.
 ; -----------------------------------------------------
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     include  "common.inc"
 
-; ------------------------------------------------------
-
-WAIT_BLIT           MACRO
-wait\@:             btst     #DMAB_BLITTER,DMACONR(a6)
-                    bne.b    wait\@
-                    ENDM
-
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     section  briefingcore,code_c
 
@@ -24,7 +17,7 @@ start:              move.l   #copperlist_blank,CUSTOM+COP1LCH
                     move.l   a0,cur_text
                     cmp.l    #2,d0
                     bne.b    only_1_player
-                    move.l   #6272,d0
+                    move.l   #(784*8),d0
                     add.l    d0,ptr_sprite_1_pic
                     add.l    d0,ptr_sprite_5_pic
                     add.l    d0,ptr_sprite_2_pic
@@ -44,10 +37,10 @@ only_1_player:      bsr      set_copperlist
                     jsr      (a0)
 .loop:              bsr      wait_sync
                     bsr      fade_palette
-                    addq.w   #3,sprite_1_2_pos
-                    addq.w   #3,sprite_3_4_pos
-                    addq.w   #3,sprite_5_6_pos
-                    addq.w   #3,sprite_7_8_pos
+                    addq.w   #3,sprite_1_2_pos_y
+                    addq.w   #3,sprite_3_4_pos_y
+                    addq.w   #3,sprite_5_6_pos_y
+                    addq.w   #3,sprite_7_8_pos_y
                     lea      sprite_1_2_struct(pc),a0
                     bsr      move_sprites
                     lea      sprite_3_4_struct(pc),a0
@@ -60,7 +53,7 @@ only_1_player:      bsr      set_copperlist
                     beq      .loop_end
                     btst     #CIAB_GAMEPORT1,CIAA
                     beq      .loop_end
-                    cmp.w    #264,sprite_1_2_pos
+                    cmp.w    #264,sprite_1_2_pos_y
                     blt      .loop
 .loop_end:          move.w   #400,sprite_1_2_struct
                     move.w   #400,sprite_3_4_struct
@@ -75,8 +68,8 @@ only_1_player:      bsr      set_copperlist
                     lea      sprite_7_8_struct(pc),a0
                     bsr      move_sprites
                     move.l   sound_routine(pc),a0
-                    move.l   #42,d0
-                    move.l   #0,d2
+                    moveq    #42,d0
+                    moveq    #0,d2
                     jsr      (a0)
                     move.l   cur_text(pc),a0
                     lea      font_struct(pc),a1
@@ -121,13 +114,13 @@ wait_sync:          cmp.b    #255,CUSTOM+VHPOSR
 
 set_sprite_bp:      tst.l    16(a0)
                     bne.b    lbC000244
-                    move.l   12(a0),d0
-lbC00022C:          move.l   8(a0),a1
+                    move.l   12(a0),d0                          ; pic
+lbC00022C:          move.l   8(a0),a1                           ; bps
                     move.w   6(a0),d1
-                    or.w     d1,14(a1)
-                    move.w   d0,6(a1)
+                    or.w     d1,14(a1)                          ; SPRxCTL
+                    move.w   d0,6(a1)                           ; SPRxPTL
                     swap     d0
-                    move.w   d0,2(a1)
+                    move.w   d0,2(a1)                           ; SPRxPTH
                     rts
 
 lbC000244:          move.l   16(a0),a1
@@ -140,7 +133,7 @@ move_sprites:       move.l   8(a0),a1
                     tst.l    16(a0)
                     bne      lbC0002FA
 lbC000264:          and.w    #128,14(a1)
-                    move.w   0(a0),d0
+                    move.w   (a0),d0
                     add.w    #128,d0
                     btst     #0,d0
                     beq.b    lbC00027E
@@ -197,30 +190,40 @@ lbC000306:          move.l   20(a0),a2
 lbC000324:          move.l   16(a0),20(a0)
                     bra.b    lbC000306
 
-sprite_1_2_struct:  dc.w     27
-sprite_1_2_pos:     dc.w     -32,96,128
-                    dc.l     sprites_1_2_bps
-                    dc.l     sprite_1_pic
-                    dc.l     ptr_sprite_1_pic
-                    dcb.w    4,0
+sprite_1_2_struct:  dc.w     27                                 ; 0
+sprite_1_2_pos_y:   dc.w     -32                                ; 2
+                    dc.w     96                                 ; 4
+                    dc.w     128                                ; 6
+                    dc.l     sprites_1_2_bps                    ; 8
+                    dc.l     sprite_1_pic                       ; 12
+                    dc.l     ptr_sprite_1_pic                   ; 16
+                    dc.l     0                                  ; 20
+                    dc.w     0                                  ; 24
+                    dc.w     0                                  ; 26
 sprite_3_4_struct:  dc.w     43
-sprite_3_4_pos:     dc.w     -32,96,128
+sprite_3_4_pos_y:   dc.w     -32,96,128
                     dc.l     sprites_3_4_bps
                     dc.l     sprite_1_pic
                     dc.l     ptr_sprite_2_pic
-                    dcb.w    4,0
+                    dc.l     0
+                    dc.w     0
+                    dc.w     0
 sprite_5_6_struct:  dc.w     59
-sprite_5_6_pos:     dc.w     -32,96,128
+sprite_5_6_pos_y:   dc.w     -32,96,128
                     dc.l     sprites_5_6_bps
                     dc.l     sprite_1_pic
                     dc.l     ptr_sprite_3_pic
-                    dcb.w    4,0
+                    dc.l     0
+                    dc.w     0
+                    dc.w     0
 sprite_7_8_struct:  dc.w     75
-sprite_7_8_pos:     dc.w     -32,96,128
+sprite_7_8_pos_y:   dc.w     -32,96,128
                     dc.l     sprites_7_8_bps
                     dc.l     sprite_1_pic
                     dc.l     ptr_sprite_4_pic
-                    dcb.w    4,0
+                    dc.l     0
+                    dc.w     0
+                    dc.w     0
 
 ptr_sprite_1_pic:   dc.l    sprite_1_pic,0
 ptr_sprite_5_pic:   dc.l    sprite_5_pic,0
@@ -237,7 +240,7 @@ ptr_sprites_pic:    dc.l    sprites_pic,0
 
 lbC0005B6:          move.w   #2,lbW000902
                     lea      lbL000A36(pc),a4
-                    move.l   #48,d2
+                    moveq    #48,d2
 .clear:             clr.l    (a4)+
                     subq.l   #1,d2
                     bne      .clear
@@ -371,13 +374,13 @@ play_sound:         movem.l  d0-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 font_struct:        dc.l     background_pic,(256*40),5,36,8,12,80,1008,font_pic,ascii_letters
 sound_routine:      dc.l     0
 cur_text:           dc.l     0
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 copperlist_main:    dc.w     DMACON,DMAF_SETCLR|DMAF_SPRITE
                     dc.w     $501,$FF00
@@ -421,7 +424,7 @@ sprite_5_pic:       incbin   "sprite5.raw"
 sprite_6_pic:       incbin   "sprite6.raw"
 sprite_7_pic:       incbin   "sprite7.raw"
 sprites_pic:        incbin   "sprites.raw"
-background_pic:     incbin   "bkgnd_320x256x5.raw"
-font_pic:           incbin   "font_16x504x6.raw"
+background_pic:     incbin   "bkgnd_320x256.lo5"
+font_pic:           incbin   "font_16x504.lo6"
 
                     end

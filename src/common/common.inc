@@ -4,7 +4,7 @@
 ; Disassembled by Franck 'hitchhikr' Charlet.
 ; -----------------------------------------------------
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
                     include  'custom.i'
                     include  'cia.i'
@@ -12,12 +12,15 @@
                     include  'intbits.i'
 
                     mc68000
+                    opt      o+
+                    opt      all+
 
-; ------------------------------------------------------
+; -----------------------------------------------------
 
 ; 1 to activate the debug mode
-DEBUG               equ      1
+DEBUG               equ      0
 
+                IFD __MAIN__
 lbW05F7A8           equ      cur_map_datas+612
 map_reactor_up      equ      cur_map_datas+2598
 lbW060644           equ      cur_map_datas+4352
@@ -45,6 +48,7 @@ lbW063DB8           equ      cur_map_datas+18548
 lbL063DC6           equ      cur_map_datas+18562
 lbW064204           equ      cur_map_datas+19648
 map_reactor_down    equ      cur_map_datas+20698
+                ENDC
 
 ; exec
 _LVOSupervisor      equ      -30
@@ -188,3 +192,14 @@ TEXT_FONT_MODULO:   rs.l     1                                      ; 24
 TEXT_FONT_BP_SIZE:  rs.l     1                                      ; 28
 TEXT_FONT_PIC:      rs.l     1                                      ; 32
 TEXT_ASCII_LETTERS: rs.l     1                                      ; 36
+
+; -----------------------------------------------------
+
+WAIT_BLIT           MACRO
+wait\@:             btst     #DMAB_BLITTER,CUSTOM+DMACONR
+                    bne.b    wait\@
+                    ENDM
+WAIT_BLIT2          MACRO
+wait\@:             btst     #DMAB_BLITTER,DMACONR(a6)
+                    bne.b    wait\@
+                    ENDM
