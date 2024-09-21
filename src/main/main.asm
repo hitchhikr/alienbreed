@@ -1005,11 +1005,11 @@ lbC0026D6:          move.l   #lbL00E9C2,lbL005D40
                     rts
 
 init_player_dats:   clr.l    PLAYER_SHOTS(a0)
-                    ifne DEBUG
-                    move.w   #$ff,PLAYER_OWNEDWEAPONS(a0)
-                    else
+                IFNE    DEBUG
+                    move.w   #%11111111,PLAYER_OWNEDWEAPONS(a0)
+                ELSE
                     move.w   #%10,PLAYER_OWNEDWEAPONS(a0)
-                    endif
+                ENDC
                     move.w   #4,398(a0)
                     clr.w    394(a0)
                     move.w   #37,384(a0)
@@ -1317,9 +1317,9 @@ lbC0030AA:          addq.w   #1,lbW002FE0
                     move.l   #lbW0231A6,lbL023200
                     clr.w    lbW023204
 lbC0030F4:          
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.b   #1,cur_timer_digit_lo
-                    endif
+                ENDC
                     cmp.b    #255,cur_timer_digit_lo
                     bne.b    display_timer_digits
                     subq.b   #1,cur_timer_digit_hi
@@ -5236,7 +5236,7 @@ force_door:         movem.l  d6/d7/a4-a6,-(sp)
                     bsr.b    open_door
                     tst.w    flag_opened_door
                     beq.b    door_not_opened
-                    move.w   #23,sample_to_play
+                    move.w   #SAMPLE_OPENING_DOOR,sample_to_play
                     jsr      trigger_sample
 door_not_opened:    movem.l  (sp)+,d6/d7/a4-a6
                     rts
@@ -5270,9 +5270,9 @@ open_door:          clr.w    flag_opened_door
                     bne.b    door_on_right
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
-                    endif
+                ENDC
                     move.l   #lbL020CFE,a2
                     and.w    #$FFC0,(a3)
                     bra      patch_tiles
@@ -5283,9 +5283,9 @@ door_on_right:      move.w   -2(a3),d0
                     bne.b    door_on_left
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
-                    endif
+                ENDC
                     move.l   #lbL020CFE,a2
                     subq.l   #2,a3
                     and.w    #$FFC0,(a3)
@@ -5297,9 +5297,9 @@ door_on_left:       move.w   248(a3),d0
                     bne.b    door_below
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
-                    endif
+                ENDC
                     lea      lbL020D32,a2
                     and.w    #$FFC0,(a3)
                     bra      patch_tiles
@@ -5310,9 +5310,9 @@ door_below:         move.w   -248(a3),d0
                     bne      void
                     move.w   #1,flag_opened_door
                     addq.l   #1,doors_opened
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_KEYS(a0)
-                    endif
+                ENDC
                     sub.l    #248,a3
                     lea      lbL020D32,a2
                     and.w    #$FFC0,(a3)
@@ -5433,7 +5433,7 @@ lbC0082D8:          move.l   a0,-(sp)
                     lea      lbL00D29A(pc),a0
                     bsr      lbC00D22A
                     move.l   (sp)+,a0
-                    move.w   #36,sample_to_play
+                    move.w   #SAMPLE_HATCHING_ALIEN,sample_to_play
                     jsr      trigger_sample
                     lea      lbL0200F2,a2
                     bra      patch_tiles
@@ -5443,7 +5443,7 @@ lbC008302:          move.l   #lbW009414,lbL00D226
                     lea      lbL00D29A(pc),a0
                     bsr      lbC00D22A
                     move.l   (sp)+,a0
-                    move.w   #36,sample_to_play
+                    move.w   #SAMPLE_HATCHING_ALIEN,sample_to_play
                     jsr      trigger_sample
                     lea      lbL020BF6,a2
                     bra      patch_tiles
@@ -7341,10 +7341,10 @@ lbC00A700:          move.w   lbW00412A(pc),lbW00A6AC
                     clr.w    lbL00A6A2
                     rts
 
-play_alien_spawning_sample:
+play_alien_hatching_sample:
                     dc.w     0
 
-lbC00A718:          clr.w    play_alien_spawning_sample
+lbC00A718:          clr.w    play_alien_hatching_sample
                     tst.w    lbW0004B2
                     beq      lbC00A8D0
                     tst.w    lbL00A6A2
@@ -7402,7 +7402,7 @@ patch_boss_door:    tst.w    lbW0004EA
 lbC00A7EA:          movem.w  (a2)+,d4-d7
                     addq.w   #4,a2
                     tst.w    d4
-                    bmi.b    do_alien_spawn
+                    bmi.b    do_alien_hatch
                     cmp.w    d1,d7
                     bmi.b    lbC00A7EA
                     cmp.w    d5,d3
@@ -7414,7 +7414,7 @@ lbC00A7EA:          movem.w  (a2)+,d4-d7
                     movem.w  (sp)+,d6/d7
                     bra      lbC00A8CA
 
-do_alien_spawn:     movem.w  (sp)+,d6/d7
+do_alien_hatch:     movem.w  (sp)+,d6/d7
                     clr.w    8(a0)
                     move.l   0(a0),a2
                     move.w   d0,(a2)
@@ -7452,7 +7452,7 @@ lbC00A872:          move.w   34(a1),ALIEN_STRENGTH(a0)
                     clr.w    84(a0)
                     clr.w    88(a0)
                     move.w   46(a1),76(a0)
-                    move.w   #1,play_alien_spawning_sample
+                    move.w   #1,play_alien_hatching_sample
                     rts
 
 lbC00A8CA:          movem.w  (sp)+,d0/d1
@@ -8213,7 +8213,7 @@ run_keysequence_routine:
                     bsr      reset_keysequence
                     move.l   4(a0),a1
                     jsr      (a1)
-                    moveq    #36,d0
+                    moveq    #SAMPLE_HATCHING_ALIEN,d0
                     moveq    #0,d2
                     jmp      trigger_sample_select_channel
 
@@ -8521,10 +8521,10 @@ lbC00D1B4:          tst.l    (a0)
                     move.l   (a0),a3
                     movem.l  d0-d3,-(sp)
                     bsr      lbC00A718
-                    tst.w    play_alien_spawning_sample
+                    tst.w    play_alien_hatching_sample
                     beq.b    lbC00D21A
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   #36,sample_to_play
+                    move.w   #SAMPLE_HATCHING_ALIEN,sample_to_play
                     jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
 lbC00D21A:          movem.l  (sp)+,d0-d3
@@ -8970,9 +8970,9 @@ run_intex:          tst.w    self_destruct_initiated
                     move.l   player_1_credits(pc),d7
                     add.l    player_2_credits(pc),d7
 .dont_add_credits:  lea      cur_credits,a0
-                    ifne     DEBUG
+                IFNE    DEBUG
                     move.l   #1000000000,d7
-                    endif
+                ENDC
                     move.l   d7,(a0)
                     jsr      temp_buffer                            ; run the prog
                     move.l   #copper_blank,CUSTOM+COP1LCH
@@ -9373,9 +9373,9 @@ lbC00E14A:          addq.l   #1,PLAYER_SHOTS(a0)
                     subq.w   #1,394(a0)
                     bpl.b    lbC00E178
                     move.w   398(a0),394(a0)
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_AMMUNITIONS(a0)
-                    endif
+                ENDC
                     cmp.w    #1,PLAYER_AMMUNITIONS(a0)
                     bpl.b    lbC00E178
                     tst.w    PLAYER_AMMOPACKS(a0)
@@ -9637,9 +9637,9 @@ lbC00E520:          move.w   16(a3),d0
                     bmi.b    lbC00E556
                     clr.w    lbW00E4F0
                     move.l   20(a3),a4
-                    ifeq     DEBUG
+                IFEQ    DEBUG
                     subq.w   #1,PLAYER_AMMUNITIONS(a4)
-                    endif
+                ENDC
                     cmp.w    #1,PLAYER_AMMUNITIONS(a4)
                     bpl.b    lbC00E556
                     clr.w    PLAYER_AMMUNITIONS(a4)
@@ -9742,7 +9742,7 @@ lbC00E6A8:          clr.w    24(a3)
                     rts
 
 patch_fire_door_left_btn:
-                    move.w   #23,sample_to_play
+                    move.w   #SAMPLE_OPENING_DOOR,sample_to_play
                     jsr      trigger_sample
                     move.l   a5,a3
                     lea      lbL020D92,a2
@@ -9759,7 +9759,7 @@ patch_fire_door_left_btn:
 
 patch_fire_door_right_btn:
                     move.l   a5,a3
-                    move.w   #23,sample_to_play
+                    move.w   #SAMPLE_OPENING_DOOR,sample_to_play
                     jsr      trigger_sample
                     lea      lbL020D92,a2
                     bsr      patch_tiles
@@ -9776,7 +9776,7 @@ patch_fire_door_right_btn:
 lbL00E756:          dc.l     0
 
 patch_fire_door_left_btn_alarm:
-                    move.w   #23,sample_to_play
+                    move.w   #SAMPLE_OPENING_DOOR,sample_to_play
                     jsr      trigger_sample
                     cmp.l    lbL00E756(pc),a5
                     beq.b    lbC00E784
@@ -9799,7 +9799,7 @@ lbC00E784:          move.l   a5,a3
 
 patch_fire_door_right_btn_alarm:
                     move.l   a5,a3
-                    move.w   #23,sample_to_play
+                    move.w   #SAMPLE_OPENING_DOOR,sample_to_play
                     jsr      trigger_sample
                     cmp.l    lbL00E756(pc),a5
                     beq.b    lbC00E7EE
@@ -11481,19 +11481,19 @@ lbC010916:          clr.l    (a4)+
                     lea      lbL010D4E(pc),a3
 lbC01092A:          move.w   (a2),d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
                     lsl.w    #4,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2)+,d6
                     lsl.w    #8,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
@@ -11617,20 +11617,20 @@ lbC010AEC:          clr.l    (a4)+
                     lea      lbL010D4E(pc),a3
 lbC010B06:          move.w   (a2),d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
                     lsl.w    #4,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
                     addq.l   #4,a2
                     lsl.w    #8,d6
                     and.w    #$F00,d6
-                    divu     #15,d6
+                    divu     #$F,d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
@@ -11647,7 +11647,7 @@ lbC010B50:          move.w   (a2),d7
                     lsl.w    #4,d7
                     move.w   d7,(a3)+
                     move.w   (a2),d7
-                    and.w    #15,d7
+                    and.w    #$F,d7
                     lsl.w    #8,d7
                     move.w   d7,(a3)+
                     addq.l   #4,a2
@@ -12227,7 +12227,7 @@ lbC0117DC:          moveq    #0,d1
                     lsr.w    #4,d0
                     add.w    d0,d0
                     not.w    d5
-                    and.w    #15,d5
+                    and.w    #$F,d5
                     move.w   d5,d7
                     lsl.w    #4,d7
                     or.w     d7,d5
@@ -18247,29 +18247,29 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     4150,32,284,0,8,0,0
                     dc.l     sample4
                     dc.w     3894,64,284,0,30,0,0
-                    dc.l     sample5
+                    dc.l     sample5                            ; 5
                     dc.w     3894,16,284,0,15,0,0
-                    dc.l     sample6
+                    dc.l     smp_intex_noise
                     dc.w     1249,48,120,0,29,257,508
-                    dc.l     sample6
+                    dc.l     smp_intex_noise
                     dc.w     1249,16,120,0,10,257,508
-                    dc.l     sample6
+                    dc.l     smp_intex_noise
                     dc.w     1249,32,140,0,40,0,508
-                    dc.l     sample6
+                    dc.l     smp_intex_noise
                     dc.w     1249,62,1400,0,38,0,508
                     dc.l     sample7                            ; 10
                     dc.w     2591,64,428,0,30,0,0
                     dc.l     sample7
                     dc.w     2591,64,856,0,60,0,0
-                    dc.l     sample9
+                    dc.l     smp_intex_startup
                     dc.w     1000,63,1400,0,150,272,494
-                    dc.l     sample8
+                    dc.l     smp_intex_shutdown
                     dc.w     1515,64,856,0,36,0,0
-                    dc.l     sample10                           ; 14
+                    dc.l     smp_intex_beep                     ; 14
                     dc.w     328,48,428,0,4,0,0
-                    dc.l     sample11
+                    dc.l     smp_destruction_horn
                     dc.w     1949,24,428,1,10,0,0
-                    dc.l     sample11
+                    dc.l     smp_destruction_horn
                     dc.w     1949,16,428,1,10,0,260
                     dc.l     voice_warning                      ; 17
                     dc.w     2727,64,428,0,33,0,0 
@@ -18277,29 +18277,29 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     6751,64,428,0,80,0,0
                     dc.l     sample12
                     dc.w     500,32,540,0,30,0,508
-                    dc.l     sample13                           ; 20
+                    dc.l     smp_dying_alien                    ; 20
                     dc.w     2380,64,428,0,27,0,0
-                    dc.l     sample13
+                    dc.l     smp_dying_alien                    ; 21
                     dc.w     2380,59,300,0,40,0,508
-                    dc.l     sample14
+                    dc.l     smp_getting_key                    ; 22
                     dc.w     767,32,480,0,35,0,506
-                    dc.l     sample15
+                    dc.l     smp_opening_door                   ; 23
                     dc.w     2420,64,480,0,31,0,0
-                    dc.l     sample16
+                    dc.l     sample16                           ; 24
                     dc.w     2302,64,480,0,32,0,0
                     dc.l     sample26                           ; 25
                     dc.w     1812,32,1000,1,28,0,0
                     dc.l     sample26
                     dc.w     1812,32,1000,0,40,260,508
-                    dc.l     sample11
+                    dc.l     smp_destruction_horn
                     dc.w     1812,60,200,0,40,0,508
                     dc.l     sample7
                     dc.w     1357,16,900,0,12,0,506
-                    dc.l     sample6
+                    dc.l     smp_intex_noise
                     dc.w     1357,22,2000,0,15,0,506
-                    dc.l     sample25                           ; 30
+                    dc.l     smp_first_aid_and_credits          ; 30
                     dc.w     1143,62,180,0,15,0,511
-                    dc.l     sample25
+                    dc.l     smp_first_aid_and_credits
                     dc.w     1143,62,280,0,15,0,511
                     dc.l     sample18
                     dc.w     2,62,400,0,16,508,511
@@ -18309,15 +18309,15 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     726,64,428,0,6,0,0
                     dc.l     sample27                           ; 35
                     dc.w     1246,62,900,0,50,0,506
-                    dc.l     sample28
+                    dc.l     smp_hatching_alien                 ; 36
                     dc.w     4000,62,568,0,30,0,0
                     dc.l     sample21                           ; 37
                     dc.w     560,64,360,0,5,0,0
-                    dc.l     sample10
+                    dc.l     smp_intex_beep
                     dc.w     328,62,1200,0,8,0,0
-                    dc.l     sample9
+                    dc.l     smp_intex_startup
                     dc.w     1000,8,1400,1,26,0,0
-                    dc.l     sample9                            ; 40
+                    dc.l     smp_intex_startup                  ; 40
                     dc.w     1000,8,1000,0,10,0,508
                     dc.l     sample22
                     dc.w     727,40,1000,1,10,0,0
@@ -18331,11 +18331,11 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     128,44,190,0,38,257,508
                     dc.l     sample23
                     dc.w     128,16,280,0,28,257,508
-                    dc.l     sample17
+                    dc.l     smp_reloading_weapon
                     dc.w     1000,32,480,0,10,0,0
-                    dc.l     sample10
+                    dc.l     smp_intex_beep
                     dc.w     328,16,428,0,4,0,0
-                    dc.l     sample10
+                    dc.l     smp_intex_beep
                     dc.w     328,16,600,0,4,0,0
                     dc.l     voice_entering                     ; 50
                     dc.w     3005,32,404,0,33,0,0
@@ -19049,18 +19049,20 @@ sample2:            incbin   'sample2.raw'
 sample3:            incbin   'sample3.raw'
 sample4:            incbin   'sample4.raw'
 sample5:            incbin   'sample5.raw'
-sample6:            incbin   'sample6.raw'
+smp_intex_noise:    incbin   'intex_noise.raw'
 sample7:            incbin   'sample7.raw'
-sample8:            incbin   'sample8.raw'
-sample9:            incbin   'sample9.raw'
-sample10:           incbin   'sample10.raw'
-sample11:           incbin   'sample11.raw'
+smp_intex_shutdown: incbin   'intex_shutdown.raw'
+smp_intex_startup:  incbin   'intex_startup.raw'
+smp_intex_beep:     incbin   'intex_beep.raw'
+smp_destruction_horn:
+                    incbin   'destruction_horn.raw'
 sample12:           incbin   'sample12.raw'
-sample13:           incbin   'sample13.raw'
-sample14:           incbin   'sample14.raw'
-sample15:           incbin   'sample15.raw'
+smp_dying_alien:    incbin   'dying_alien.raw'
+smp_getting_key     incbin   'getting_key.raw'
+smp_opening_door    incbin   'opening_door.raw'
 sample16:           incbin   'sample16.raw'
-sample17:           incbin   'sample17.raw'
+smp_reloading_weapon:
+                    incbin   'reloading_weapon.raw'
 sample18:           incbin   'sample18.raw'
 sample19:           incbin   'sample19.raw'
 sample20:           incbin   'sample20.raw'
@@ -19068,10 +19070,11 @@ sample21:           incbin   'sample21.raw'
 sample22:           incbin   'sample22.raw'
 sample23:           incbin   'sample23.raw'
 sample24:           incbin   'sample24.raw'
-sample25:           incbin   'sample25.raw'
+smp_first_aid_and_credits:
+                    incbin   'first_aid_and_credits.raw'
 sample26:           incbin   'sample26.raw'
 sample27:           incbin   'sample27.raw'
-sample28:           incbin   'sample28.raw'
+smp_hatching_alien: incbin   'hatching_alien.raw'
 sample29:           incbin   'sample29.raw'
 sample30:           incbin   'sample30.raw'
 sample31:           incbin   'sample31.raw'

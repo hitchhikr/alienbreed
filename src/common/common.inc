@@ -136,10 +136,12 @@ SUPPLY_KEY_PACK     equ      8
 SUPPLY_EXTRA_LIFE   equ      16
 
 SAMPLE_KEY          equ      22
+SAMPLE_OPENING_DOOR equ      23
 SAMPLE_AMMO         equ      24
 SAMPLE_1UP          equ      27
 SAMPLE_1STAID_CREDS equ      30
 SAMPLE_ACID_POOL    equ      34
+SAMPLE_HATCHING_ALIEN equ    36
 
 ALIEN_SPEED         equ      10
 ALIEN_POS_X         equ      30
