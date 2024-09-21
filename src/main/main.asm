@@ -961,8 +961,7 @@ lbC00239E:          lea      lbL0023D4(pc),a0
 lbL0023D4:          dcb.l    102,0
                     dc.l     -1
 
-lbL002570:          dc.l     0,42,84,126,168,210,252,294,336,378,420
-                    dc.l     462,504,546,588,630
+lbL002570:          dc.l     0,42,84,126,168,210,252,294,336,378,420,462,504,546,588,630
 
 lbC0025B0:          lea      lbL0025D2(pc),a0
                     moveq    #0,d0
@@ -4993,7 +4992,7 @@ lbC007B98:          moveq    #0,d0
                     add.w    d1,d1
                     add.w    d1,d1
                     move.l   0(a6,d1.w),a3
-                    add.w    d0,a3                  ; tile in a3
+                    add.w    d0,a3                              ; tile in a3
                     move.w   (a3),d0
                     and.w    #$3F,d0
                     add.w    d0,d0
@@ -7030,34 +7029,24 @@ lbC00A212:          move.l   18(a0),a1
                     move.l   #lbL018C2E,40(a1)
                     rts
 
-lbB00A228:          dc.b    0,0,0
-                    dc.b    5,0,1,0,0,0,3,0,4,0,2,0,0,0,7,0,6,0,8,0,0,0,0,0,0
-                    dc.b    0,0,0,0,0,0,0,0,0,0,0
-
+lbB00A228:          dc.w    0,5,1,0,3,4,2,0,7,6,8,0,0,0,0,0,0,0,0
+                    dc.b    0
 lbB00A24F:          dc.b    0,0,0,0,0,0,0,0,0
                     dc.b    1,1
-                    dc.b    2,3,6,7,8,1,2,2,2,3,4,7,8,1,2,3,3,3,4,5,8,1,2,3,4
-                    dc.b    4,4
-                    dc.b    5,6,1,2,3,4,5,5,5,6,7,8,3,4,5,6,6,6,7,8,1,4,5,6,7
-                    dc.b    7,7
+                    dc.b    2,3,6,7,8,1,2,2,2,3,4,7,8,1,2,3,3,3,4,5,8,1,2,3,4,4,4
+                    dc.b    5,6,1,2,3,4,5,5,5,6,7,8,3,4,5,6,6,6,7,8,1,4,5,6,7,7,7
                     dc.b    8,1,2,5,6,7,8,8
 
-lbW00A29A:          dcb.w    3,-4
-                    dc.w     -10,-5,1
-lbW00A2A6:          dcb.w    3,16
-                    dc.w     -10,-5,1
+lbW00A29A:          dc.w     -4,-4,-4,-10,-5,1
+lbW00A2A6:          dc.w     16,16,16,-10,-5,1
 lbW00A2B2:          dc.w     0,5,11,-13,-13,-13
 lbW00A2BE:          dc.w     0,5,11,5,5,5
-lbW00A2CA:          dcb.w    3,-4
-                    dc.w     -6,4,16
-lbW00A2D6:          dcb.w    3,30
-                    dc.w     -6,4,16
+lbW00A2CA:          dc.w     -4,-4,-4,-6,4,16
+lbW00A2D6:          dc.w     30,30,30,-6,4,16
 lbW00A2E2:          dc.w     0,10,22,-10,-10,-10
 lbW00A2EE:          dc.w     0,10,22,20,20,20
-lbW00A2FA:          dcb.w    4,-6
-                    dc.w     4,16
-lbW00A306:          dcb.w    3,100
-                    dc.w     -6,4,16
+lbW00A2FA:          dc.w     -6,-6,-6,-6,4,16
+lbW00A306:          dc.w     100,100,100,-6,4,16
 lbW00A312:          dc.w     4,50,90,-10,-10,-10
 lbW00A31E:          dc.w     4,50,90,112,112,112
 
@@ -7709,8 +7698,7 @@ lbL00AC6E:          dcb.l    3,0
 lbL00AC7A:          dcb.l    3,0
 lbL00AC86:          dcb.l    3,0
 lbL00AC92:          dcb.l    3,0
-lbB00AC9E:          dcb.b    2,0
-lbW00ACA0:          dc.w     0
+lbB00AC9E:          dc.l     0
 lbL00ACA2:          dc.l     lbL00AC3E
                     dc.l     lbL00AC4A
                     dc.l     lbL00AC56
@@ -7733,7 +7721,7 @@ lbW00ACE2:          dc.w     0
 
 lbC00ACE4:          tst.w    lbW00ACE2
                     bne      return
-                    tst.w    lbW00ACA0
+                    tst.w    lbB00AC9E+2
                     beq      return
                     lea      lbL00ACA2(pc),a0
                     move.l   (a0),a1
@@ -7745,7 +7733,7 @@ lbC00ACE4:          tst.w    lbW00ACE2
                     move.l   24(a0),20(a0)
                     move.l   28(a0),24(a0)
                     move.l   a1,28(a0)
-                    subq.w   #4,lbW00ACA0
+                    subq.w   #4,lbB00AC9E+2
                     lea      lbW012A28(pc),a0
                     move.l   0(a1),-4(a0)
                     move.l   8(a1),a3
@@ -7768,9 +7756,9 @@ lbC00AD6E:          cmp.l    (a1),a3
                     lea      lbL00ACA2(pc),a1
                     add.l    lbB00AC9E(pc),a1
                     move.l   (a1),a1
-                    cmp.w    #32,lbW00ACA0
+                    cmp.w    #32,lbB00AC9E+2
                     beq      return
-                    addq.w   #4,lbW00ACA0
+                    addq.w   #4,lbB00AC9E+2
                     move.l   cur_map_top_ptr,d0
                     move.l   a3,d1
                     sub.l    d0,d1
@@ -8050,7 +8038,7 @@ exe_briefingcore:   dc.b     'briefingcore',0
                     even
 exe_briefingstart:  dc.b     'briefingstart',0
                     even
-pic_mapbkgnd:       dc.b     'mapbkgnd_320x256x4.raw',0
+pic_mapbkgnd:       dc.b     'mapbkgnd_320x256.lo4',0
                     even
 soundmon_level:     dc.b     'level.soundmon',0
                     even
@@ -8234,8 +8222,7 @@ input_table:        dc.l     holocode_level_2,enter_level_2_holocode
                     dc.l     holocode_level_6,enter_level_6_holocode
                     dc.l     holocode_level_8,enter_level_8_holocode
                     dc.l     holocode_level_10,enter_level_10_holocode
-                    dc.l     -1
-                    dc.l     -1
+                    dc.l     -1,-1
 
 holocode_level_2:   dc.b     '55955'
                     dc.b     -1
@@ -8599,7 +8586,7 @@ display_map_overview:
                     lea      copper_main_palette,a0
                     lea      lbL0226EA,a1
                     bsr      lbC0108DA
-                    move.l   #$20,d0
+                    move.l   #32,d0
                     bsr      lbC010AA4
                     jsr      wait
                     lea      lbL0FE76C,a0
@@ -8674,12 +8661,14 @@ display_elapsed_time:
                     lea      font_struct(pc),a1
                     bra      display_text
 
-lbC00D4D4:          bsr      wait_blitter
+lbC00D4D4:          
+                    WAIT_BLIT
                     move.l   #$1000000,CUSTOM+BLTCON0
                     clr.w    CUSTOM+BLTDMOD
                     move.l   #lbL0FE08C,CUSTOM+BLTDPTH
                     move.w   #(12*64)+20,CUSTOM+BLTSIZE
-                    bra      wait_blitter
+                    WAIT_BLIT
+                    rts
 
 plot_map_overview_data:
                     lea      map_overview_planes,a5
@@ -8733,8 +8722,7 @@ plot_map_overview_data:
                     bne.b    .loop
                     bra      print_players_pos_on_map
 
-text_scanning:      dc.w     100
-                    dc.w     100
+text_scanning:      dc.w     100,100
                     dc.b     'SCANNING...'
                     dc.b     -1
                     even
@@ -8827,13 +8815,13 @@ text_player_2:      dc.w     0,0
                     even
 
 on_map_font_struct: dc.l    lbL0FE744
-                    dc.l    10240
+                    dc.l    (256*40)
                     dc.l    1
                     dc.l    36
                     dc.l    9
                     dc.l    12
                     dc.l    80
-                    dc.l    1008
+                    dc.l    (16*63)
                     dc.l    font_pic
                     dc.l    ascii_letters
 
@@ -8917,8 +8905,7 @@ load_map_overview:  lea      map_overview_background_pic,a0
                     bra      clear_array_long
 
 map_overview_overlay_palette:
-                    dc.w     $346,$457,$556,$568,$866,$679,$976,$B76,$78A,$C86
-                    dc.w     $D96,$FD6,$FFB,$89B,$9AC,$ABD
+                    dc.w     $346,$457,$556,$568,$866,$679,$976,$B76,$78A,$C86,$D96,$FD6,$FFB,$89B,$9AC,$ABD
 
 lbC00D8E2:          clr.l    run_intex_ptr
                     rts
@@ -12057,9 +12044,7 @@ lbW0113AC:          dc.w     304
 lbL0113AE:          dc.l     0
 lbW0113B2:          dcb.w    3,0
 lbW0113B8:          dcb.w    2,0
-lbL0113BC:          dcb.l    63,0
-                    dcb.l    63,0
-                    dcb.l    21,0
+lbL0113BC:          dcb.l    147,0
 
 lbC011622:          move.l   (a0),a5
                     move.w   (a1)+,(a5)
@@ -12199,10 +12184,6 @@ lbC0117A8:          move.l   a0,BLTAPTH(a6)
                     subq.b   #1,d0
                     bne.b    lbC0117A8
                     move.w   #DMAF_BLITHOG,DMACON(a6)
-                    rts
-
-wait_blitter:       
-                    WAIT_BLIT
                     rts
 
 lbC0117DC:          moveq    #0,d1
@@ -16646,7 +16627,7 @@ text_briefing_level_12:
 
 lbL02266A:          dcb.l    32,0
 
-lbL0226EA:          dcb.l    $20,0
+lbL0226EA:          dcb.l    32,0
 lbW02276A:          dcb.w    64,$FFF
 
 level_palette1:     dcb.w    32,0
@@ -17112,7 +17093,6 @@ lbC023D20:          move.l   lbL023200(pc),a0
                     bsr      trigger_sample_select_channel
                     move.l   lbL023200(pc),a0
                     move.l   6(a0),d0
-                    ;cmp.l    #0,d0
                     beq.b    lbC023D72
                     move.l   d0,lbL023200
                     clr.w    lbW023204
@@ -18510,21 +18490,13 @@ older_kickstart:
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbW0256B4:          dc.w     $4F,0,$56,1,$5E,2,$65,5,$6B,7,$72,11,$78,15,$7E
-                    dc.w     $14,$84,$1A
-lbW0256D8:          dc.w     $88,$20,$8C,$26,$90,$2D,$92,$34,$94,$3B,$96,$43
-                    dc.w     $96,$4B,$96,$53,$94,$5B
-lbW0256FC:          dc.w     $92,$62,$90,$69,$8D,$6F,$88,$76,$84,$7C,$7F,$81
-                    dc.w     $79,$86,$72,$8B,$6C
-                    dc.w     $8E
-lbW025720:          dc.w     $65,$91,$5E,$94,$56,$95,$4F,$96,$47,$96,$3F,$95
-                    dc.w     $38,$94,$31,$91,$2A,$8E
-lbW025744:          dc.w     $24,$8B,$1D,$86,$18,$82,$12,$7C,14,$76,9,$6F,6
-                    dc.w     $69,4,$62,2,$5A
-lbW025768:          dc.w     0,$53,0,$4B,0,$43,2,$3C,3,$35,6,$2E,9,$27,13,$21
-                    dc.w     $11,$1B
-lbW02578C:          dc.w     $17,$15,$1D,$10,$23,12,$2A,8,$31,5,$38,2,$3F,1
-                    dc.w     $47,0
+lbW0256B4:          dc.w     $4F,0,$56,1,$5E,2,$65,5,$6B,7,$72,11,$78,15,$7E,$14,$84,$1A
+lbW0256D8:          dc.w     $88,$20,$8C,$26,$90,$2D,$92,$34,$94,$3B,$96,$43,$96,$4B,$96,$53,$94,$5B
+lbW0256FC:          dc.w     $92,$62,$90,$69,$8D,$6F,$88,$76,$84,$7C,$7F,$81,$79,$86,$72,$8B,$6C,$8E
+lbW025720:          dc.w     $65,$91,$5E,$94,$56,$95,$4F,$96,$47,$96,$3F,$95,$38,$94,$31,$91,$2A,$8E
+lbW025744:          dc.w     $24,$8B,$1D,$86,$18,$82,$12,$7C,14,$76,9,$6F,6,$69,4,$62,2,$5A
+lbW025768:          dc.w     0,$53,0,$4B,0,$43,2,$3C,3,$35,6,$2E,9,$27,13,$21,$11,$1B
+lbW02578C:          dc.w     $17,$15,$1D,$10,$23,12,$2A,8,$31,5,$38,2,$3F,1,$47,0
                     dc.w     -1,-1
 
                     dcb.w    4*124,0

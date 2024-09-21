@@ -376,7 +376,7 @@ play_sound:         movem.l  d0-d7/a0-a6,-(sp)
 
 ; -----------------------------------------------------
 
-font_struct:        dc.l     background_pic,(256*40),5,36,8,12,80,1008,font_pic,ascii_letters
+font_struct:        dc.l     background_pic,(256*40),5,36,8,12,80,(16*63),font_pic,ascii_letters
 sound_routine:      dc.l     0
 cur_text:           dc.l     0
 
