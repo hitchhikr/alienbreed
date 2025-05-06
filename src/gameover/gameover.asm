@@ -608,8 +608,11 @@ copper_palette:     dc.w     COLOR00,0,COLOR01,0,COLOR02,0,COLOR03,0
                     dc.w     $FFFF,$FFFE
 
 ; -----------------------------------------------------
+
 screen_buffer_1:    dcb.b    (256*40*2),0
 screen_buffer_2:    dcb.b    (256*40*2),0
+
+; -----------------------------------------------------
 
 iff_animation:      incbin   "gameover.anim"
 

@@ -351,10 +351,10 @@ fade_out_planet:    lea      color_palette_planet(pc),a0
                     lea      colors_planet(pc),a1
                     moveq    #32,d0
                     bsr      lbC000A2C
-lbC0006B2:          bsr      wait_frame_joystick
+.loop:              bsr      wait_frame_joystick
                     bsr      lbC000AF8
                     tst.w    lbW000BF0
-                    beq.b    lbC0006B2
+                    beq      .loop
                     rts
 
 fade_in_planet:     lea      color_palette_planet(pc),a0
@@ -364,7 +364,7 @@ fade_in_planet:     lea      color_palette_planet(pc),a0
 lbC0006DC:          bsr      wait_frame_joystick
                     bsr      lbC00091A
                     tst.w    lbW000BF0
-                    beq.b    lbC0006DC
+                    beq      lbC0006DC
                     rts
 
 lbC000706:          movem.l  d0-d7/a0-a6,-(sp)
@@ -380,13 +380,13 @@ lbC000732:          move.w   (a2),d1
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC000748
-                    bhi.b    lbC00074E
+                    bmi      lbC000748
+                    bhi      lbC00074E
                     clr.b    (a3)+
-                    bra.b    lbC000752
+                    bra      lbC000752
 
 lbC000748:          move.b   #-1,(a3)+
-                    bra.b    lbC000752
+                    bra      lbC000752
 
 lbC00074E:          move.b   #1,(a3)+
 lbC000752:          move.w   (a2),d1
@@ -394,38 +394,38 @@ lbC000752:          move.w   (a2),d1
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC000768
-                    bhi.b    lbC00076E
+                    bmi      lbC000768
+                    bhi      lbC00076E
                     clr.b    (a3)+
-                    bra.b    lbC000772
+                    bra      lbC000772
 
 lbC000768:          move.b   #-1,(a3)+
-                    bra.b    lbC000772
+                    bra      lbC000772
 
 lbC00076E:          move.b   #1,(a3)+
 lbC000772:          move.w   (a2)+,d1
                     move.w   (a1)+,d2
-                    and.w    #15,d1
-                    and.w    #15,d2
+                    and.w    #$F,d1
+                    and.w    #$F,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC000788
-                    bhi.b    lbC00078E
+                    bmi      lbC000788
+                    bhi      lbC00078E
                     clr.b    (a3)+
-                    bra.b    lbC000792
+                    bra      lbC000792
 
 lbC000788:          move.b   #-1,(a3)+
-                    bra.b    lbC000792
+                    bra      lbC000792
 
 lbC00078E:          move.b   #1,(a3)+
 lbC000792:          subq.b   #1,d0
-                    bne.b    lbC000732
+                    bne      lbC000732
                     move.l   lbL000BF8(pc),a2
                     move.w   lbW000BF2(pc),d0
                     addq.l   #2,a2
 lbC0007A4:          move.w   (a0)+,(a2)
                     addq.l   #4,a2
                     subq.b   #1,d0
-                    bne.b    lbC0007A4
+                    bne      lbC0007A4
                     clr.w    lbW000BF0
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
@@ -450,10 +450,10 @@ lbC000808:          move.w   (a0),d1
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bne.b    lbC00081E
+                    bne      lbC00081E
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC00082C
+                    bra      lbC00082C
 
 lbC00081E:          move.b   (a3)+,d3
                     lsr.w    #8,d1
@@ -466,10 +466,10 @@ lbC00082C:          move.w   (a0),d1
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bne.b    lbC000842
+                    bne      lbC000842
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC000850
+                    bra      lbC000850
 
 lbC000842:          move.b   (a3)+,d3
                     lsr.w    #4,d1
@@ -482,10 +482,10 @@ lbC000850:          move.w   (a0),d1
                     and.w    #$F,d1
                     and.w    #$F,d2
                     cmp.w    d1,d2
-                    bne.b    lbC000866
+                    bne      lbC000866
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC000870
+                    bra      lbC000870
 
 lbC000866:          move.b   (a3)+,d3
                     add.b    d3,d1
@@ -493,10 +493,10 @@ lbC000866:          move.b   (a3)+,d3
                     or.w     d1,(a0)
 lbC000870:          addq.l   #4,a0
                     subq.b   #1,d0
-                    bne.b    lbC000808
+                    bne      lbC000808
                     divu     #3,d7
                     cmp.w    lbW000BF2(pc),d7
-                    bne.b    lbC000890
+                    bne      lbC000890
                     move.w   #1,lbW000BF0
                     clr.w    lbW000BEA
 lbC000890:          rts
@@ -505,7 +505,7 @@ lbC000890:          rts
 lbC000894:          move.w   (a0)+,(a1)
                     addq.l   #4,a1
                     subq.b   #2,d0
-                    bne.b    lbC000894
+                    bne      lbC000894
                     rts
 
 lbC00089E:          move.w   #2,lbW000BEA
@@ -600,8 +600,8 @@ lbC0009D2:          add.l    #2,a2
                     add.l    #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
-                    and.w    #15,d2
-                    and.w    #15,d3
+                    and.w    #$F,d2
+                    and.w    #$F,d3
                     cmp.w    d2,d3
                     beq      lbC000A04
                     move.w   (a2),d3
@@ -617,7 +617,7 @@ lbC000A04:          add.l    #2,a2
                     subq.w   #1,d1
                     bne      lbC000978
                     cmp.l    d6,d7
-                    bne.b    lbC000A2A
+                    bne      lbC000A2A
                     move.w   #1,lbW000BF0
                     clr.w    lbW000BEA
 lbC000A2A:          rts
@@ -699,7 +699,7 @@ lbC000AF8:          cmp.w    #3,lbW000BEA
 lbC000B4A:          addq.l   #4,a0
                     move.w   (a0),d2
                     and.w    #$F00,d2
-                    beq.b    lbC000B6A
+                    beq      lbC000B6A
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -711,7 +711,7 @@ lbC000B6A:          addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F0,d2
-                    beq.b    lbC000B96
+                    beq      lbC000B96
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -724,7 +724,7 @@ lbC000B96:          addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F,d2
-                    beq.b    lbC000BC2
+                    beq      lbC000BC2
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -736,9 +736,9 @@ lbC000B96:          addq.l   #2,a2
 lbC000BC2:          addq.l   #2,a2
                     addq.l   #2,a3
                     subq.w   #1,d1
-                    bne.b    lbC000B4A
+                    bne      lbC000B4A
                     tst.l    d7
-                    bne.b    lbC000BE8
+                    bne      lbC000BE8
                     move.w   #1,lbW000BF0
                     clr.w    lbW000BEA
 lbC000BE8:          rts
@@ -758,7 +758,7 @@ lbL000C5E:          dcb.l    48,0
 lbL000D1E:          dcb.l    48,0
 
 set_sprite_bp:      tst.l    16(a0)
-                    bne.b    lbC000E00
+                    bne      lbC000E00
                     move.l   12(a0),d0
 lbC000DE8:          move.l   8(a0),a1
                     move.w   6(a0),d1
@@ -781,7 +781,7 @@ lbC000E20:          and.w    #$80,14(a1)
                     move.w   0(a0),d0
                     add.w    #$80,d0
                     btst     #0,d0
-                    beq.b    lbC000E3A
+                    beq      lbC000E3A
                     or.w     #1,14(a1)
 lbC000E3A:          lsr.w    #1,d0
                     move.b   d0,11(a1)
@@ -790,17 +790,17 @@ lbC000E3A:          lsr.w    #1,d0
                     move.w   d0,d1
                     add.w    4(a0),d1
                     cmp.w    #$FF,d1
-                    bmi.b    lbC000E5E
+                    bmi      lbC000E5E
                     sub.w    #$FF,d1
                     or.b     #2,15(a1)
 lbC000E5E:          move.b   d1,14(a1)
                     cmp.w    #$FF,d0
-                    bmi.b    lbC000E72
+                    bmi      lbC000E72
                     sub.w    #$FF,d0
                     or.b     #4,15(a1)
 lbC000E72:          move.b   d0,10(a1)
                     tst.w    6(a0)
-                    beq.b    lbC000EAA
+                    beq      lbC000EAA
                     move.w   10(a1),26(a1)
                     move.w   14(a1),30(a1)
                     move.w   2(a1),d0
@@ -823,7 +823,7 @@ lbC000EAC:          subq.w   #1,24(a0)
 lbC000EB8:          move.l   20(a0),a2
                     move.l   (a2),d0
                     tst.l    d0
-                    bmi.b    lbC000ED6
+                    bmi      lbC000ED6
                     move.w   6(a2),24(a0)
                     move.w   d0,6(a1)
                     swap     d0
@@ -831,7 +831,9 @@ lbC000EB8:          move.l   20(a0),a2
                     bra      lbC000E20
 
 lbC000ED6:          move.l   16(a0),20(a0)
-                    bra.b    lbC000EB8
+                    bra      lbC000EB8
+
+; -----------------------------------------------------
 
 lbW000EFA:          dc.w     336,150,1,0
                     dc.l     sprite_bp
