@@ -97,10 +97,10 @@ disable_cache:      movem.l  d0/d1/d2/d6/d7/a0/a1/a5/a6,-(sp)
                     bra.b    .proc_68020
 .new_kickstart:
                     jsr      _LVOCacheControl(a6)
-.proc_68020:        
+.proc_68020:
                     movem.l  (sp)+,d0/d1/d2/d6/d7/a0/a1/a5/a6
                     rts
-supervisor_cache:   
+supervisor_cache:
                     move.l   d6,d0
                     movec    cacr,d1
                     move.l   d1,d2

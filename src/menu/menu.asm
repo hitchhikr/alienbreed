@@ -370,9 +370,9 @@ setup_context:      bsr      setup_stars
 
 display_title:      move.l   #title_pic,d0
                     not.w    flag_swap_title
-                    beq.b    .becond_title
+                    beq.b    .second_title
                     add.l    #(89*40),d0
-.becond_title:      lea      title_bps(pc),a0
+.second_title:      lea      title_bps(pc),a0
                     move.w   d0,6(a0)
                     swap     d0
                     move.w   d0,2(a0)
@@ -1238,7 +1238,7 @@ lbW0028DE:          dc.w     $9A01,$FF00
                     dc.w     COLOR00
 lbW0028E4:          dc.w     0
                     dc.w     $FFD7,$FFFE
-lbW0028EA:          dc.w     $FFD7,$FFFE
+                    dc.w     $FFD7,$FFFE
                     dc.w     BPLCON1
 lbW0028F0:          dc.w     0
                     dc.w     $601,$FF00
@@ -1547,7 +1547,8 @@ stars_directions_table:
                     dcb.w    32,-1
                     dc.w     -32
 
-display_text:       movem.l  d0-d7/a0-a6,-(sp)
+display_text:
+                    movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW002952(pc),a0
                     lea      lbW0028B6(pc),a1
                     moveq    #8,d0
@@ -1561,7 +1562,8 @@ display_text:       movem.l  d0-d7/a0-a6,-(sp)
                     add.w    #68,d0
                     add.w    #12,d1
                     move.l   d0,d7
-next_letter:        move.l   (a1),a2
+next_letter:
+                    move.l   (a1),a2
                     move.l   d0,d2
                     move.l   d2,d3
                     and.w    #$F,d3
@@ -1579,14 +1581,16 @@ next_letter:        move.l   (a1),a2
                     cmp.b    #' ',d2
                     beq      space_letter
                     move.l   36(a1),a3
-search_letter:      cmp.b    (a3)+,d2
+search_letter:
+                    cmp.b    (a3)+,d2
                     beq.b    display_letter
                     addq.l   #2,d4
                     tst.b    (a3)
                     bne.b    search_letter
                     bra      return
 
-display_letter:     move.l   32(a1),a3
+display_letter:
+                    move.l   32(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
                     move.l   #$1000000,BLTCON0(a6)
@@ -1605,7 +1609,7 @@ display_letter:     move.l   32(a1),a3
                     move.w   #2,BLTDMOD(a6)
                     move.w   #2,BLTBMOD(a6)
                     move.l   a3,d6
-blit_letter_mask:          
+blit_letter_mask:
                     WAIT_BLIT
                     move.l   d6,BLTAPTH(a6)
                     move.l   d4,BLTBPTH(a6)
@@ -1630,7 +1634,7 @@ blit_letter_mask:
                     move.w   22(a1),d6
                     lsl.w    #6,d6
                     addq.w   #2,d6
-blit_letter_on_screen:          
+blit_letter_on_screen:
                     WAIT_BLIT
                     move.l   d4,BLTBPTH(a6)
                     move.l   a3,BLTAPTH(a6)
@@ -1890,6 +1894,6 @@ stars_3d_coords:    dcb.w    120,0
 lbL01F0E4:          dcb.b    3760,0
 lbL01FF94:          dcb.b    17520,0
 
-title_pic:          incbin   "title_320x90.lo6"
+title_pic:          incbin   "title_320x180.lo3"
 
                     end
