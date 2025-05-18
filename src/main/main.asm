@@ -291,8 +291,8 @@ loop_from_gameover: jsr      run_menu
 
                     ; level 2
 level_2:            move.l   #level_2,cur_level
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -310,8 +310,8 @@ level_2:            move.l   #level_2,cur_level
                     jsr      jump_to_level
 
                     ; level 3
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -333,8 +333,8 @@ level_2:            move.l   #level_2,cur_level
 
                     ; level 4
 level_4:            move.l   #level_4,cur_level
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -352,8 +352,8 @@ level_4:            move.l   #level_4,cur_level
                     jsr      jump_to_level
 
                     ; level 5
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -372,8 +372,8 @@ level_4:            move.l   #level_4,cur_level
 
                     ; level 6
 level_6:            move.l   #level_6,cur_level
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -391,8 +391,8 @@ level_6:            move.l   #level_6,cur_level
                     jsr      jump_to_level
 
                     ; level 7
-level_7:            jsr      lbC00DC62
-                    jsr      lbC00EEDC
+level_7:            jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -412,8 +412,8 @@ level_7:            jsr      lbC00DC62
 
                     ; level 8
 level_8:            move.l   #level_8,cur_level
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #0,global_aliens_extra_strength
@@ -432,8 +432,8 @@ level_8:            move.l   #level_8,cur_level
                     jsr      jump_to_level
 
                     ; level 9
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #5,global_aliens_extra_strength
@@ -452,8 +452,8 @@ level_8:            move.l   #level_8,cur_level
 
                     ; level 10
 level_10:           move.l   #level_10,cur_level
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #10,global_aliens_extra_strength
@@ -471,8 +471,8 @@ level_10:           move.l   #level_10,cur_level
                     jsr      jump_to_level
 
                     ; level 11
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #15,global_aliens_extra_strength
@@ -490,8 +490,8 @@ level_10:           move.l   #level_10,cur_level
                     jsr      jump_to_level
 
                     ; level 12
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     move.w   #20,global_aliens_extra_strength
@@ -509,8 +509,8 @@ level_10:           move.l   #level_10,cur_level
                     jsr      jump_to_level
 
                     ; won the game
-                    jsr      lbC00DC62
-                    jsr      lbC00EEDC
+                    jsr      check_level_destruction
+                    jsr      check_gameover
                     jsr      lbC00F58E
                     jsr      lbC00F51C
                     bsr.b    run_end
@@ -4583,7 +4583,7 @@ lbC007608:          move.l   16(a0),a5
                     ; no rts
 lbC007632:          tst.w    390(a0)
                     bne.b    lbC007650
-                    move.w   #33,sample_to_play
+                    move.w   #SAMPLE_HURT_PLAYER,sample_to_play
                     jsr      trigger_sample
                     move.w   #10,390(a0)
                     bra      lbC00E08A
@@ -4723,7 +4723,7 @@ lbC0077D4:          clr.w    274(a0)
 
 lbC0077DC:          cmp.w    #199,280(a0)
                     bne.b    lbC0077F2
-                    move.w   #73,sample_to_play
+                    move.w   #SAMPLE_DYING_PLAYER,sample_to_play
                     jsr      trigger_sample
 lbC0077F2:          bsr      lbC0078AC
                     move.w   280(a0),d0
@@ -5527,7 +5527,7 @@ tile_acid_pool:     tst.w    274(a0)
                     movem.l  (sp)+,d0-d7/a0-a6
                     cmp.l    #1024,lbL000572
                     beq      void
-                    moveq    #35,d0
+                    moveq    #SAMPLE_WATER_POOL,d0
                     moveq    #0,d2
                     jmp      trigger_sample_select_channel
 
@@ -5604,7 +5604,7 @@ lbC008614:          tst.w    328(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
-                    move.w   #5,d0
+                    move.w   #SAMPLE_ONE_WAY_DOOR,d0
                     jsr      schedule_sample_to_play
                     movem.l  (sp)+,d0-d7/a0-a6
                     cmp.l    #lbW007B22,a4
@@ -5620,7 +5620,7 @@ lbC008654:          tst.w    $148(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
-                    move.w   #5,d0
+                    move.w   #SAMPLE_ONE_WAY_DOOR,d0
                     jsr      schedule_sample_to_play
                     movem.l  (sp)+,d0-d7/a0-a6
                     cmp.l    #lbW007B16,a4
@@ -9078,7 +9078,8 @@ set_main_copperlist:
                     move.l   #copper_blank,CUSTOM+COP2LCH
                     rts
 
-lbC00DC62:          tst.l    flag_destruct_level
+check_level_destruction:
+                    tst.l    flag_destruct_level
                     beq      return
                     jmp      do_level_destruction
 
@@ -10088,7 +10089,7 @@ lbC00EE8A:          move.l   #$7D007D00,lbW013304
                     clr.w    lbW00E9C0
                     rts
 
-lbC00EEDC:          tst.l    flag_jump_to_gameover
+check_gameover:          tst.l    flag_jump_to_gameover
                     bne.b    lbC00EF2A
                     lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
@@ -16485,7 +16486,7 @@ text_briefing_level_4:
                     dc.b     'ENTER CODE 48361 TO RESTART HERE'
                     dc.b     -1
                     even
-text_briefing_level_5:          
+text_briefing_level_5:
                     dc.w     8,40
                     dc.b     'ENGINEERING ZONE ONE. DECK FIVE.',0
                     dc.b     ' ',0
@@ -16502,7 +16503,7 @@ text_briefing_level_5:
                     dc.b     'MAKE YOUR WAY DOWN TO DECK SIX..'
                     dc.b     -1
                     even
-text_briefing_level_6:          
+text_briefing_level_6:
                     dc.w     8,40
                     dc.b     'ENGINEERING SUB SYSTEM. DECK SIX.',0
                     dc.b     ' ',0
@@ -16520,7 +16521,7 @@ text_briefing_level_6:
                     dc.b     'ENTER CODE 63556 TO RESTART HERE'
                     dc.b     -1
                     even
-text_briefing_level_7:          
+text_briefing_level_7:
                     dc.w     8,40
                     dc.b     'ENGINEERING. DECK SEVEN.         ',0
                     dc.b     ' ',0
@@ -16537,7 +16538,7 @@ text_briefing_level_7:
                     dc.b     '                                 '
                     dc.b     -1
                     even
-text_briefing_level_8:          
+text_briefing_level_8:
                     dc.w     8,40
                     dc.b     'POWERMECH SYSTEMS. DECK EIGHT.  ',0
                     dc.b     ' ',0
@@ -16555,7 +16556,7 @@ text_briefing_level_8:
                     dc.b     'ENTER CODE 86723 TO RESTART HERE'
                     dc.b     -1
                     even
-text_briefing_level_9:          
+text_briefing_level_9:
                     dc.w     8,40
                     dc.b     'ENGINEERING SYSTEM SHAFT WHICH',0
                     dc.b     'LINKS DECK EIGHT AND REACTOR CORE',0
@@ -16572,7 +16573,7 @@ text_briefing_level_9:
                     dc.b     'EASIER THOUGH..'
                     dc.b     -1
                     even
-text_briefing_level_10:          
+text_briefing_level_10:
                     dc.w     8,40
                     dc.b     'REACTOR CORE. DECK TEN.',0
                     dc.b     ' ',0
@@ -16590,7 +16591,7 @@ text_briefing_level_10:
                     dc.b     'ENTER CODE 25194 TO RESTART HERE'
                     dc.b     -1
                     even
-text_briefing_level_11:          
+text_briefing_level_11:
                     dc.w     8,40
                     dc.b     'LOCATION UNKNOWN.. ',0
                     dc.b     ' ',0
@@ -16607,7 +16608,7 @@ text_briefing_level_11:
                     dc.b     '                                '
                     dc.b     -1
                     even
-text_briefing_level_12:          
+text_briefing_level_12:
                     dc.w     8,40
                     dc.b     'THE HATCHERY..',0
                     dc.b     ' ',0
@@ -17113,11 +17114,11 @@ trigger_sample:     tst.w    music_enabled
                     move.w   sample_to_play(pc),d0
                     cmp.w    #17,d0
                     beq.b    lbC023DD4
-                    cmp.w    #18,d0
+                    cmp.w    #SAMPLE_DESTRUCT_IMM,d0
                     beq.b    lbC023DD4
                     cmp.w    #50,d0
                     bmi.b    lbC023DD8
-                    cmp.w    #73,d0
+                    cmp.w    #SAMPLE_DYING_PLAYER,d0
                     bpl.b    lbC023DD8
                     cmp.w    #55,d0
                     beq.b    lbC023DD8
@@ -17144,10 +17145,12 @@ lbC023DFA:          ext.l    d0
 lbC023E18:          movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
+; d0 = sample number
+; d2 = channel
 trigger_sample_select_channel:
                     tst.w    music_enabled
                     bne      return2
-                    cmp.w    #37,d0
+                    cmp.w    #SAMPLE_FIRE_GUN,d0
                     bne.b    lbC023E3E
                     tst.w    lbW023E9C
                     bne.b    lbC023E9A
@@ -17161,7 +17164,7 @@ lbC023E46:          cmp.w    #17,d0
                     beq.b    lbC023E76
                     cmp.w    #50,d0
                     bmi.b    lbC023E78
-                    cmp.w    #73,d0
+                    cmp.w    #SAMPLE_DYING_PLAYER,d0
                     bpl.b    lbC023E78
                     cmp.w    #55,d0
                     beq.b    lbC023E78
@@ -18219,43 +18222,43 @@ samples:            dc.l     0
 
 samples_table:      dc.l     sample1                            ; 0
                     dc.w     2437,62,428,0,28,0,0
-                    dc.l     sample1
+                    dc.l     sample1                            ; 1
                     dc.w     2437,32,428,0,10,257,508
-                    dc.l     sample2
+                    dc.l     sample2                            ; 2
                     dc.w     4150,32,284,0,31,0,0
-                    dc.l     sample3
+                    dc.l     sample3                            ; 3
                     dc.w     4150,32,284,0,8,0,0
-                    dc.l     sample4
+                    dc.l     sample4                            ; 4
                     dc.w     3894,64,284,0,30,0,0
-                    dc.l     sample5                            ; 5
+                    dc.l     smp_one_way_door                   ; 5
                     dc.w     3894,16,284,0,15,0,0
-                    dc.l     smp_intex_noise
+                    dc.l     smp_intex_noise                    ; 6
                     dc.w     1249,48,120,0,29,257,508
-                    dc.l     smp_intex_noise
+                    dc.l     smp_intex_noise                    ; 7
                     dc.w     1249,16,120,0,10,257,508
-                    dc.l     smp_intex_noise
+                    dc.l     smp_intex_noise                    ; 8
                     dc.w     1249,32,140,0,40,0,508
-                    dc.l     smp_intex_noise
+                    dc.l     smp_intex_noise                    ; 9
                     dc.w     1249,62,1400,0,38,0,508
                     dc.l     sample7                            ; 10
                     dc.w     2591,64,428,0,30,0,0
-                    dc.l     sample7
+                    dc.l     sample7                            ; 11
                     dc.w     2591,64,856,0,60,0,0
-                    dc.l     smp_intex_startup
+                    dc.l     smp_intex_startup                  ; 12
                     dc.w     1000,63,1400,0,150,272,494
-                    dc.l     smp_intex_shutdown
+                    dc.l     smp_intex_shutdown                 ; 13
                     dc.w     1515,64,856,0,36,0,0
                     dc.l     smp_intex_beep                     ; 14
                     dc.w     328,48,428,0,4,0,0
-                    dc.l     smp_destruction_horn
+                    dc.l     smp_destruction_horn               ; 15
                     dc.w     1949,24,428,1,10,0,0
-                    dc.l     smp_destruction_horn
+                    dc.l     smp_destruction_horn               ; 16
                     dc.w     1949,16,428,1,10,0,260
                     dc.l     voice_warning                      ; 17
                     dc.w     2727,64,428,0,33,0,0 
-                    dc.l     voice_destruction_imminent
+                    dc.l     voice_destruction_imminent         ; 18
                     dc.w     6751,64,428,0,80,0,0
-                    dc.l     sample12
+                    dc.l     sample12                           ; 19
                     dc.w     500,32,540,0,30,0,508
                     dc.l     smp_dying_alien                    ; 20
                     dc.w     2380,64,428,0,27,0,0
@@ -18269,103 +18272,103 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     2302,64,480,0,32,0,0
                     dc.l     sample26                           ; 25
                     dc.w     1812,32,1000,1,28,0,0
-                    dc.l     sample26
+                    dc.l     sample26                           ; 26
                     dc.w     1812,32,1000,0,40,260,508
-                    dc.l     smp_destruction_horn
+                    dc.l     smp_destruction_horn               ; 27
                     dc.w     1812,60,200,0,40,0,508
-                    dc.l     sample7
+                    dc.l     sample7                            ; 28
                     dc.w     1357,16,900,0,12,0,506
-                    dc.l     smp_intex_noise
+                    dc.l     smp_intex_noise                    ; 29
                     dc.w     1357,22,2000,0,15,0,506
                     dc.l     smp_first_aid_and_credits          ; 30
                     dc.w     1143,62,180,0,15,0,511
-                    dc.l     smp_first_aid_and_credits
+                    dc.l     smp_first_aid_and_credits          ; 31
                     dc.w     1143,62,280,0,15,0,511
-                    dc.l     sample18
+                    dc.l     sample18                           ; 32
                     dc.w     2,62,400,0,16,508,511
-                    dc.l     sample19
+                    dc.l     smp_hurt_player                    ; 33
                     dc.w     726,32,480,0,10,0,0
-                    dc.l     sample20
+                    dc.l     smp_acid_pool                      ; 34
                     dc.w     726,64,428,0,6,0,0
-                    dc.l     sample27                           ; 35
+                    dc.l     smp_water_pool                     ; 35
                     dc.w     1246,62,900,0,50,0,506
                     dc.l     smp_hatching_alien                 ; 36
                     dc.w     4000,62,568,0,30,0,0
-                    dc.l     sample21                           ; 37
+                    dc.l     smp_fire_gun                       ; 37
                     dc.w     560,64,360,0,5,0,0
-                    dc.l     smp_intex_beep
+                    dc.l     smp_intex_beep                     ; 38
                     dc.w     328,62,1200,0,8,0,0
-                    dc.l     smp_intex_startup
+                    dc.l     smp_intex_startup                  ; 39
                     dc.w     1000,8,1400,1,26,0,0
                     dc.l     smp_intex_startup                  ; 40
                     dc.w     1000,8,1000,0,10,0,508
-                    dc.l     sample22
+                    dc.l     sample22                           ; 41
                     dc.w     727,40,1000,1,10,0,0
-                    dc.l     sample24
+                    dc.l     sample24                           ; 42
                     dc.w     2206,37,1000,0,61,0,0
-                    dc.l     sample2
+                    dc.l     sample2                            ; 43
                     dc.w     4150,32,202,0,22,0,0
-                    dc.l     sample3
+                    dc.l     sample3                            ; 44
                     dc.w     4150,16,202,0,18,0,0
                     dc.l     sample23                           ; 45
                     dc.w     128,44,190,0,38,257,508
-                    dc.l     sample23
+                    dc.l     sample23                           ; 46
                     dc.w     128,16,280,0,28,257,508
-                    dc.l     smp_reloading_weapon
+                    dc.l     smp_reloading_weapon               ; 47
                     dc.w     1000,32,480,0,10,0,0
-                    dc.l     smp_intex_beep
+                    dc.l     smp_intex_beep                     ; 48
                     dc.w     328,16,428,0,4,0,0
-                    dc.l     smp_intex_beep
+                    dc.l     smp_intex_beep                     ; 49
                     dc.w     328,16,600,0,4,0,0
                     dc.l     voice_entering                     ; 50
                     dc.w     3005,32,404,0,33,0,0
-                    dc.l     voice_zone
+                    dc.l     voice_zone                         ; 51
                     dc.w     1713,32,404,0,20,0,0
-                    dc.l     voice_welcome_to
+                    dc.l     voice_welcome_to                   ; 52
                     dc.w     3000,64,400,0,33,0,0
-                    dc.l     voice_intex_systems
+                    dc.l     voice_intex_systems                ; 53
                     dc.w     4518,42,480,0,60,0,0
-                    dc.l     voice_death
+                    dc.l     voice_death                        ; 54
                     dc.w     2796,32,470,0,18,0,0
                     dc.l     sample29                           ; 55
                     dc.w     2081,4,1000,0,57,0,260
-                    dc.l     sample29
+                    dc.l     sample29                           ; 56
                     dc.w     2081,62,690,0,40,0,504
-                    dc.l     voice_player
+                    dc.l     voice_player                       ; 57
                     dc.w     1897,32,440,0,25,0,0
-                    dc.l     voice_requires
+                    dc.l     voice_requires                     ; 58
                     dc.w     2880,32,390,0,31,0,0
-                    dc.l     voice_ammo
+                    dc.l     voice_ammo                         ; 59
                     dc.w     1754,32,440,0,21,0,0
                     dc.l     voice_first_aid                    ; 60
                     dc.w     3375,32,450,0,43,0,0
-                    dc.l     voice_danger
+                    dc.l     voice_danger                       ; 61
                     dc.w     2200,64,480,0,28,0,0
-                    dc.l     voice_insert_disk
+                    dc.l     voice_insert_disk                  ; 62
                     dc.w     3562,32,440,0,44,0,0
-                    dc.l     voice_keys
+                    dc.l     voice_keys                         ; 63
                     dc.w     2138,32,440,0,24,0,0
-                    dc.l     voice_game_over
+                    dc.l     voice_game_over                    ; 64
                     dc.w     3132,64,428,0,36,0,0
                     dc.l     voice_one                          ; 65
                     dc.w     1635,32,400,0,18,0,0
-                    dc.l     voice_two
+                    dc.l     voice_two                          ; 66
                     dc.w     1921,32,380,0,20,0,0
-                    dc.l     voice_three
+                    dc.l     voice_three                        ; 67
                     dc.w     2170,32,380,0,20,0,0
-                    dc.l     voice_four
+                    dc.l     voice_four                         ; 68
                     dc.w     2002,32,380,0,20,0,0
-                    dc.l     voice_five
+                    dc.l     voice_five                         ; 69
                     dc.w     2340,32,380,0,24,0,0
                     dc.l     voice_six                          ; 70
                     dc.w     2128,32,380,0,20,0,0
-                    dc.l     voice_seven
+                    dc.l     voice_seven                        ; 71
                     dc.w     2345,32,380,0,24,0,0
-                    dc.l     voice_eight
+                    dc.l     voice_eight                        ; 72
                     dc.w     1960,32,380,0,20,0,0
-                    dc.l     sample30
+                    dc.l     smp_dying_player                   ; 73
                     dc.w     1487,64,600,0,25,0,0
-                    dc.l     sample31
+                    dc.l     sample31                           ; 74
                     dc.w     1509,16,500,1,0,0,0
                     dc.l     sample31                           ; 75 
                     dc.w     1509,16,500,0,0,0,510
@@ -19020,7 +19023,7 @@ sample1:            incbin   'sample1.raw'
 sample2:            incbin   'sample2.raw'
 sample3:            incbin   'sample3.raw'
 sample4:            incbin   'sample4.raw'
-sample5:            incbin   'sample5.raw'
+smp_one_way_door:   incbin   'one_way_door.raw'
 smp_intex_noise:    incbin   'intex_noise.raw'
 sample7:            incbin   'sample7.raw'
 smp_intex_shutdown: incbin   'intex_shutdown.raw'
@@ -19036,19 +19039,19 @@ sample16:           incbin   'sample16.raw'
 smp_reloading_weapon:
                     incbin   'reloading_weapon.raw'
 sample18:           incbin   'sample18.raw'
-sample19:           incbin   'sample19.raw'
-sample20:           incbin   'sample20.raw'
-sample21:           incbin   'sample21.raw'
+smp_hurt_player:    incbin   'hurt_player.raw'
+smp_acid_pool:      incbin   'acid_pool.raw'
+smp_fire_gun:       incbin   'fire_gun.raw'
 sample22:           incbin   'sample22.raw'
 sample23:           incbin   'sample23.raw'
 sample24:           incbin   'sample24.raw'
 smp_first_aid_and_credits:
                     incbin   'first_aid_and_credits.raw'
 sample26:           incbin   'sample26.raw'
-sample27:           incbin   'sample27.raw'
+smp_water_pool:     incbin   'water_pool.raw'
 smp_hatching_alien: incbin   'hatching_alien.raw'
 sample29:           incbin   'sample29.raw'
-sample30:           incbin   'sample30.raw'
+smp_dying_player:   incbin   'dying_player.raw'
 sample31:           incbin   'sample31.raw'
 
 ; -----------------------------------------------------

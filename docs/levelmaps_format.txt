@@ -23,7 +23,7 @@ Maps files format:
   76.l: Size of the chunk (0x1c/28)
   80.l: ??? (Filled with 0s)
 
- 108.l: "COM1"
+ 108.l: "COM2"
  112.l: Size of the chunk (0x1c/28)
  118.l: ??? (Filled with 0s)
 
@@ -42,12 +42,12 @@ Maps files format:
  240.l: "PALA"
  244.l: Size of the chunk (0xc0/192)
  176.b: Filename of the palette (64 bytes) (probably stored in a CAMG IFF chunk for the editor)
- 312.w: Datas of the palette (128 bytes only 64 used) (used by the game)
+ 312.w: Datas of the palette (128 bytes, only 64 used for 32 colors) (used by the game)
 
  440.l: "PALB"
  444.l: Size of the chunk (0xc0/192)
  448.b: Filename of the palette (64 bytes) (probably stored in a CAMG IFF chunk for the editor)
- 512.w: Datas of the palette (128 bytes only 64 used) (used by the game when the timer is on)
+ 512.w: Datas of the palette (128 bytes, only 64 used for 32 colors) (used by the game when the timer is on)
 
  640.l: "PALC"
  644.l: Size of the chunk (0xc0/192)

@@ -135,13 +135,19 @@ SUPPLY_NRG_INJECT   equ      4
 SUPPLY_KEY_PACK     equ      8
 SUPPLY_EXTRA_LIFE   equ      16
 
+SAMPLE_ONE_WAY_DOOR equ      5
+SAMPLE_DESTRUCT_IMM equ      18
 SAMPLE_KEY          equ      22
 SAMPLE_OPENING_DOOR equ      23
 SAMPLE_AMMO         equ      24
 SAMPLE_1UP          equ      27
 SAMPLE_1STAID_CREDS equ      30
+SAMPLE_HURT_PLAYER  equ      33
 SAMPLE_ACID_POOL    equ      34
+SAMPLE_WATER_POOL   equ      35
 SAMPLE_HATCHING_ALIEN equ    36
+SAMPLE_FIRE_GUN     equ      37
+SAMPLE_DYING_PLAYER equ      73
 
 ALIEN_SPEED         equ      10
 ALIEN_POS_X         equ      30
