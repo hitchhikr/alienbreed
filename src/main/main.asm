@@ -84,7 +84,7 @@ error_flash:        move.w   d0,CUSTOM+COLOR00
 disable_cache:      movem.l  d0/d1/d2/d6/d7/a0/a1/a5/a6,-(sp)
                     move.l   4.w,a6
                     move.w   AttnFlags(a6),d0
-                    btst     #3,d0
+                    btst     #AFB_68020,d0
                     beq.b    .proc_68020
                     moveq    #0,d0
                     move.l   #$100,d1
@@ -1652,7 +1652,7 @@ lbC003878:          bsr      lbC003832
                     move.w   #2,lbW010CDE
                     jsr      compute_palette_fading_directions
                     jsr      set_bitplanes_nbr
-                    jsr      lbC010F22
+                    jsr      display_status_bars
                     jsr      wait
                     clr.w    lbW023124+2
                     rts
@@ -3614,6 +3614,8 @@ lbC005B6A:          move.w   2(a0),2(a1)
                     move.w   62(a0),62(a1)
                     rts
 
+; -----------------------------------------------------
+
 lbW005BCC:          dc.w     SPR0PTH,0,SPR0PTL,0
                     dc.w     SPR0POS
 lbW005BD6:          dc.w     0
@@ -3875,6 +3877,8 @@ player_2_score:     dcb.l    378,0                  ; 440
 
 lbL006B8C:          dc.l     0
 lbL006B90:          dc.l     0
+
+; -----------------------------------------------------
 
 lbC006B94:          lea      player_1_dats(pc),a0
                     jsr      lbC006C08
@@ -5910,6 +5914,8 @@ lbC008C8A:          movem.l  d0-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
+; -----------------------------------------------------
+
 lbW008C9A:          dc.w     0
 
 lbW008C9C:          dc.l     cur_alien1_dats
@@ -6347,6 +6353,8 @@ lbL00976C:          dc.l     lbL01BE96
                     dc.l     lbL01BE96
                     dc.l     lbL01BE96
                     dc.l     lbL018C2E
+
+; -----------------------------------------------------
 
 lbC0097D4:          move.l   #700,d0
                     bsr      rand
@@ -7049,6 +7057,8 @@ lbW00A2FA:          dc.w     -6,-6,-6,-6,4,16
 lbW00A306:          dc.w     100,100,100,-6,4,16
 lbW00A312:          dc.w     4,50,90,-10,-10,-10
 lbW00A31E:          dc.w     4,50,90,112,112,112
+
+; -----------------------------------------------------
 
 check_aliens_collisions:
                     not.w    46(a0)
@@ -8661,7 +8671,7 @@ display_elapsed_time:
                     lea      font_struct(pc),a1
                     bra      display_text
 
-lbC00D4D4:          
+lbC00D4D4:
                     WAIT_BLIT
                     move.l   #$1000000,CUSTOM+BLTCON0
                     clr.w    CUSTOM+BLTDMOD
@@ -11777,7 +11787,8 @@ lbC010F16:          move.w   2(a0),(a1)+
                     bne.b    lbC010F16
                     rts
 
-lbC010F22:          lea      player_1_status_pic,a0
+display_status_bars:
+                    lea      player_1_status_pic,a0
                     lea      top_bar_gfx,a1
                     lea      player_1_status_pic+37,a2
                     lea      lbB099A29,a3
@@ -12890,6 +12901,8 @@ clear_sprites_bps:  clr.w    2(a0)
                     clr.w    26(a0)
                     clr.w    30(a0)
                     rts
+
+; -----------------------------------------------------
 
                     dc.w     656,656
 lbW01227C:          dc.w     60,60
@@ -16346,6 +16359,8 @@ lbL020F82:          dc.l     lbL0166DA,12
 
 return2:            rts
 
+; -----------------------------------------------------
+
 disable_interrupts: move.w   #INTF_INTEN,CUSTOM+INTENA
                     rts
 
@@ -16411,6 +16426,8 @@ lbC0210B8:          movem.l  (sp)+,d0-d7/a0-a6
 
 key_pressed:        dc.b    0
 key_released:       dc.b    0
+
+; -----------------------------------------------------
 
 text_briefing_level_1:
                     dc.w     8,40
@@ -16634,6 +16651,8 @@ lbW02276A:          dcb.w    64,$FFF
 level_palette1:     dcb.w    32,0
 
 level_palette2:     dcb.w    32,0
+
+; -----------------------------------------------------
 
 start_music:        tst.w    lbW0003A2
                     beq      lbC022B92
@@ -18374,6 +18393,8 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     1509,16,500,0,0,0,510
                     dc.l     empty_sample                       ; 76
                     dc.w     8,1,428,0,0,0,0
+
+; -----------------------------------------------------
 
 not_an_exe:         moveq    #-1,d0
                     movem.l  (sp)+,d0-d7/a0-a6

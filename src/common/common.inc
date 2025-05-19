@@ -64,6 +64,7 @@ _LVOCacheControl    equ      -648
 
 AttnFlags           equ      $128
 LIB_VERSION         equ      20
+AFB_68020           equ      1
 
 ; dos
 _LVOOpen            equ      -30
