@@ -13,8 +13,8 @@
 
                     section  intex,code_c
 
-start:              move.l   d0,lbL00715E
-                    move.l   d1,lbL007162
+start:              move.l   d0,player_pos_x
+                    move.l   d1,player_pos_y
                     move.l   d2,owned_weapons
                     move.l   a0,player_struct
                     move.l   a0,cur_credits
@@ -24,13 +24,13 @@ start:              move.l   d0,lbL00715E
                     move.l   a4,cur_map_top
                     move.l   a5,sound_routine
                     move.l   a6,schedule_sample_to_play
-                    bsr      lbC0017A6
+                    bsr      set_bitplanes_and_palette
                     bsr      lbC001BA6
-                    bsr      lbC0011BA
+                    bsr      display_intex_startup_seq
                     lea      lbW0071B4(pc),a6
                     move.l   schedule_sample_to_play(pc),a5
                     jsr      (a5)
-lbC0000AC:          bsr      lbC0019CC
+lbC0000AC:          bsr      copy_bkgnd_pic
                     lea      text_main_menu(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -52,13 +52,13 @@ lbC0000FE:          cmp.w    #1,d0
                     addq.l   #1,lbL007188
                     bsr      lbC0015DA
                     bsr      lbC001F7E
-lbC000120:          bsr      lbC001F96
+lbC000120:          bsr      flash_caret
                     moveq    #CIAB_GAMEPORT1,d0
                     move.l   gameport_register(pc),a0
                     cmp.l    #CUSTOM+JOY0DAT,a0
-                    bne.b    lbC000140
+                    bne.b    game_port_1
                     moveq    #CIAB_GAMEPORT0,d0
-lbC000140:          btst     d0,CIAA
+game_port_1:        btst     d0,CIAA
                     bne      lbC0000C4
                     bsr      lbC000BD4
                     cmp.l    #4,lbL007188
@@ -68,14 +68,14 @@ lbC00015E:          cmp.l    #7,lbL007188
                     tst.l    lbL007188
                     bne.b    lbC000190
                     move.l   #$00980000,lbW00710C
-                    bsr      lbC00159E
+                    bsr      buy_weapon_seq
                     move.l   #$FFFFFFFE,lbW00710C
 lbC000190:          cmp.l    #1,lbL007188
                     bne.b    lbC0001A0
                     bsr      scr_tools_supplies
 lbC0001A0:          cmp.l    #2,lbL007188
                     bne.b    lbC0001B0
-                    bsr      lbC001392
+                    bsr      scr_map
 lbC0001B0:          cmp.l    #3,lbL007188
                     bne.b    lbC0001C0
                     bsr      lbC001146
@@ -87,7 +87,7 @@ lbC0001D0:          cmp.l    #6,lbL007188
                     bsr      lbC0003CC
 lbC0001E0:          bra      lbC0000AC
 
-lbC0001E4:          bsr      lbC0019CC
+lbC0001E4:          bsr      copy_bkgnd_pic
                     lea      text_disconnecting(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -119,10 +119,10 @@ lbC0003CC:          btst     #CIAB_GAMEPORT0,CIAA
                     bsr      lbC0003B6
                     bsr      lbC0003B6
                     clr.l    lbL007188
-                    move.l   #$960020,lbW006FD4
-                    move.l   #lbL0004C8,lbL0004C4
-lbC000416:          bsr      lbC0019CC
-                    move.l   lbL0004C4(pc),a0
+                    move.l   #$960020,sprites_dmacon
+                    move.l   #text_info_table,ptr_text_info_table
+lbC000416:          bsr      copy_bkgnd_pic
+                    move.l   ptr_text_info_table(pc),a0
                     move.l   (a0),a0
                     lea      font_struct(pc),a1
                     move.w   #1,lbW0012B8
@@ -146,23 +146,24 @@ lbC000452:          btst     #CIAB_GAMEPORT1,CIAA
                     bne.b    lbC000452
 lbC00047E:          cmp.w    #3,d0
                     bne.b    lbC000498
-                    move.l   lbL0004C4(pc),a0
+                    move.l   ptr_text_info_table(pc),a0
                     tst.l    4(a0)
                     beq      lbC000452
-                    addq.l   #4,lbL0004C4
+                    addq.l   #4,ptr_text_info_table
 lbC000498:          cmp.w    #$300,d0
                     bne.b    lbC0004B4
-                    move.l   lbL0004C4(pc),a0
-                    cmp.l    #lbL0004C8,a0
+                    move.l   ptr_text_info_table(pc),a0
+                    cmp.l    #text_info_table,a0
                     beq      lbC000452
-                    subq.l   #4,lbL0004C4
+                    subq.l   #4,ptr_text_info_table
 lbC0004B4:          bra      lbC000416
 
-lbC0004B8:          move.l   #$968020,lbW006FD4
+lbC0004B8:          move.l   #$968020,sprites_dmacon
                     rts
 
-lbL0004C4:          dc.l     lbL0004C8
-lbL0004C8:          dc.l     text_infos_page_1
+ptr_text_info_table:
+                    dc.l     text_info_table
+text_info_table:    dc.l     text_infos_page_1
                     dc.l     text_infos_page_2
                     dc.l     text_infos_page_3
                     dc.l     text_infos_page_4
@@ -183,7 +184,7 @@ lbL0004C8:          dc.l     text_infos_page_1
                     dc.l     text_infos_page_19
                     dc.l     0
 
-lbC000518:          bsr      lbC0019CC
+lbC000518:          bsr      copy_bkgnd_pic
                     move.l   owned_weapons(pc),d0
                     move.l   #2,d1
                     move.l   #6,d2
@@ -205,15 +206,15 @@ lbC00055A:          addq.w   #1,d1
                     move.l   player_struct(pc),a0
                     move.l   INTEX_ALIENS_KILLED(a0),d0
                     move.l   d0,number_to_display
-                    bsr      lbC001E3E
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_number_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_aliens_killed(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_SHOTS_FIRED(a0),d0
                     move.l   d0,number_to_display
-                    bsr      lbC001E3E
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_number_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_bullets_fired(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
@@ -221,22 +222,22 @@ lbC00055A:          addq.w   #1,d1
                     divu     #50,d0
                     move.l   d0,INTEX_UNUSED(a0)
                     move.l   d0,number_to_display
-                    bsr      lbC001E3E
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_number_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_credits_owned,a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_DOORS_OPENED(a0),d0
                     move.l   d0,number_to_display
-                    bsr      lbC001E3E
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_number_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_doors_opened(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
                     move.l   INTEX_AMMO_PACKS(a0),d0
                     move.l   d0,number_to_display
-                    bsr      lbC001E3E
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_number_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_ammopacks_owned(pc),a1
                     bsr      lbC000A8E
                     move.l   player_struct(pc),a0
@@ -273,9 +274,9 @@ lbC000692:          move.b   (a0)+,(a1)+
                     lea      text_statistics(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    move.l   #$960020,lbW006FD4
+                    move.l   #$960020,sprites_dmacon
                     bsr      lbC001190
-                    move.l   #$968020,lbW006FD4
+                    move.l   #$968020,sprites_dmacon
                     rts
 
 text_health_levels: dc.b     'LOW     AVERAGE GOOD    '
@@ -351,7 +352,7 @@ cur_holocode:       dc.b     '00000'
 cur_holocode_position:
                     dc.w     0
 
-enter_holocode:     bsr      lbC0019CC
+enter_holocode:     bsr      copy_bkgnd_pic
                     lea      text_enter_holocode(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -399,7 +400,7 @@ lbC000B54:          cmp.w    #3,d0
                     addq.w   #1,cur_holocode_position
                     bsr      lbC000BB4
                     bsr      lbC001F7E
-lbC000B70:          bsr      lbC001F96
+lbC000B70:          bsr      flash_caret
                     moveq    #CIAB_GAMEPORT1,d0
                     move.l   gameport_register(pc),a0
                     cmp.l    #CUSTOM+JOY0DAT,a0
@@ -415,13 +416,13 @@ lbC000B98:          bsr      lbC001960
                     bsr      display_text
                     ; no rts
 
-lbC000BB4:          lea      lbW0020CC(pc),a0
+lbC000BB4:          lea      caret_position_dat(pc),a0
                     move.w   cur_holocode_position(pc),d0
                     lsl.w    #3,d0
                     add.w    #$80,d0
                     move.w   d0,(a0)
                     move.w   #$84,2(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
 
 lbC000BD4:          movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #14,d0
@@ -439,7 +440,7 @@ lbC000BF2:          movem.l  d0-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-scr_tools_supplies: bsr      lbC0019CC
+scr_tools_supplies: bsr      copy_bkgnd_pic
                     bsr      lbC001112
                     lea      text_tool_supplies(pc),a0
                     lea      font_struct(pc),a1
@@ -463,7 +464,7 @@ lbC000C78:          cmp.w    #1,d0
                     bsr      lbC0010EE
                     bsr      lbC001F7E
 lbC000C9A:          bsr      lbC0010EE
-                    bsr      lbC001F96
+                    bsr      flash_caret
                     moveq    #CIAB_GAMEPORT1,d0
                     move.l   gameport_register(pc),a0
                     cmp.l    #CUSTOM+JOY0DAT,a0
@@ -474,7 +475,7 @@ lbC000CBC:          btst     d0,CIAA
                     bsr      lbC000BD4
                     move.l   lbL000DC4(pc),d0
                     cmp.l    #5,d0
-                    beq      lbC00180E
+                    beq      return
                     move.l   purchased_supplies(pc),d1
                     btst     d0,d1
                     bne      lbC000C4E
@@ -587,20 +588,20 @@ text_tool_credit_limit:
                     dc.b    -1
                     even
 
-lbC0010EE:          lea      lbW0020CC(pc),a0
+lbC0010EE:          lea      caret_position_dat(pc),a0
                     move.l   lbL000DC4(pc),d0
                     mulu     #24,d0
                     add.l    #72,d0
                     move.w   d0,2(a0)
                     move.w   #$10,(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
 
 lbC001112:          move.l   cur_credits(pc),a0
                     move.l   (a0),d0
                     divu     #50,d0
                     move.l   d0,number_to_display
-                    bsr      lbC001C14
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_credit_limit_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_tool_credit_limit(pc),a1
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
@@ -612,7 +613,7 @@ lbC001112:          move.l   cur_credits(pc),a0
                     move.b   (a0)+,(a1)+
                     rts
 
-lbC001146:          bsr      lbC0019CC
+lbC001146:          bsr      copy_bkgnd_pic
                     move.l   briefing_text(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -638,7 +639,8 @@ lbC0011AA:          btst     d0,CIAA
                     bne.b    lbC0011AA
                     bra      lbC000BD4
 
-lbC0011BA:          move.b   CIAB+CIATODLOW,d1
+display_intex_startup_seq:
+                    move.b   CIAB+CIATODLOW,d1
                     cmp.b    #$7F,d1
                     bpl      lbC00122A
                     move.l   #10,d0
@@ -688,7 +690,7 @@ lbC00122A:          move.w   #1,lbW0012B8
 lbC00129E:          clr.w    lbW0012B8
                     clr.w    lbW0012B6
                     move.l   #1,d0
-                    bra      lbC0019CC
+                    bra      copy_bkgnd_pic
 
 lbW0012B6:          dc.w     0
 lbW0012B8:          dc.w     0
@@ -703,16 +705,16 @@ lbC0012D6:          btst     #7,CIAA
                     beq.b    lbC001336
                     btst     #6,CIAA
                     beq.b    lbC001336
-                    bsr      lbC001F96
+                    bsr      flash_caret
                     move.b   CIAB+CIATODLOW,d1
                     ext.w    d1
-                    move.b   d1,lbW006FBA
+                    move.b   d1,diwstop
                     neg.w    d1
-                    move.b   d1,lbW006FB6
+                    move.b   d1,diwstrt
                     subq.l   #1,d0
                     bne.b    lbC0012D6
-lbC001308:          move.w   #$2C81,lbW006FB6
-                    move.w   #$2CC1,lbW006FBA
+lbC001308:          move.w   #$2C81,diwstrt
+                    move.w   #$2CC1,diwstop
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #75,d0
                     move.l   #0,d2
@@ -729,7 +731,7 @@ lbC001342:          mulu     #50,d0
 lbC001348:          bsr      lbC001164
                     tst.l    d0
                     bmi.b    lbC00135E
-                    bsr      lbC001F96
+                    bsr      flash_caret
                     subq.l   #1,d7
                     bne.b    lbC001348
                     rts
@@ -742,7 +744,7 @@ lbC001368:          btst     #7,CIAA
                     beq.b    lbC001388
                     btst     #6,CIAA
                     beq.b    lbC001388
-                    bsr      lbC001F96
+                    bsr      flash_caret
                     subq.l   #1,d0
                     bne.b    lbC001368
                     rts
@@ -750,22 +752,22 @@ lbC001368:          btst     #7,CIAA
 lbC001388:          move.w   #1,lbW0012B6
                     rts
 
-lbC001392:          bsr      lbC0019CC
+scr_map:            bsr      copy_bkgnd_pic
                     bsr      lbC00141A
                     lea      text_map_system(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    move.l   lbL00715E(pc),d0
-                    move.l   lbL007162(pc),d1
+                    move.l   player_pos_x(pc),d0
+                    move.l   player_pos_y(pc),d1
                     lsr.l    #3,d0
                     lsr.l    #3,d1
                     add.l    #30,d0
                     add.l    #28,d1
-                    move.w   d0,lbW0020CC
-                    move.w   d1,lbW0020CE
-                    lea      lbW0020CC(pc),a0
-                    bsr      lbC001FE6
-lbC0013DE:          bsr      lbC001F96
+                    move.w   d0,caret_position_dat
+                    move.w   d1,caret_position_y
+                    lea      caret_position_dat(pc),a0
+                    bsr      disp_caret
+lbC0013DE:          bsr      flash_caret
                     btst     #7,CIAA
                     beq.b    lbC0013F8
                     btst     #6,CIAA
@@ -773,7 +775,7 @@ lbC0013DE:          bsr      lbC001F96
 lbC0013F8:          lea      lbL027102,a0
                     move.l   #(256*40),d0
                     bsr      lbC001596
-                    bra      lbC0019CC
+                    bra      copy_bkgnd_pic
 
 lbL00140E:          dc.l     $F8
 lbL001412:          dc.l     $CA
@@ -889,32 +891,32 @@ lbC001596:          clr.b    (a0)+
                     bne.b    lbC001596
                     rts
 
-lbC00159E:          bsr      lbC0019CC
-                    bsr      lbC001BE0
+buy_weapon_seq:     bsr      copy_bkgnd_pic
+                    bsr      display_credit_limit
                     lea      text_weapons(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    bsr      lbC001F6C
-lbC0015BA:          bsr      lbC001F96
-                    bsr      lbC001EF4
+                    bsr      disp_weapon
+lbC0015BA:          bsr      flash_caret
+                    bsr      change_weapon
                     tst.l    d0
                     beq.b    lbC0015CA
-                    bsr      lbC001F6C
+                    bsr      disp_weapon
 lbC0015CA:          bsr      lbC00162A
                     move.l   key_pressed(pc),a0
                     bra      lbC0015BA
 
 lbC0015D8:          rts
 
-lbC0015DA:          lea      lbW0020CC(pc),a0
+lbC0015DA:          lea      caret_position_dat(pc),a0
                     move.l   lbL007188(pc),d0
                     mulu     #12,d0
                     add.l    #68,d0
                     move.w   d0,2(a0)
                     move.w   #$30,(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
 
-lbC0015FE:          lea      lbW0020CC(pc),a0
+lbC0015FE:          lea      caret_position_dat(pc),a0
                     move.l   lbL007182(pc),d0
                     not.l    d0
                     and.l    #1,d0
@@ -922,7 +924,7 @@ lbC0015FE:          lea      lbW0020CC(pc),a0
                     add.l    #227,d0
                     move.w   d0,2(a0)
                     move.w   #$80,(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
 
 lbC00162A:          move.l   gameport_register(pc),a0
                     move.w   (a0),d0
@@ -936,30 +938,30 @@ lbC001642:          cmp.w    #$100,d0
 lbC001652:          bsr      lbC0015FE
                     bsr      lbC001164
                     tst.l    d0
-                    beq      lbC00180E
+                    beq      return
                     tst.l    lbL007182
-                    bne      lbC001670
+                    bne      user_buying_weapon
                     addq.l   #4,sp
                     bra      lbC0015D8
 
-lbC001670:          move.l   owned_weapons(pc),d1
-                    move.l   lbL00716E(pc),d0
+user_buying_weapon: move.l   owned_weapons(pc),d1
+                    move.l   current_weapon(pc),d0
                     addq.l   #2,d0
                     moveq    #0,d2
                     bset     d0,d2
                     and.w    d2,d1
                     tst.b    d1
-                    bne      lbC001766
-                    move.l   lbL00716E(pc),d0
+                    bne      disp_already_owned_text
+                    move.l   current_weapon(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
-                    lea      lbL00174A(pc),a0
+                    lea      weapons_prices_table(pc),a0
                     move.l   0(a0,d0.l),d0
                     move.l   cur_credits(pc),a0
                     move.l   (a0),d1
                     divu     #50,d1
                     cmp.l    d0,d1
-                    bmi      lbC001786
+                    bmi      disp_insufficient_funds_text
                     move.l   cur_credits(pc),a0
                     move.l   (a0),d1
                     mulu     #50,d0
@@ -987,16 +989,17 @@ lbC001670:          move.l   owned_weapons(pc),d1
                     move.b   #'H',(a0)+
                     move.b   #'T',(a0)+
                     move.b   #'.',(a0)+
-                    bsr      lbC0019CC
+                    bsr      copy_bkgnd_pic
                     lea      text_credits_debited(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
                     moveq    #1,d0
                     bsr      lbC001364
                     addq.l   #4,sp
-                    bra      lbC00159E
+                    bra      buy_weapon_seq
 
-lbL00174A:          dc.l     10000
+weapons_prices_table:
+                    dc.l     10000
                     dc.l     24000
                     dc.l     35000
                     dc.l     48000
@@ -1004,64 +1007,68 @@ lbL00174A:          dc.l     10000
                     dc.l     75000
                     dc.l     0
 
-lbC001766:          lea      text_already_owned(pc),a0
+disp_already_owned_text:
+                    lea      text_already_owned(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
                     moveq    #2,d0
                     bsr      lbC001364
                     addq.l   #4,sp
-                    bra      lbC00159E
+                    bra      buy_weapon_seq
 
-lbC001786:          lea      text_insufficient_funds(pc),a0
+disp_insufficient_funds_text:
+                    lea      text_insufficient_funds(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
                     moveq    #2,d0
                     bsr      lbC001364
                     addq.l   #4,sp
-                    bra      lbC00159E
+                    bra      buy_weapon_seq
 
-lbC0017A6:          move.l   #copperlist_blank,CUSTOM+COP1LCH
-                    lea      lbW007058(pc),a0
+set_bitplanes_and_palette:
+                    move.l   #copperlist_blank,CUSTOM+COP1LCH
+                    lea      copper_bitplanes(pc),a0
                     move.l   #bitplanes,d0
                     moveq    #5,d1
-lbC0017D2:          move.w   d0,6(a0)
+.set_bps:           move.w   d0,6(a0)
                     swap     d0
                     move.w   d0,2(a0)
                     swap     d0
                     add.l    #(256*40),d0
                     addq.l   #8,a0
                     subq.b   #1,d1
-                    bne.b    lbC0017D2
+                    bne.b    .set_bps
                     lea      background_pic+(256*40*4),a0
                     lea      copper_palette(pc),a1
                     moveq    #16,d0
-lbC0017FC:          move.w   (a0)+,(a1)
+.copy_palette:      move.w   (a0)+,(a1)
                     addq.l   #4,a1
                     subq.b   #1,d0
-                    bne.b    lbC0017FC
-                    move.w   #$2D1,lbW007016
+                    bne.b    .copy_palette
+                    move.w   #$2D1,copper_color_15
                     rts
 
-lbC00180E:          rts
+return:             rts
 
-lbC001810:          addq.w   #1,lbW001852
-                    cmp.w    #2,lbW001852
-                    bmi.b    lbC00180E
-                    clr.w    lbW001852
-                    move.l   lbL001854(pc),a0
+change_caret_color: addq.w   #1,slowdown_caret
+                    cmp.w    #2,slowdown_caret
+                    bmi.b    return
+                    clr.w    slowdown_caret
+                    move.l   ptr_caret_color_table(pc),a0
                     tst.w    (a0)
-                    bpl.b    lbC00183E
-                    lea      lbW001858(pc),a0
-                    move.l   a0,lbL001854
-lbC00183E:          addq.l   #2,lbL001854
-                    move.w   (a0),lbW007056
-                    move.w   (a0),lbW00713E
+                    bpl.b    .reset
+                    lea      caret_color_table(pc),a0
+                    move.l   a0,ptr_caret_color_table
+.reset:             addq.l   #2,ptr_caret_color_table
+                    move.w   (a0),copper_caret_color_up
+                    move.w   (a0),copper_caret_color_down
                     rts
 
-lbW001852:          dc.w     0
-lbL001854:          dc.l     lbW001858
-lbW001858:          dc.w     $40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-                    dc.w     $E0,$D0,$C0,$B0,$A0,$90,$80,$70,$60,$50,$40
+slowdown_caret:     dc.w     0
+ptr_caret_color_table:
+                    dc.l     caret_color_table
+caret_color_table:  dc.w     $040,$050,$060,$070,$080,$090,$0A0,$0B0,$0C0,$0D0,$0E0,$0F0
+                    dc.w     $0E0,$0D0,$0C0,$0B0,$0A0,$090,$080,$070,$060,$050,$040
                     dc.w     -1
 
 lbC001888:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
@@ -1072,14 +1079,14 @@ lbC001888:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     lea      background_pic+(82*40),a0
                     lea      lbL01DDD2,a1
                     moveq    #4,d0
-lbC0018C0:          move.l   a0,CUSTOM+BLTAPTH
+loop_copy_top:      move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(138*64)+20,CUSTOM+BLTSIZE
-                    WAIT_BLIT
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
+                    WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    lbC0018C0
+                    bne.b    loop_copy_top
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
@@ -1091,14 +1098,14 @@ lbC0018F4:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     lea      background_pic+(228*40),a0
                     lea      lbL01F4A2,a1
                     moveq    #4,d0
-lbC00192C:          move.l   a0,CUSTOM+BLTAPTH
+loop_copy_bot:      move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(28*64)+20,CUSTOM+BLTSIZE
-                    WAIT_BLIT
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
+                    WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    lbC00192C
+                    bne.b    loop_copy_bot
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
@@ -1110,18 +1117,18 @@ lbC001960:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     lea      background_pic+(108*40),a0
                     lea      lbL01E1E2,a1
                     moveq    #4,d0
-lbC001998:          move.l   a0,CUSTOM+BLTAPTH
+loop_copy_mid:      move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(28*64)+20,CUSTOM+BLTSIZE
-                    WAIT_BLIT
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
+                    WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    lbC001998
+                    bne.b    loop_copy_mid
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbC0019CC:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
+copy_bkgnd_pic:     move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     WAIT_BLIT
                     move.l   #$9F00000,CUSTOM+BLTCON0
                     move.l   #-1,CUSTOM+BLTAFWM
@@ -1129,20 +1136,20 @@ lbC0019CC:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   #background_pic,CUSTOM+BLTAPTH
                     move.l   #bitplanes,CUSTOM+BLTDPTH
                     moveq    #4,d0
-lbC001A0C:          move.w   #(256*64)+20,CUSTOM+BLTSIZE
+loop_copy:          move.w   #(256*64)+20,CUSTOM+BLTSIZE
                     WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    lbC001A0C
+                    bne.b    loop_copy
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbC001A7C:          lea      lbL007222(pc),a0
+disp_weapon_pic:    lea      lbL007222(pc),a0
                     move.l   #2560,d0
-lbC001A88:          clr.b    (a0)+
+.clear_dest:        clr.b    (a0)+
                     subq.w   #1,d0
-                    bne.b    lbC001A88
-                    lea      lbL001B8E(pc),a0
-                    move.l   lbL00716E(pc),d0
+                    bne.b    .clear_dest
+                    lea      weapons_pic_table(pc),a0
+                    move.l   current_weapon(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   0(a0,d0.l),a0
@@ -1155,14 +1162,14 @@ lbC001A88:          clr.b    (a0)+
                     clr.w    CUSTOM+BLTBMOD
                     move.w   #$14,CUSTOM+BLTAMOD
                     moveq    #4,d0
-lbC001ADC:          move.l   a0,CUSTOM+BLTAPTH
+loop_clear_w:       move.l   a0,CUSTOM+BLTAPTH
                     move.l   #lbL007222,CUSTOM+BLTDPTH
                     move.l   #lbL007222,CUSTOM+BLTBPTH
                     move.w   #(88*64)+10,CUSTOM+BLTSIZE
-                    WAIT_BLIT
                     add.l    #(264*40),a0
+                    WAIT_BLIT
                     subq.w   #1,d0
-                    bne.b    lbC001ADC
+                    bne.b    loop_clear_w
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   #-1,CUSTOM+BLTAFWM
@@ -1172,20 +1179,20 @@ lbC001ADC:          move.l   a0,CUSTOM+BLTAPTH
                     move.w   #20,CUSTOM+BLTCMOD
                     clr.w    CUSTOM+BLTBMOD
                     moveq    #4,d0
-lbC001B4C:          move.l   a0,CUSTOM+BLTAPTH
+loop_disp_w:        move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.l   a1,CUSTOM+BLTCPTH
                     move.l   #lbL007222,CUSTOM+BLTBPTH
                     move.w   #(88*64)+10,CUSTOM+BLTSIZE
-                    WAIT_BLIT
                     add.l    #(264*40),a0
                     add.l    #(256*40),a1
+                    WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    lbC001B4C
+                    bne.b    loop_disp_w
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbL001B8E:          dc.l     weapons_pic+(176*40)
+weapons_pic_table:  dc.l     weapons_pic+(176*40)
                     dc.l     weapons_pic
                     dc.l     weapons_pic+20
                     dc.l     weapons_pic+(176*40)+20
@@ -1193,23 +1200,24 @@ lbL001B8E:          dc.l     weapons_pic+(176*40)
                     dc.l     weapons_pic+(88*40)
 
 lbC001BA6:          move.l   #copperlist_main,CUSTOM+COP1LCH
-                    bsr      lbC0019CC
-                    lea      lbW0020CC(pc),a0
+                    bsr      copy_bkgnd_pic
+                    lea      caret_position_dat(pc),a0
                     bsr      lbC001FB0
-                    lea      lbW0020CC(pc),a0
-                    bra      lbC001FE6
+                    lea      caret_position_dat(pc),a0
+                    bra      disp_caret
 
-lbC001BCA:          lea      lbW0020CC(pc),a0
+lbC001BCA:          lea      caret_position_dat(pc),a0
                     move.w   #-16,(a0)
                     move.w   #-16,2(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
 
-lbC001BE0:          move.l   cur_credits(pc),a0
+display_credit_limit:
+                    move.l   cur_credits(pc),a0
                     move.l   (a0),d0
                     divu     #50,d0
                     move.l   d0,number_to_display
-                    bsr      lbC001C14
-                    lea      lbL001CFE(pc),a0
+                    bsr      construct_credit_limit_ascii
+                    lea      number_ascii_block(pc),a0
                     lea      text_credit_limit(pc),a1
                     move.b   (a0)+,(a1)+
                     move.b   (a0)+,(a1)+
@@ -1221,20 +1229,21 @@ lbC001BE0:          move.l   cur_credits(pc),a0
                     move.b   (a0)+,(a1)+
                     rts
 
-lbC001C14:          lea      lbL001CFE(pc),a2
+construct_credit_limit_ascii:
+                    lea      number_ascii_block(pc),a2
                     moveq    #32,d7
-lbC001C20:          clr.b    (a2)+
+.clear_loop:        clr.b    (a2)+
                     subq.w   #1,d7
-                    bne.b    lbC001C20
+                    bne.b    .clear_loop
                     move.l   number_to_display(pc),d0
-                    lea      lbL001CFE(pc),a0
+                    lea      number_ascii_block(pc),a0
                     lea      decimal_table(pc),a1
                     cmp.l    #$3B9AC9FF,d0
-                    bhi.b    lbC001CA2
-                    clr.l    lbL001CF6
+                    bhi.b    max_credit
+                    clr.l    leading_zeroes_flag
                     moveq    #'0',d2
 lbC001C4E:          tst.l    (a1)
-                    beq.b    lbC001CBC
+                    beq.b    credit_footer
                     move.l   (a1),d1
                     sub.l    d1,d0
                     addq.b   #1,d2
@@ -1244,23 +1253,23 @@ lbC001C4E:          tst.l    (a1)
                     add.l    d1,d0
                     subq.l   #1,d2
 lbC001C76:          addq.l   #4,a1
-                    tst.b    lbL001CF6
+                    tst.b    leading_zeroes_flag
                     bne.b    lbC001C8E
                     cmp.b    #'0',d2
                     beq.b    lbC001C98
 lbC001C8E:          move.b   d2,(a0)+
-                    move.b   #1,lbL001CF6
+                    move.b   #1,leading_zeroes_flag
 lbC001C98:          moveq    #'0',d2
                     bra.b    lbC001C4E
 
-lbC001CA2:          move.l   #'9999',(a0)
+max_credit:         move.l   #'9999',(a0)
                     move.l   #'9999',4(a0)
                     move.b   #'9',8(a0)
                     add.l    #9,a0
-lbC001CBC:          move.b   #' ',(a0)+
+credit_footer:      move.b   #' ',(a0)+
                     move.b   #'C',(a0)+
                     move.b   #'R',(a0)+
-                    move.b   #$FF,(a0)
+                    move.b   #-1,(a0)
                     rts
 
 decimal_table:      dc.l     100000000
@@ -1273,24 +1282,26 @@ decimal_table:      dc.l     100000000
                     dc.l     10
                     dc.l     1
                     dc.l     0
-lbL001CF6:          dc.l     0
+leading_zeroes_flag:
+                    dc.l     0
 number_to_display:  dc.l     0
-lbL001CFE:          dcb.l    80,0
+number_ascii_block: dcb.l    80,0
 
-lbC001E3E:          lea      lbL001CFE(pc),a2
+construct_number_ascii:
+                    lea      number_ascii_block(pc),a2
                     moveq    #32,d7
-lbC001E4A:          clr.b    (a2)+
+.clear_loop:        clr.b    (a2)+
                     subq.w   #1,d7
-                    bne.b    lbC001E4A
+                    bne.b    .clear_loop
                     move.l   number_to_display(pc),d0
-                    lea      lbL001CFE(pc),a0
+                    lea      number_ascii_block(pc),a0
                     lea      decimal_table(pc),a1
                     cmp.l    #$3B9AC9FF,d0
                     bhi.b    lbC001ECC
-                    clr.l    lbL001CF6
+                    clr.l    leading_zeroes_flag
                     moveq    #'0',d2
 lbC001E78:          tst.l    (a1)
-                    beq.b    lbC001EE6
+                    beq.b    pad_text
                     move.l   (a1),d1
                     sub.l    d1,d0
                     addq.b   #1,d2
@@ -1300,12 +1311,12 @@ lbC001E78:          tst.l    (a1)
                     add.l    d1,d0
                     subq.l   #1,d2
 lbC001EA0:          add.l    #4,a1
-                    tst.b    lbL001CF6
+                    tst.b    leading_zeroes_flag
                     bne.b    lbC001EB8
                     cmp.b    #'0',d2
                     beq.b    lbC001EC2
 lbC001EB8:          move.b   d2,(a0)+
-                    move.b   #1,lbL001CF6
+                    move.b   #1,leading_zeroes_flag
 lbC001EC2:          moveq    #'0',d2
                     bra.b    lbC001E78
 
@@ -1313,32 +1324,32 @@ lbC001ECC:          move.l   #'9999',(a0)
                     move.l   #'9999',4(a0)
                     move.b   #'9',8(a0)
                     add.l    #9,a0
-lbC001EE6:          tst.b    (a0)
-                    beq      lbC00180E
+pad_text:           tst.b    (a0)
+                    beq      return
                     move.b   #0,(a0)+
-                    bra      lbC001EE6
+                    bra      pad_text
 
-lbC001EF4:          move.l   gameport_register(pc),a0
+change_weapon:      move.l   gameport_register(pc),a0
                     move.w   (a0),d1
                     moveq    #0,d0
                     and.w    #$303,d1
                     cmp.w    #$300,d1
-                    bne.b    lbC001F26
+                    bne.b    .prev_weapon
                     move.l   #1,d0
-                    subq.l   #1,lbL00716E
-                    tst.l    lbL00716E
-                    bpl.b    lbC001F26
-                    move.l   #5,lbL00716E
-lbC001F26:          cmp.w    #3,d1
-                    bne.b    lbC001F4A
+                    subq.l   #1,current_weapon
+                    tst.l    current_weapon
+                    bpl.b    .prev_weapon
+                    move.l   #5,current_weapon
+.prev_weapon:       cmp.w    #3,d1
+                    bne.b    .next_weapon
                     move.l   #1,d0
-                    addq.l   #1,lbL00716E
-                    cmp.l    #6,lbL00716E
-                    bmi.b    lbC001F4A
-                    clr.l    lbL00716E
-lbC001F4A:          rts
+                    addq.l   #1,current_weapon
+                    cmp.l    #6,current_weapon
+                    bmi.b    .next_weapon
+                    clr.l    current_weapon
+.next_weapon:       rts
 
-lbC001F4C:          move.l   lbL00716E(pc),d0
+disp_weapon_name:   move.l   current_weapon(pc),d0
                     add.l    d0,d0
                     add.l    d0,d0
                     lea      table_text_weapons(pc),a0
@@ -1346,9 +1357,9 @@ lbC001F4C:          move.l   lbL00716E(pc),d0
                     lea      font_struct(pc),a1
                     bra      display_text
 
-lbC001F6C:          bsr      lbC001888
-                    bsr      lbC001A7C
-                    bsr      lbC001F4C
+disp_weapon:        bsr      lbC001888
+                    bsr      disp_weapon_pic
+                    bsr      disp_weapon_name
                     ; no rts
 
 lbC001F7E:          move.l   gameport_register(pc),a0
@@ -1358,11 +1369,11 @@ lbC001F7E:          move.l   gameport_register(pc),a0
                     bne.b    lbC001F7E
                     bra      lbC000BD4
 
-lbC001F96:          cmp.b    #255,CUSTOM+VHPOSR
-                    bne.b    lbC001F96
-lbC001FA0:          cmp.b    #44,CUSTOM+VHPOSR
-                    bne.b    lbC001FA0
-                    bra      lbC001810
+flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
+                    bne.b    flash_caret
+.wait:              cmp.b    #44,CUSTOM+VHPOSR
+                    bne.b    .wait
+                    bra      change_caret_color
 
 lbC001FB0:          tst.l    16(a0)
                     bne.b    lbC001FD2
@@ -1381,7 +1392,7 @@ lbC001FD2:          move.l   16(a0),a1
                     move.l   (a1),d0
                     bra.b    lbC001FBA
 
-lbC001FE6:          move.l   8(a0),a1
+disp_caret:         move.l   8(a0),a1
                     tst.l    16(a0)
                     bne      lbC00207E
 lbC001FF2:          and.w    #$80,14(a1)
@@ -1440,9 +1451,9 @@ lbC00208A:          move.l   $14(a0),a2
 lbC0020A8:          move.l   16(a0),20(a0)
                     bra.b    lbC00208A
 
-lbW0020CC:          dc.w     -16
-lbW0020CE:          dc.w     -16,11,0
-                    dc.l     lbW0070FC
+caret_position_dat: dc.w     -16
+caret_position_y:   dc.w     -16,11,0
+                    dc.l     copper_caret_sprite
                     dc.l     lbW0020E8
                     dcb.w    6,0
 lbW0020E8:          dcb.w    22,-256
@@ -1494,10 +1505,10 @@ lbC002292:          move.l   $20(a1),a3
                     move.l   #letter_buffer,BLTDPTH(a6)
                     move.w   #2,BLTDMOD(a6)
                     move.w   #(16*64)+1,BLTSIZE(a6)
-                    WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   28(a1),d5
                     move.l   #letter_buffer,d4
+                    WAIT_BLIT
                     move.l   #-1,BLTAFWM(a6)
                     move.l   #$DFC0000,BLTCON0(a6)
                     move.l   24(a1),d6
@@ -1544,11 +1555,11 @@ lbC002372:
                     bne.b    lbC002372
 
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbW0020CC(pc),a0
+                    lea      caret_position_dat(pc),a0
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
                     subq.w   #1,2(a0)
-                    bsr      lbC001FE6
+                    bsr      disp_caret
                     addq.w   #1,lbW00240C
                     cmp.w    #3,lbW00240C
                     bne.b    lbC0023CE
@@ -1556,7 +1567,7 @@ lbC002372:
                     bsr      lbC000BF2
 lbC0023CE:          not.w    lbW00240A
                     beq.b    lbC0023DC
-                    bsr      lbC001F96
+                    bsr      flash_caret
 lbC0023DC:          movem.l  (sp)+,d0-d7/a0-a6
 lbC0023E0:          
                     add.l    16(a1),d0
@@ -1568,9 +1579,11 @@ lbC0023E0:
                     add.l    20(a1),d1
                     bra      lbC002224
 
-lbC0023FA:          lea      lbW0020CC(pc),a0
+lbC0023FA:          lea      caret_position_dat(pc),a0
                     add.w    #12,(a0)
-                    bra      lbC001FE6
+                    bra      disp_caret
+
+; -----------------------------------------------------
 
 lbW00240A:          dc.w     0
 lbW00240C:          dc.w     0
@@ -2196,25 +2209,26 @@ copperlist_main:    dc.w     SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0,SPR1PTH,0,S
                     dc.w     COLOR00,0
                     dc.w     BPLCON0,$5200
                     dc.w     DIWSTRT
-lbW006FB6:          dc.w     $2C81
+diwstrt:            dc.w     $2C81
                     dc.w     DIWSTOP
-lbW006FBA:          dc.w     $2CC1
+diwstop:            dc.w     $2CC1
                     dc.w     DDFSTRT,$38,DDFSTOP,$D0
                     dc.w     BPL1MOD,0,BPL2MOD,0
                     dc.w     BPLCON2,$24
                     dc.w     BPLCON1,0
-lbW006FD4:          dc.w     DMACON,DMAF_SETCLR|DMAF_SPRITE
+sprites_dmacon:     dc.w     DMACON,DMAF_SETCLR|DMAF_SPRITE
                     dc.w     COLOR00
 copper_palette:     dc.w     0
                     dc.w     COLOR01,0,COLOR02,0,COLOR03,0,COLOR04,0,COLOR05,0,COLOR06,0,COLOR07,0
                     dc.w     COLOR08,0,COLOR09,0,COLOR10,0,COLOR11,0,COLOR12,0,COLOR13,0,COLOR14,0
                     dc.w     COLOR15
-lbW007016:          dc.w     0
+copper_color_15:    dc.w     0
                     dc.w     COLOR16,$555,COLOR17,$565,COLOR18,$575,COLOR19,$585,COLOR20,$595,COLOR21,$5A5,COLOR22,$5B5,COLOR23,$5C5
                     dc.w     COLOR24,$5D5,COLOR25,$5E5,COLOR26,$5F5,COLOR27,$5F5,COLOR28,$5F5,COLOR29,$5F5,COLOR30,$FFF
                     dc.w     COLOR31
-lbW007056:          dc.w     0
-lbW007058:          dc.w     BPL1PTH,0,BPL1PTL,0
+copper_caret_color_up:
+                    dc.w     0
+copper_bitplanes:   dc.w     BPL1PTH,0,BPL1PTL,0
                     dc.w     BPL2PTH,0,BPL2PTL,0
                     dc.w     BPL3PTH,0,BPL3PTL,0
                     dc.w     BPL4PTH,0,BPL4PTL,0
@@ -2224,7 +2238,8 @@ lbW007058:          dc.w     BPL1PTH,0,BPL1PTL,0
                     dc.w     SPR2PTH,0,SPR2PTL,0,SPR2POS,0,SPR2CTL,0,SPR3PTH,0,SPR3PTL,0,SPR3POS,0,SPR3CTL,0
                     dc.w     SPR4PTH,0,SPR4PTL,0,SPR4POS,0,SPR4CTL,0,SPR5PTH,0,SPR5PTL,0,SPR5POS,0,SPR5CTL,0
                     dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0
-lbW0070FC:          dc.w     SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
+copper_caret_sprite:
+                    dc.w     SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
 lbW00710C:          dc.w     $FFFF,$FFFE
                     dc.w     $2C01,$FF00,COLOR15,$D0
                     dc.w     $5C01,$FF00,COLOR15,$2F2
@@ -2232,7 +2247,8 @@ lbW00710C:          dc.w     $FFFF,$FFFE
                     dc.w     $8A01,$FF00,COLOR15,$4F4
                     dc.w     $9601,$FF00,COLOR15,$1F1
                     dc.w     $9A01,$FF00,COLOR15
-lbW00713E:          dc.w     0
+copper_caret_color_down:
+                    dc.w     0
                     dc.w     $FF01,$FF00,COLOR15,$2F2
                     dc.w     $FFFF,$FFFE
 
@@ -2241,11 +2257,11 @@ lbW00713E:          dc.w     0
 sound_routine:      dc.l     0
 schedule_sample_to_play:
                     dc.l     0
-lbL00715E:          dc.l     0
-lbL007162:          dc.l     0
+player_pos_x:       dc.l     0
+player_pos_y:       dc.l     0
 briefing_text:      dc.l     0
 cur_map_top:        dc.l     0
-lbL00716E:          dc.l     0
+current_weapon:     dc.l     0
 gameport_register:  dc.l     0
 key_pressed:        dc.l     0
 owned_weapons:      dc.l     0
