@@ -7,6 +7,7 @@ I made a few changes to the original game:
 
 - Removed the cheat codes and added a debug mode.
 - Fixed the bug in level 6 (taking the evil smiley isn't necessary to reach exit anymore).
+- Fixed a couple of bugs in the Intex system.
 
 Note that the blocking bug on deck 8 was fixed in this version and it uses CD32 pad buttons for the various inputs.
 
