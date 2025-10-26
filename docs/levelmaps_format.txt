@@ -174,7 +174,7 @@ Maps files format:
                 0x35: players starting position
                 0x36: used in level 12 for the last boss,
                       the game throws a random number and the tile have 37,5% chance of making the boss to stop.
-                      Otherwise, no effect.
+                      otherwise, no effect.
                 0x37: climb (players slower when coming from below)
 
                         up floor
@@ -229,7 +229,7 @@ Maps files format:
 Map files associations:
 -----------------------
 
-LxMA are the maps.
+LxMA are the maps data.
 LxAN are the animated tiles (320x144x5).
 LxBO are the bobs (320x384x5).
 LxBM are the background tiles (16x16x5x480 (480 tiles, that is)).

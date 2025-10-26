@@ -281,7 +281,7 @@ loop_from_gameover: jsr      run_menu
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -301,7 +301,7 @@ level_2:            move.l   #level_2,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -320,7 +320,7 @@ level_2:            move.l   #level_2,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -343,7 +343,7 @@ level_4:            move.l   #level_4,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -362,7 +362,7 @@ level_4:            move.l   #level_4,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -382,7 +382,7 @@ level_6:            move.l   #level_6,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -401,7 +401,7 @@ level_7:            jsr      check_level_destruction
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -422,7 +422,7 @@ level_8:            move.l   #level_8,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -442,7 +442,7 @@ level_8:            move.l   #level_8,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -462,7 +462,7 @@ level_10:           move.l   #level_10,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -481,7 +481,7 @@ level_10:           move.l   #level_10,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -500,7 +500,7 @@ level_10:           move.l   #level_10,cur_level
                     jsr      hold_briefing_screen
                     jsr      lbC01208A
                     jsr      set_destruction_timer
-                    jsr      lbC0100C0
+                    ;jsr      lbC0100C0
                     jsr      init_level_variables
                     bsr      lbC006B94
                     jsr      lbC00A61C
@@ -633,15 +633,15 @@ lbC0010B2:          clr.w    lbW0004C2
 set_player_cur_weapon:
                     moveq    #0,d1
                     move.l   PLAYER_CUR_WEAPON(a0),d0
-lbC001162:          cmp.w    #WEAPON_MAX,d0
-                    bpl.b    lbC00117E
+.loop:              cmp.w    #WEAPON_MAX,d0
+                    bpl.b    .max
                     addq.w   #1,d0
                     move.w   PLAYER_OWNEDWEAPONS(a0),d1
                     btst     d0,d1
                     bne      void
                     add.l    #14,(a1)
-                    bra.b    lbC001162
-lbC00117E:          clr.l    (a1)
+                    bra.b    .loop
+.max:               clr.l    (a1)
                     rts
 
 set_players_startup_weapons:
@@ -826,7 +826,7 @@ lev3irq:            movem.l  d0-d7/a0-a6,-(sp)
                     bne      copper_int
                     btst     #5,CUSTOM+INTREQR+1
                     beq      vblank_int
-                    st       lbB022C32
+                    ;st       lbB022C32
                     not.w    frame_flipflop
                     beq.b    lbC0014E8
                     move.w   #-1,lbW0004B4
@@ -1645,7 +1645,7 @@ lbC003878:          bsr      lbC003832
                     jsr      lbC0111FA
                     jsr      lbC005990
                     jsr      scroll_map
-                    lea      lbW02276A,a0
+                    lea      palette_white,a0
                     move.l   cur_palette_ptr(pc),a1
                     lea      copper_main_palette,a2
                     moveq    #32,d0
@@ -1987,10 +1987,10 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    #12348,a1
                     add.l    #12348,a2
                     add.l    #12348,a3
+                    WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
@@ -1998,10 +1998,10 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    #12348,a1
                     add.l    #12348,a2
                     add.l    #12348,a3
+                    WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
@@ -2009,10 +2009,10 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    #12348,a1
                     add.l    #12348,a2
                     add.l    #12348,a3
+                    WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
@@ -2020,10 +2020,10 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    #12348,a1
                     add.l    #12348,a2
                     add.l    #12348,a3
+                    WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
@@ -3513,7 +3513,7 @@ lbC0059D0:          move.l   d1,d0
                     lea      lbW005C0C(pc),a2
                     lea      lbW005BCC(pc),a3
 lbC0059DE:          subq.w   #2,d0
-                    cmp.b    #$FF,lbW09A294
+                    cmp.b    #-1,lbW09A294
                     beq      lbC0059FA
                     move.b   lbW09A298,d1
                     ext.l    d1
@@ -5041,7 +5041,7 @@ lbC007B98:          moveq    #0,d0
                     move.w   d6,d0
                     move.w   d7,d1
                     add.w    #10,d0
-                    add.w    #6,d1
+                    addq.w   #6,d1
                     lsr.w    #4,d0
                     lsr.w    #4,d1
                     add.w    d0,d0
@@ -5509,7 +5509,7 @@ tile_start_destruction:
                     bne      void
 lbC008424:          move.w   #1,lbW0004D8
                     move.w   #1,self_destruct_initiated
-                    move.l   #$7D00,lbL01FDAA
+                    move.l   #32000,lbL01FDAA
                     and.w    #$FFC0,lbW062366
                     and.w    #$FFC0,lbW062368
                     and.w    #$FFC0,lbW062460
@@ -5620,7 +5620,7 @@ tile_one_deadly_way_left:
                     tst.w    lbW007B46
                     beq.b    lbC008654
                     move.w   #-2,PLAYER_EXTRA_SPD_X(a0)
-lbC008654:          tst.w    $148(a0)
+lbC008654:          tst.w    328(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbW023156,a6
@@ -5919,7 +5919,7 @@ lbC008C8A:          movem.l  d0-d7/a0-a6,-(sp)
 lbW008C9A:          dc.w     0
 
 lbW008C9C:          dc.l     cur_alien1_dats
-                    dc.w     $798,$64,$FFFF,1,0,0,8
+                    dc.w     $798,$64,-1,1,0,0,8
                     dc.l     lbW012B44                  ; 18
                     dc.l     lbW012B40                  ; 22
                     dc.l     lbW008F14                  ; 26
@@ -5927,7 +5927,7 @@ lbW008C9C:          dc.l     cur_alien1_dats
 lbL008CCE:          dcb.l    10,0                       ; 48
 
 lbW008CF6:          dc.l     cur_alien2_dats
-                    dc.w     $798,$84,$FFFF,2,0,0,8
+                    dc.w     $798,$84,-1,2,0,0,8
                     dc.l     lbW012C60
                     dc.l     lbW012C5C
                     dc.l     lbW008F14
@@ -5936,7 +5936,7 @@ lbL008D2E:          dcb.l    8,0
                     dc.w     0
 
 lbW008D50:          dc.l     cur_alien3_dats
-                    dc.w     $798,$A4,$FFFF,2,0,0,8
+                    dc.w     $798,$A4,-1,2,0,0,8
                     dc.l     lbW012D7C
                     dc.l     lbW012D78
                     dc.l     lbW008F14
@@ -5944,7 +5944,7 @@ lbW008D50:          dc.l     cur_alien3_dats
                     dcb.w    8,0
 
 lbW008DAA:          dc.l     cur_alien4_dats
-                    dc.w     $798,$C4,$FFFF,1,0,0,8
+                    dc.w     $798,$C4,-1,1,0,0,8
                     dc.l     lbW012E98
                     dc.l     lbW012E94
                     dc.l     lbW008F14
@@ -5952,7 +5952,7 @@ lbW008DAA:          dc.l     cur_alien4_dats
                     dcb.w    8,0
 
 lbW008E04:          dc.l     cur_alien5_dats
-                    dc.w     $798,$E4,$FFFF,1,0,0,8
+                    dc.w     $798,$E4,-1,1,0,0,8
                     dc.l     lbW012FB4
                     dc.l     lbW012FB0
                     dc.l     lbW008F14
@@ -5960,7 +5960,7 @@ lbW008E04:          dc.l     cur_alien5_dats
                     dcb.w    8,0
 
 lbW008E5E:          dc.l     cur_alien6_dats
-                    dc.w     $798,$104,$FFFF,1,0,0,8
+                    dc.w     $798,$104,-1,1,0,0,8
                     dc.l     lbW0130D0
                     dc.l     lbW0130CC
                     dc.l     lbW008F14
@@ -5968,13 +5968,13 @@ lbW008E5E:          dc.l     cur_alien6_dats
                     dcb.w    8,0
 
 lbW008EB8:          dc.l     cur_alien7_dats
-                    dc.w     $798,$124,$FFFF,1,0,0,8
+                    dc.w     $798,$124,-1,1,0,0,8
                     dc.l     lbW0131EC
                     dc.l     lbW0131E8
                     dc.l     lbW008F14
                     dc.w     $154,$320,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
-                    dc.w     $FFFF
+                    dc.w     -1
 
 lbW008F14:          dc.l     lbC00987E
                     dcb.w    2,0
@@ -6016,7 +6016,6 @@ lbW009014:          dc.l     lbC009AFC
                     dc.l     lbL009564
                     dc.w     0,0,0,0,0,0,0,0,0,$40,$18,1,$28,$14,0,0,12,4,0,0
                     dc.w     10,9,9,9
-
 lbW009054:          dc.l     lbC00987E
                     dc.w     10,10,$14,$14
                     dc.l     lbL009634
@@ -6032,7 +6031,7 @@ lbW009094:          dc.l     lbC00987E
                     dc.l     lbW00A2D6
                     dc.l     lbW00A2E2
                     dc.l     lbW00A2EE
-                    dc.w     2,$1E,7,0,5,$14,$14,$14,$FFF8,6
+                    dc.w     2,$1E,7,0,5,$14,$14,$14,-8,6
                     dc.l     lbL01BC0A
                     dc.w     10,$14,9,$13
 lbW0090D4:          dc.l     lbC00987E
@@ -6054,13 +6053,11 @@ lbW009114:          dc.l     lbC009CE2
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW009154:          dc.l     lbC009C68
-                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5
-                    dc.w     $28,$32,$10,12,4
+                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5,$28,$32,$10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW009194:          dc.l     lbC009C68
-                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5
-                    dc.w     $28,$32,$10,12,4
+                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5,$28,$32,$10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW0091D4:          dc.l     lbC00987E
@@ -6086,17 +6083,15 @@ lbW009254:          dc.l     lbC009CE2
                     dc.l     lbW00A306
                     dc.l     lbW00A312
                     dc.l     lbW00A31E
-                    dc.w     4,$100,2,1,5,$FFF6,$32,10,12,4
+                    dc.w     4,$100,2,1,5,-10,$32,10,12,4
                     dc.l     lbW013890
                     dc.w     10,$13,9,$13
 lbW009294:          dc.l     lbC009C68
-                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,4,$200,10,1,5
-                    dc.w     $FFF6,$32,10,12,4
+                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,4,$200,10,1,5,-10,$32,10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW0092D4:          dc.l     lbC009C68
-                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5
-                    dc.w     $FFF6,$32,10,12,4
+                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,4,$100,10,1,5,-10,$32,10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW009314:          dc.l     lbC009CE2
@@ -6110,13 +6105,11 @@ lbW009314:          dc.l     lbC009CE2
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW009354:          dc.l     lbC009C68
-                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,5,$140,3,1,5
-                    dc.w     $FFF6,$32,10,12,4
+                    dc.w     $24,0,$10,$18,0,0,0,0,0,0,0,0,0,0,5,$140,3,1,5,-10,$32,10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
 lbW009394:          dc.l     lbC009C68
-                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,5,$140,3,1,5
-                    dc.w     $FFF6,$32,10,12,4
+                    dc.w     8,$24,$40,$33,0,0,0,0,0,0,0,0,0,0,5,$140,3,1,5,-10,$32,10,12,4
                     dc.l     lbW013890
                     dc.w     10,11,9,$13
                     dc.l     lbC00987E
@@ -6776,11 +6769,11 @@ lbC009CE2:          tst.w    lbL008D2E
                     beq.b    lbC009CF2
                     move.w   #1,56(a0)
 lbC009CF2:          tst.w    56(a0)
-                    beq.b    lbC009D0A
+                    beq.b    .engage
                     cmp.w    #1,boss_nbr                        ; trigger self destruct
-                    bne.b    lbC009D0A                          ; after having killed boss #1
+                    bne.b    .engage                          ; after having killed boss #1
                     move.w   #1,self_destruct_initiated
-lbC009D0A:          tst.w    8(a0)
+.engage:            tst.w    8(a0)
                     bmi      return
                     move.l   26(a0),a1
                     move.l   0(a0),a2
@@ -8594,7 +8587,7 @@ display_map_overview:
                     move.w   #1,lbW0004D0
                     move.w   #1,lbW010CDE
                     lea      copper_main_palette,a0
-                    lea      lbL0226EA,a1
+                    lea      palette_black,a1
                     bsr      lbC0108DA
                     move.l   #32,d0
                     bsr      lbC010AA4
@@ -8928,7 +8921,7 @@ run_intex:          tst.w    self_destruct_initiated
                     move.w   #13,sample_to_play
                     jsr      trigger_sample
                     lea      copper_main_palette,a0
-                    lea      lbL0226EA,a1
+                    lea      palette_black,a1
                     bsr      lbC0108DA
                     moveq    #32,d0
                     move.w   #1,lbW010CDE
@@ -9113,7 +9106,7 @@ do_level_destruction:
                     moveq    #12,d0
                     moveq    #3,d1
                     move.l   cur_palette_ptr,a0
-                    lea      lbW02276A,a1
+                    lea      palette_white,a1
                     lea      copper_main_palette,a2
                     move.w   #4,lbW010CDE
                     moveq    #32,d0
@@ -9126,13 +9119,13 @@ do_level_destruction:
                     jsr      wait
 
                     move.w   #DMAF_SPRITE,sprites_dma
-                    lea      lbW02276A,a0
+                    lea      palette_white,a0
                     lea.l    level_palette2,a1
                     lea      copper_main_palette,a2
                     move.w   #2,lbW010CDE
                     moveq    #32,d0
                     bsr      compute_palette_fading_directions
-                    lea      lbL0226EA,a0
+                    lea      palette_black,a0
                     bsr      lbC0108DA
                     moveq    #64,d0
                     jsr      clear_array_byte
@@ -9145,7 +9138,7 @@ lbC00DD6A:          move.w   d0,-(sp)
                     subq.w   #1,d0
                     bpl.b    lbC00DD6A
                     lea.l    level_palette2,a0
-                    lea      lbL0226EA,a1
+                    lea      palette_black,a1
                     bsr      lbC0108DA
                     lea      copper_main_palette,a2
                     move.w   #3,lbW010CDE
@@ -10099,7 +10092,7 @@ lbC00EE8A:          move.l   #$7D007D00,lbW013304
                     clr.w    lbW00E9C0
                     rts
 
-check_gameover:          tst.l    flag_jump_to_gameover
+check_gameover:     tst.l    flag_jump_to_gameover
                     bne.b    lbC00EF2A
                     lea      player_1_dats(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
@@ -10229,12 +10222,12 @@ exe_return_palette: dc.l     0
 select_briefing:    dc.w     0
 
 start_main_tune:    tst.w    music_enabled
-                    bne.b    lbC00F1AA
+                    bne.b    .not_enabled
                     jsr      stop_sound
                     bsr      load_main_tune
                     jsr      start_music
                     move.b   #8,bpdelay
-lbC00F1AA:          rts
+.not_enabled:       rts
 
 load_main_tune:     lea      soundmon_title,a0
                     lea      bpsong,a1
@@ -10330,7 +10323,7 @@ hold_briefing_screen:
                     move.l   exe_return_palette(pc),a0
                     lea      lbL02266A,a1
                     moveq    #32,d0
-                    jsr      lbC010F16
+                    jsr      copy_briefing_palette
                     move.w   #1000,d0
 wait_user_input_after_briefing:
                     bsr      wait_raster
@@ -10341,13 +10334,13 @@ wait_user_input_after_briefing:
                     subq.w   #1,d0
                     bne.b    wait_user_input_after_briefing
 lbC00F4A6:          lea      lbL02266A,a0
-                    lea      lbW02276A,a1
+                    lea      palette_white,a1
                     move.l   exe_return_palette(pc),a2
                     moveq    #32,d0
                     move.w   #2,lbW010CDE
                     bsr      compute_palette_fading_directions
                     jsr      wait
-lbC00F4D2:          lea      lbW02276A,a0
+lbC00F4D2:          lea      palette_white,a0
                     lea      copper_main_palette,a1
                     moveq    #32,d0
                     bsr      copy_palette_to_copper
@@ -10381,7 +10374,7 @@ lbC00F57A:          move.w   (a0)+,(a1)+
                     rts
 
 lbC00F58E:          lea      copper_main_palette,a0
-                    lea      lbL0226EA,a1
+                    lea      palette_black,a1
                     bsr      lbC0108DA
                     move.l   #32,d0
                     move.w   #1,lbW010CDE
@@ -10553,14 +10546,14 @@ display_letter:     move.l   32(a1),a3
                     move.l   #letter_buffer,BLTDPTH(a6)
                     move.w   #2,BLTDMOD(a6)
                     move.w   #(16*64)+1,BLTSIZE(a6)
-                    WAIT_BLIT
                     move.l   8(a1),d2
                     move.l   28(a1),d5
                     move.l   #letter_buffer,d4
-                    move.l   #-1,BLTAFWM(a6)
-                    move.l   #$DFC0000,BLTCON0(a6)
                     move.l   24(a1),d6
                     addq.w   #2,d6
+                    WAIT_BLIT
+                    move.l   #-1,BLTAFWM(a6)
+                    move.l   #$DFC0000,BLTCON0(a6)
                     move.w   d6,BLTAMOD(a6)
                     move.w   #2,BLTDMOD(a6)
                     move.w   #2,BLTBMOD(a6)
@@ -10692,26 +10685,16 @@ lbC00FBDE:          addq.l   #8,lbL00FC0E
                     rts
 
 lbL00FC0E:          dc.l    lbL00FC12
-lbL00FC12:          dc.l    lbC00FC68
-                    dc.l    lbL099B34
-                    dc.l    lbC00FC84
-                    dc.l    lbL099B34
-                    dc.l    lbC00FCA0
-                    dc.l    lbL099B34
-                    dc.l    lbC00FCC6
-                    dc.l    lbL099B34
-                    dc.l    lbC00FCEC
-                    dc.l    lbL099B34
-                    dc.l    lbC00FD12
-                    dc.l    lbL099D94
-                    dc.l    lbC00FD2E
-                    dc.l    lbL099D94
-                    dc.l    lbC00FD48
-                    dc.l    lbL099D94
-                    dc.l    lbC00FD6C
-                    dc.l    lbL099D94
-                    dc.l    lbC00FD92
-                    dc.l    lbL099D94
+lbL00FC12:          dc.l    lbC00FC68,lbL099B34
+                    dc.l    lbC00FC84,lbL099B34
+                    dc.l    lbC00FCA0,lbL099B34
+                    dc.l    lbC00FCC6,lbL099B34
+                    dc.l    lbC00FCEC,lbL099B34
+                    dc.l    lbC00FD12,lbL099D94
+                    dc.l    lbC00FD2E,lbL099D94
+                    dc.l    lbC00FD48,lbL099D94
+                    dc.l    lbC00FD6C,lbL099D94
+                    dc.l    lbC00FD92,lbL099D94
                     dc.l    -1
 
 lbC00FC68:          lea      lbL00FDEC(pc),a0
@@ -10870,7 +10853,7 @@ lbC00FEB0:          move.l   lbL00FEAC(pc),a1
                     and.w    #7,d0
                     moveq    #7,d2
                     sub.w    d0,d2
-                    move.b   #$FF,d4
+                    move.b   #%11111111,d4
                     bclr     d2,d4
                     add.l    d1,a1
                     and.b    d4,0(a1)
@@ -10910,7 +10893,7 @@ lbC00FF30:          move.l   d0,d1
                     and.w    #7,d0
                     moveq    #7,d2
                     sub.w    d0,d2
-                    move.b   #$FF,d4
+                    move.b   #%11111111,d4
                     bclr     d2,d4
                     add.l    d1,a1
                     and.b    d4,0(a1)
@@ -10936,17 +10919,17 @@ lbW00FF66:          dcb.w    12,0
                     dc.w     $FFC0
 
 set_bps:            move.l   a0,d2
-lbC0100AA:          move.w   d2,6(a1)
+.loop:              move.w   d2,6(a1)
                     swap     d2
                     move.w   d2,2(a1)
                     swap     d2
                     addq.l   #8,a1
                     add.l    d0,d2
                     subq.w   #1,d1
-                    bne.b    lbC0100AA
+                    bne.b    .loop
                     rts
 
-lbC0100C0:          rts
+;lbC0100C0:          rts
 
 set_blank_copper:   move.l   #copper_blank,CUSTOM+COP1LCH
                     move.l   #$200,CUSTOM+BPLCON0
@@ -11150,7 +11133,7 @@ lbC010552:          cmp.l    508(a0),d2
                     move.b   (a1)+,d2
                     subq.b   #1,d2
 lbC010566:          move.b   (a1)+,d0
-                    bsr.b    lbC0105E2
+                    bsr.b    letter_to_upper
                     cmp.b    (a2)+,d0
                     dbne     d2,lbC010566
                     bne.b    lbC010576
@@ -11196,12 +11179,12 @@ lbC0105AE:          move.l   a4,a0
 lbC0105DE:          rts
 
 lbC0105E0:          move.b   (a0)+,d0
-lbC0105E2:          cmp.b    #'a',d0
-                    blt.b    lbC0105F2
+letter_to_upper:    cmp.b    #'a',d0
+                    blt.b    .lower
                     cmp.b    #'z',d0
-                    bgt.b    lbC0105F2
+                    bgt.b    .lower
                     and.b    #$DF,d0
-lbC0105F2:          tst.b    d0
+.lower:             tst.b    d0
                     rts
 
 lbC0105F6:          movem.l  d1/a0/a1,-(sp)
@@ -11220,7 +11203,7 @@ lbC010614:          tst.l    d1
                     beq.b    lbC010642
 lbC010618:          mulu     #13,d1
                     move.b   (a0)+,d0
-                    bsr.b    lbC0105E2
+                    bsr.b    letter_to_upper
                     move.b   d0,(a1)+
                     add.w    d0,d1
                     and.l    #$7FF,d1
@@ -11254,11 +11237,11 @@ lbC01064A:          move.w   #880,d1
 lbC010670:          rts
 
 lbC010672:          bsr.b    lbC0106C6
-                    bne.b    lbC010680
+                    bne.b    checksum_correct
 lbC010676:          bsr.b    calc_checksum
-                    beq.b    lbC010680
+                    beq.b    checksum_correct
                     move.l   #405,d0
-lbC010680:          rts
+checksum_correct:   rts
 
 calc_checksum:      movem.l  d1/a0,-(sp)
                     moveq    #0,d0
@@ -11452,10 +11435,10 @@ lbC0108D4:          bra      lbC010ECE
 
 lbC0108DA:          movem.l  d0/a0,-(sp)
                     moveq    #32,d0
-                    lea      lbL0226EA,a0
-lbC0108EA:          clr.w    (a0)+
+                    lea      palette_black,a0
+.loop:              clr.w    (a0)+
                     subq.w   #1,d0
-                    bne.b    lbC0108EA
+                    bne.b    .loop
                     movem.l  (sp)+,d0/a0
                     rts
 
@@ -11764,16 +11747,16 @@ lbC010ECE:          lea      copper_main_palette,a0
 
 clear_array_byte:   move.l   d1,-(sp)
                     moveq    #0,d1
-lbC00F9C4:          move.b   d1,(a0)+
+.loop:              move.b   d1,(a0)+
                     subq.l   #1,d0
-                    bne.b    lbC00F9C4
+                    bne.b    .loop
                     move.l   (sp)+,d1
                     rts
 
 clear_array_long:   lsr.l    #2,d0
-lbC010EFC:          clr.l    (a0)+
+.loop:              clr.l    (a0)+
                     subq.l   #1,d0
-                    bne.b    lbC010EFC
+                    bne.b    .loop
                     rts
 
 copy_byte_array:    move.b   (a0)+,(a1)+
@@ -11781,10 +11764,11 @@ copy_byte_array:    move.b   (a0)+,(a1)+
                     bne.b    copy_byte_array
                     rts
 
-lbC010F16:          move.w   2(a0),(a1)+
+copy_briefing_palette:
+                    move.w   2(a0),(a1)+
                     addq.l   #4,a0
                     subq.w   #1,d0
-                    bne.b    lbC010F16
+                    bne.b    copy_briefing_palette
                     rts
 
 display_status_bars:
@@ -12191,8 +12175,8 @@ lbC0117A8:          move.l   a0,BLTAPTH(a6)
                     move.l   a1,BLTBPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d2,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    d3,a0
+                    WAIT_BLIT
                     subq.b   #1,d0
                     bne.b    lbC0117A8
                     move.w   #DMAF_BLITHOG,DMACON(a6)
@@ -12306,8 +12290,8 @@ lbC011936:          moveq    #0,d2
                     exg      d0,d1
                     moveq    #70,d2
 lbC011962:          
-                    WAIT_BLIT
                     lea      lbL0113BC(pc),a5
+                    WAIT_BLIT
                     lea      CUSTOM,a6
                     move.w   #DMAF_SETCLR|DMAF_BLITHOG,DMACON(a6)
                     move.l   #-1,BLTAFWM(a6)
@@ -12336,27 +12320,27 @@ lbC0119A0:          move.l   (a0)+,a2
 lbC0119D6:          move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
@@ -12377,27 +12361,27 @@ lbC011A54:          clr.l    16(a2)
 lbC011A90:          move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT2
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT2
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT2
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,d6
                     add.l    d3,d7
+                    WAIT_BLIT2
                     move.l   d7,BLTAPTH(a6)
                     move.l   d6,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
@@ -12554,11 +12538,11 @@ lbC011CE2:          tst.w    (a2)
 lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
-                    tst.w    d6
+                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   d5,d6
                     and.w    #$FFC0,d6
-                    tst.w    d6
+                    ;tst.w    d6
                     beq      lbC011DEC
                     move.l   a1,16(a2)
                     move.w   0(a2),d6
@@ -12579,33 +12563,33 @@ lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     move.l   d1,BLTBPTH(a6)
                     move.l   a4,BLTAPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   a1,BLTCPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.l   d1,BLTBPTH(a6)
                     move.l   a4,BLTAPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   a1,BLTCPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.l   d1,BLTBPTH(a6)
                     move.l   a4,BLTAPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   a1,BLTCPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.l   d1,BLTBPTH(a6)
                     move.l   a4,BLTAPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   a1,BLTCPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.l   d1,BLTBPTH(a6)
@@ -12749,11 +12733,11 @@ lbC011FB2:          tst.w    (a2)
 lbC011FC4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
-                    tst.w    d6
+                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   d5,d6
                     and.w    #$FFC0,d6
-                    tst.w    d6
+                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   38(a2),BLTDMOD(a6)
                     move.w   36(a2),BLTAMOD(a6)
@@ -12764,27 +12748,27 @@ lbC011FC4:          move.w   ALIEN_POS_X(a2),d5
                     move.l   d1,BLTAPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   d1,BLTAPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   d1,BLTAPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   d1,BLTAPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
-                    WAIT_BLIT2
                     add.l    d3,a1
                     add.l    d4,d1
+                    WAIT_BLIT2
                     move.l   d1,BLTAPTH(a6)
                     move.l   a1,BLTDPTH(a6)
                     move.w   d5,BLTSIZE(a6)
@@ -12960,50 +12944,50 @@ lbW012388:          dc.l     lbL014AB6
                     dcb.w    4,0
 lbW0123C2:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00,$80
+                    dc.w     32000,$80
 lbW01249C:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
                     dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    4,0
 lbW0124DE:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00,$80
+                    dc.w     32000,$80
 lbW0125B8:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
                     dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    4,0
 lbW0125FA:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00
+                    dc.w     32000
                     dc.w     $80
 lbW0126D4:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
                     dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    4,0
 lbW012716:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00,$80
+                    dc.w     32000,$80
 lbW0127F0:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
                     dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    4,0
 lbW012832:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00,$80
+                    dc.w     32000,$80
 lbW01290C:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
                     dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    4,0
 lbW01294E:          dcb.w    $3F,0
                     dcb.w    $2C,0
-                    dc.w     $7D00,$80
+                    dc.w     32000,$80
 lbW012A28:          dcb.w    2,0
-                    dcb.w    2,$FFFF
+                    dcb.w    2,-1
 lbW012A30:          dc.l     lbL014AB6
                     dc.w     $30,$20,0,0,0
 lbW012A3E:          dcb.w    $16,0
@@ -13095,9 +13079,9 @@ lbW013778:          dc.w     $21,0
                     dcb.w    $3F,0
                     dcb.w    $30,0
 lbW013890:          dc.l     lbW01389C
-                    dc.w     0,$7D00,$FFFF,$FFFF
+                    dc.w     0,32000,-1,-1
 lbW01389C:          dcb.w    2,0
-                    dc.w     $10,1,$7D00,$7D00
+                    dc.w     $10,1,32000,32000
                     dc.l     lbL1101C4
                     dc.l     aliens_sprites_block
                     dc.w     $28,0,$3C00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -13422,7 +13406,7 @@ lbL014672:          dc.l     lbL098E2C,4
                     dc.l     player_spr47_pic,4,-1,-1
 lbL01468A:          dc.l     lbL098E2C,4
                     dc.l     player_spr48_pic,4,-1,-1
-lbL0146A2:          dc.l     lbL098E2C,$7530,-1,-1
+lbL0146A2:          dc.l     lbL098E2C,30000,-1,-1
 
 lbL0146B2:          dc.l     lbL014DEA,0
                     dc.l     lbL014E1A,0
@@ -14125,7 +14109,7 @@ lbL018C2E:          dc.l     lbL0182CE,0
                     dc.l     lbL01853E,0
                     dc.l     lbL01856E,0
                     dc.l     lbL01859E,0
-                    dc.l     lbW01389C,$7D00
+                    dc.l     lbW01389C,32000
                     dc.l     -1
 lbL018CBA:          dc.l     lbL0185CE,0
                     dc.l     lbL0185FE,0
@@ -14135,7 +14119,7 @@ lbL018CBA:          dc.l     lbL0185CE,0
                     dc.l     lbL0186BE,0
                     dc.l     lbL0186EE,0
                     dc.l     lbL01871E,0
-lbL018CFA:          dc.l     lbW01389C,$7D00
+lbL018CFA:          dc.l     lbW01389C,32000
                     dc.l     -1
 lbL018D06:          dc.l     lbL0185CE,1
                     dc.l     lbL0185FE,1
@@ -14642,14 +14626,14 @@ lbL01B1FE:          dc.l     lbL0151AA,1
 lbL01B21A:          dc.l     lbL01520A,1
                     dc.l     lbL01523A,1
                     dc.l     lbL01520A,1,-1
-lbL01B236:          dc.l     lbL014DEA,$7D00,-1
-lbL01B242:          dc.l     lbL014E1A,$7D00,-1
-lbL01B24E:          dc.l     lbL014E4A,$7D00,-1
-lbL01B25A:          dc.l     lbL014E7A,$7D00,-1
-lbL01B266:          dc.l     lbL014EAA,$7D00,-1
-lbL01B272:          dc.l     lbL014EDA,$7D00,-1
-lbL01B27E:          dc.l     lbL014F0A,$7D00,-1
-lbL01B28A:          dc.l     lbL014F3A,$7D00,-1
+lbL01B236:          dc.l     lbL014DEA,32000,-1
+lbL01B242:          dc.l     lbL014E1A,32000,-1
+lbL01B24E:          dc.l     lbL014E4A,32000,-1
+lbL01B25A:          dc.l     lbL014E7A,32000,-1
+lbL01B266:          dc.l     lbL014EAA,32000,-1
+lbL01B272:          dc.l     lbL014EDA,32000,-1
+lbL01B27E:          dc.l     lbL014F0A,32000,-1
+lbL01B28A:          dc.l     lbL014F3A,32000,-1
 lbL01B296:          dc.l     lbL01526A,1
                     dc.l     lbL01529A,1
                     dc.l     lbL0152CA,1
@@ -14706,51 +14690,51 @@ lbL01B45E:          dc.l     lbL01592A,1
 lbL01B47A:          dc.l     lbL01598A,1
                     dc.l     lbL0159BA,1
                     dc.l     lbL01598A,1,-1
-lbL01B496:          dc.l     lbL01526A,$7D00,-1
-lbL01B4A2:          dc.l     lbL0152FA,$7D00,-1
-lbL01B4AE:          dc.l     lbL01538A,$7D00,-1
-lbL01B4BA:          dc.l     lbL01541A,$7D00,-1
-lbL01B4C6:          dc.l     lbL0154AA,$7D00,-1
-lbL01B4D2:          dc.l     lbL01553A,$7D00,-1
-lbL01B4DE:          dc.l     lbL0155CA,$7D00,-1
-lbL01B4EA:          dc.l     lbL01565A,$7D00,-1
-lbL01B4F6:          dc.l     lbL0159EA,$7D00,-1,0
-                    dc.l     lbL015A1A,$7D00,-1,0
-                    dc.l     lbL015A4A,$7D00,-1,0
-                    dc.l     lbL015A7A,$7D00,-1,0
-                    dc.l     lbL015AAA,$7D00,-1,0
-                    dc.l     lbL015ADA,$7D00,-1,0
-                    dc.l     lbL015B0A,$7D00,-1,0
-                    dc.l     lbL015B3A,$7D00,-1,0
-                    dc.l     lbL015B6A,$7D00,-1,0
-                    dc.l     lbL015B9A,$7D00,-1,0
-                    dc.l     lbL015BCA,$7D00,-1,0
-                    dc.l     lbL015C2A,$7D00,-1,0
-                    dc.l     lbL015BFA,$7D00,-1,0
-                    dc.l     lbL015C5A,$7D00,-1,0
-                    dc.l     lbL015C8A,$7D00,-1,0
-                    dc.l     lbL015CBA,$7D00,-1,0
-                    dc.l     lbL015CEA,$7D00,-1,0
-                    dc.l     lbL015D1A,$7D00,-1,0
-                    dc.l     lbL015D4A,$7D00,-1,0
-                    dc.l     lbL015D7A,$7D00,-1,0
-                    dc.l     lbL015DAA,$7D00,-1,0
-                    dc.l     lbL015DDA,$7D00,-1,0
-                    dc.l     lbL015E0A,$7D00,-1,0
-                    dc.l     lbL015E3A,$7D00,-1,0
-                    dc.l     lbL015E6A,$7D00,-1,0
-                    dc.l     lbL015CBA,$7D00,-1,0
-                    dc.l     lbL015ECA,$7D00,-1,0
-                    dc.l     lbL015EFA,$7D00,-1,0
-                    dc.l     lbL015F2A,$7D00,-1,0
-                    dc.l     lbL015F5A,$7D00,-1,0
-                    dc.l     lbL015F8A,$7D00,-1,0
-                    dc.l     lbL015FBA,$7D00,-1,0
+lbL01B496:          dc.l     lbL01526A,32000,-1
+lbL01B4A2:          dc.l     lbL0152FA,32000,-1
+lbL01B4AE:          dc.l     lbL01538A,32000,-1
+lbL01B4BA:          dc.l     lbL01541A,32000,-1
+lbL01B4C6:          dc.l     lbL0154AA,32000,-1
+lbL01B4D2:          dc.l     lbL01553A,32000,-1
+lbL01B4DE:          dc.l     lbL0155CA,32000,-1
+lbL01B4EA:          dc.l     lbL01565A,32000,-1
+lbL01B4F6:          dc.l     lbL0159EA,32000,-1,0
+                    dc.l     lbL015A1A,32000,-1,0
+                    dc.l     lbL015A4A,32000,-1,0
+                    dc.l     lbL015A7A,32000,-1,0
+                    dc.l     lbL015AAA,32000,-1,0
+                    dc.l     lbL015ADA,32000,-1,0
+                    dc.l     lbL015B0A,32000,-1,0
+                    dc.l     lbL015B3A,32000,-1,0
+                    dc.l     lbL015B6A,32000,-1,0
+                    dc.l     lbL015B9A,32000,-1,0
+                    dc.l     lbL015BCA,32000,-1,0
+                    dc.l     lbL015C2A,32000,-1,0
+                    dc.l     lbL015BFA,32000,-1,0
+                    dc.l     lbL015C5A,32000,-1,0
+                    dc.l     lbL015C8A,32000,-1,0
+                    dc.l     lbL015CBA,32000,-1,0
+                    dc.l     lbL015CEA,32000,-1,0
+                    dc.l     lbL015D1A,32000,-1,0
+                    dc.l     lbL015D4A,32000,-1,0
+                    dc.l     lbL015D7A,32000,-1,0
+                    dc.l     lbL015DAA,32000,-1,0
+                    dc.l     lbL015DDA,32000,-1,0
+                    dc.l     lbL015E0A,32000,-1,0
+                    dc.l     lbL015E3A,32000,-1,0
+                    dc.l     lbL015E6A,32000,-1,0
+                    dc.l     lbL015CBA,32000,-1,0
+                    dc.l     lbL015ECA,32000,-1,0
+                    dc.l     lbL015EFA,32000,-1,0
+                    dc.l     lbL015F2A,32000,-1,0
+                    dc.l     lbL015F5A,32000,-1,0
+                    dc.l     lbL015F8A,32000,-1,0
+                    dc.l     lbL015FBA,32000,-1,0
 lbL01B6F6:          dc.l     lbL015FEA,1
                     dc.l     lbL01601A,1
                     dc.l     lbL01604A,1
                     dc.l     lbL01607A,1
-                    dc.l     lbL014EAA,$7D00,-1
+                    dc.l     lbL014EAA,32000,-1
 lbL01B722:          dc.l     lbL014DEA,1
                     dc.l     lbL014E1A,1
                     dc.l     lbL014E4A,1
@@ -14807,14 +14791,14 @@ lbL01B8EA:          dc.l     lbL0154AA,1
 lbL01B906:          dc.l     lbL01550A,1
                     dc.l     lbL01553A,1
                     dc.l     lbL01550A,1,-1
-lbL01B922:          dc.l     lbL014E4A,$7D00,-1
-lbL01B92E:          dc.l     lbL014EDA,$7D00,-1
-lbL01B93A:          dc.l     lbL014F6A,$7D00,-1
-lbL01B946:          dc.l     lbL014FFA,$7D00,-1
-lbL01B952:          dc.l     lbL01508A,$7D00,-1
-lbL01B95E:          dc.l     lbL01511A,$7D00,-1
-lbL01B96A:          dc.l     lbL0151AA,$7D00,-1
-lbL01B976:          dc.l     lbL01523A,$7D00,-1
+lbL01B922:          dc.l     lbL014E4A,32000,-1
+lbL01B92E:          dc.l     lbL014EDA,32000,-1
+lbL01B93A:          dc.l     lbL014F6A,32000,-1
+lbL01B946:          dc.l     lbL014FFA,32000,-1
+lbL01B952:          dc.l     lbL01508A,32000,-1
+lbL01B95E:          dc.l     lbL01511A,32000,-1
+lbL01B96A:          dc.l     lbL0151AA,32000,-1
+lbL01B976:          dc.l     lbL01523A,32000,-1
 lbL01B982:          dc.l     lbL01556A,1
                     dc.l     lbL01559A,1
                     dc.l     lbL0155CA,1
@@ -14871,23 +14855,23 @@ lbL01BB4A:          dc.l     lbL015C2A,1
 lbL01BB66:          dc.l     lbL015C8A,1
                     dc.l     lbL015CBA,1
                     dc.l     lbL015C8A,1,-1
-lbL01BB82:          dc.l     lbL0155CA,$7D00,-1
-lbL01BB8E:          dc.l     lbL01565A,$7D00,-1
-lbL01BB9A:          dc.l     lbL0156EA,$7D00,-1
-lbL01BBA6:          dc.l     lbL01577A,$7D00,-1
-lbL01BBB2:          dc.l     lbL01580A,$7D00,-1
-lbL01BBBE:          dc.l     lbL01589A,$7D00,-1
-lbL01BBCA:          dc.l     lbL01592A,$7D00,-1
-lbL01BBD6:          dc.l     lbL0159BA,$7D00,-1
+lbL01BB82:          dc.l     lbL0155CA,32000,-1
+lbL01BB8E:          dc.l     lbL01565A,32000,-1
+lbL01BB9A:          dc.l     lbL0156EA,32000,-1
+lbL01BBA6:          dc.l     lbL01577A,32000,-1
+lbL01BBB2:          dc.l     lbL01580A,32000,-1
+lbL01BBBE:          dc.l     lbL01589A,32000,-1
+lbL01BBCA:          dc.l     lbL01592A,32000,-1
+lbL01BBD6:          dc.l     lbL0159BA,32000,-1
 lbL01BBE2:          dc.l     lbL015CEA,1
                     dc.l     lbL015D1A,1
                     dc.l     lbL015D4A,1,-1
-lbL01BBFE:          dc.l     lbL015D1A,$7D00,-1
+lbL01BBFE:          dc.l     lbL015D1A,32000,-1
 lbL01BC0A:          dc.l     lbL015D7A,1
                     dc.l     lbL015DAA,1
                     dc.l     lbL015DDA,1
                     dc.l     lbL015E0A,1
-                    dc.l     lbL01508A,$7D00,-1
+                    dc.l     lbL01508A,32000,-1
 lbL01BC36:          dc.l     lbL014DEA,1
                     dc.l     lbL014E1A,1
                     dc.l     lbL014E4A,1
@@ -14944,19 +14928,19 @@ lbL01BDFE:          dc.l     lbL0154AA,1
 lbL01BE1A:          dc.l     lbL01550A,1
                     dc.l     lbL01553A,1
                     dc.l     lbL01550A,1,-1
-lbL01BE36:          dc.l     lbL014E4A,$7D00,-1
-lbL01BE42:          dc.l     lbL014EDA,$7D00,-1
-lbL01BE4E:          dc.l     lbL014F6A,$7D00,-1
-lbL01BE5A:          dc.l     lbL014FFA,$7D00,-1
-lbL01BE66:          dc.l     lbL01508A,$7D00,-1
-lbL01BE72:          dc.l     lbL0150BA,$7D00,-1
-lbL01BE7E:          dc.l     lbL0151AA,$7D00,-1
-lbL01BE8A:          dc.l     lbL01523A,$7D00,-1
-lbL01BE96:          dc.l     lbL01556A,$7D00,-1
+lbL01BE36:          dc.l     lbL014E4A,32000,-1
+lbL01BE42:          dc.l     lbL014EDA,32000,-1
+lbL01BE4E:          dc.l     lbL014F6A,32000,-1
+lbL01BE5A:          dc.l     lbL014FFA,32000,-1
+lbL01BE66:          dc.l     lbL01508A,32000,-1
+lbL01BE72:          dc.l     lbL0150BA,32000,-1
+lbL01BE7E:          dc.l     lbL0151AA,32000,-1
+lbL01BE8A:          dc.l     lbL01523A,32000,-1
+lbL01BE96:          dc.l     lbL01556A,32000,-1
 lbL01BEA2:          dc.l     lbL01559A,1
                     dc.l     lbL0155CA,1
                     dc.l     lbL01559A,1,-1
-                    dc.l     lbL0155FA,$7D00,-1
+                    dc.l     lbL0155FA,32000,-1
 
 lbW01BECA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
                     dc.w     $10,$80,$10,$10,$00,$00,$00,$00
@@ -15327,42 +15311,42 @@ lbW01E1FA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
                     dc.w     $110,$00,$30,$10,$5AC1,$5AC1,$5AC1,$00
                     dcb.w    768,$10
                     
-                    dc.w     $FFFF,2,$F8,$FA                    ; ????
+                    dc.w     -1,2,$F8,$FA                    ; ????
 lbW01EB12:          dc.l     lbL016A0A
                     dcb.w    2,0
                     dc.l     lbL016A9A
                     dcb.w    2,0
-                    dcb.w    3,$FFFF
+                    dcb.w    3,-1
                     dc.w     2,$F8,$FA
 lbW01EB2E:          dc.l     lbL016A3A
                     dcb.w    2,0
                     dc.l     lbL016ACA
                     dcb.w    2,0
-                    dcb.w    3,$FFFF
+                    dcb.w    3,-1
                     dc.w     2,$F8,$FA
 lbW01EB4A:          dc.l     lbL016A6A
                     dcb.w    2,0
                     dc.l     lbL016AFA
                     dcb.w    2,0
-                    dcb.w    3,$FFFF
+                    dcb.w    3,-1
                     dc.w     2,$F8,$FA
 lbW01EB66:          dc.l     lbL016B2A
                     dcb.w    2,0
                     dc.l     lbL016BBA
                     dcb.w    2,0
-                    dcb.w    3,$FFFF
+                    dcb.w    3,-1
                     dc.w     2,$F8,$FA
 lbW01EB82:          dc.l     lbL016B5A
                     dcb.w    2,0
                     dc.l     lbL016BEA
                     dcb.w    2,0
-                    dcb.w    3,$FFFF
+                    dcb.w    3,-1
                     dc.w     2,$F8,$FA
 lbW01EB9E:          dc.l     lbL016B8A
                     dcb.w    2,0
                     dc.l     lbL016C1A
                     dcb.w    2,0
-                    dcb.w    6,$FFFF
+                    dcb.w    6,-1
 lbL01EBBA:          dc.l     lbL016C4A,$78
                     dc.l     lbL016C7A,3
                     dc.l     lbL016CAA,$50
@@ -15500,8 +15484,8 @@ lbL01ED32:          dc.l     lbL016ACA,0
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,$F8,$1F0FFFF
-lbL01F076:          dc.l     lbL016A9A,$64
+                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+lbL01F076:          dc.l     lbL016A9A,100
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -15604,8 +15588,8 @@ lbL01F076:          dc.l     lbL016A9A,$64
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,$F8,$1F0FFFF
-lbL01F3C2:          dc.l     lbL016A9A,$C8
+                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+lbL01F3C2:          dc.l     lbL016A9A,200
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -15708,8 +15692,8 @@ lbL01F3C2:          dc.l     lbL016A9A,$C8
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,$F8,$1F0FFFF
-lbL01F70E:          dc.l     lbL016A9A,$12C
+                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+lbL01F70E:          dc.l     lbL016A9A,300
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -15812,8 +15796,8 @@ lbL01F70E:          dc.l     lbL016A9A,$12C
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,$F8,$1F0FFFF
-lbL01FA5A:          dc.l     lbL016A9A,$190
+                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+lbL01FA5A:          dc.l     lbL016A9A,400
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -15916,9 +15900,9 @@ lbL01FA5A:          dc.l     lbL016A9A,$190
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
 lbL01FDA6:          dc.l     lbL016A9A
-lbL01FDAA:          dc.l     $1F4
+lbL01FDAA:          dc.l     500
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -16021,7 +16005,7 @@ lbL01FDAA:          dc.l     $1F4
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,$7D00,-1,2,$F800FA
+                    dc.l     lbL016A9A,32000,-1,2,$F800FA
 lbL0200F2:          dc.l     lbL016F7A,1
                     dc.l     lbL016FAA,1
                     dc.l     lbL016FDA,1
@@ -16645,8 +16629,8 @@ text_briefing_level_12:
 
 lbL02266A:          dcb.l    32,0
 
-lbL0226EA:          dcb.l    32,0
-lbW02276A:          dcb.w    64,$FFF
+palette_black:      dcb.w    64,0
+palette_white:      dcb.w    64,$FFF
 
 level_palette1:     dcb.w    32,0
 
@@ -16717,7 +16701,7 @@ stop_sound:         tst.w    lbW0003A2
                     clr.w    lbW022C70
 lbC022C30:          rts
 
-lbB022C32:          dcb.b    2,0
+;lbB022C32:          dcb.b    2,0
 
 lbC022C34:          tst.w    music_enabled
                     bne      return2
@@ -16759,8 +16743,8 @@ lbC022D1E:          tst.w    lbW0004C2
 
 install_lev4irq:    lea      lbL114EC4,a0
                     move.w   #129-1,d0
-lbC022D8C:          clr.l    (a0)+
-                    dbf      d0,lbC022D8C
+.clear:             clr.l    (a0)+
+                    dbf      d0,.clear
                     move.w   #INTF_AUD3|INTF_AUD2|INTF_AUD1|INTF_AUD0,CUSTOM+INTENA
                     move.w   #INTF_AUD3|INTF_AUD2|INTF_AUD1|INTF_AUD0,CUSTOM+INTREQ
                     move.l   reg_vbr,a1
@@ -16780,7 +16764,7 @@ lev4irq:            move.l   d0,-(sp)
                     lea      lbW0230F8(pc),a0
                     lea      lbL114EC4,a1
                     move.l   2(a0),d0
-                    bmi      lbC022E8E
+                    bmi      set_blank_sample
                     not.w    0(a0)
                     beq.b    lbC022E16
                     add.w    #256,a1
@@ -16817,7 +16801,7 @@ lbC022E16:          move.l   a1,CUSTOM+AUD3LCH
                     movem.l  (sp)+,d1-d7/a2/a3
                     bra      lbC022F2A
 
-lbC022E8E:          move.l   #lbL1150C4,CUSTOM+AUD3LCH
+set_blank_sample:   move.l   #blank_sample,CUSTOM+AUD3LCH
                     move.w   #1,CUSTOM+AUD3LEN
                     clr.w    CUSTOM+AUD3VOL
                     move.w   #INTF_AUD3,CUSTOM+INTENA
@@ -16872,7 +16856,7 @@ lbC022F2E:          move.w   #INTF_AUD3,CUSTOM+INTREQ
 
 lbC022F3A:          movem.l  d2-d7/a2-a4,-(sp)
                     move.w   #INTF_AUD3,CUSTOM+INTENA
-                    cmp.l    #$200,d0
+                    cmp.l    #512,d0
                     bgt      lbC023070
                     move.l   d0,-(sp)
                     lea      lbL114EC4,a1
@@ -17416,25 +17400,25 @@ lbC024204:          subq.b   #1,6(a0)
 switch_sel_channel_off:
                     clr.b    (a0)
                     tst.w    d1
-                    beq.b    lbC02423A
+                    beq.b    silence_channel_1
                     cmp.b    #1,d1
-                    beq.b    lbC02424C
+                    beq.b    silence_channel_2
                     cmp.b    #2,d1
-                    beq.b    lbC02425E
+                    beq.b    silence_channel_3
                     clr.w    bpchannel4_status
                     move.w   #DMAF_AUD3,CUSTOM+DMACON
                     move.w   #INTF_AUD3,CUSTOM+INTENA
                     rts
 
-lbC02423A:          clr.w    bpchannel1_status
+silence_channel_1:  clr.w    bpchannel1_status
                     move.w   #DMAF_AUD0,CUSTOM+DMACON
                     rts
 
-lbC02424C:          clr.w    bpchannel2_status
+silence_channel_2:  clr.w    bpchannel2_status
                     move.w   #DMAF_AUD1,CUSTOM+DMACON
                     rts
 
-lbC02425E:          clr.w    bpchannel3_status
+silence_channel_3:  clr.w    bpchannel3_status
                     move.w   #DMAF_AUD2,CUSTOM+DMACON
                     rts
 
@@ -17504,7 +17488,7 @@ lbC02433E:          tst.l    (a0)
 lbC02434A:          move.l   (a2),(a1)+
                     clr.l    (a2)+
                     dbf      d6,lbC02434A
-lbC024352:          add.l    #$24,a0
+lbC024352:          add.l    #36,a0
                     dbf      d7,lbC02433E
                     rts
 
@@ -17575,40 +17559,40 @@ lbC02444C:          subq.b   #1,bpcount
                     rts
 
 lbC024458:          tst.w    bpchannel1_status
-                    beq.b    lbC02446E
+                    beq.b    .active
                     lea      $10(a1),a1
                     lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
-lbC02446E:          bra      bploop1_channels
+.active:            bra      bploop1_channels
 
 lbC024472:          tst.w    bpchannel2_status
-                    beq.b    lbC024488
+                    beq.b    .active
                     lea      $10(a1),a1
                     lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
-lbC024488:          bra      bploop1_channels
+.active:            bra      bploop1_channels
 
 lbC02448C:          tst.w    bpchannel3_status
-                    beq.b    lbC0244A2
+                    beq.b    .active
                     lea      $10(a1),a1
                     lea      32(a0),a0
                     dbf      d0,bloop1
                     rts
 
-lbC0244A2:          bra      bploop1_channels
+.active:            bra      bploop1_channels
 
 lbC0244A6:          tst.w    bpchannel4_status
-                    beq.b    lbC0244BE
+                    beq.b    .active
                     lea      $10(a1),a1
                     lea      32(a0),a0
                     dbf      d0,bloop1
                     bra.b    lbC02443C
 
-lbC0244BE:          bra      bploop1_channels
+.active:            bra      bploop1_channels
 
 bpskip1:            move.b   bpdelay(pc),bpcount
                     bsr      bpnext
@@ -17620,13 +17604,13 @@ bpskip1:            move.b   bpdelay(pc),bpcount
                     lea      bpcurrent(pc),a2
                     lea      bpbuffer(pc),a5
 bploop2:            cmp.l    #CUSTOM+AUD0LCH,a1
-                    beq      lbC02453C
+                    beq      bpchannel_1_active
                     cmp.l    #CUSTOM+AUD1LCH,a1
-                    beq      lbC02455C
+                    beq      bpchannel_2_active
                     cmp.l    #CUSTOM+AUD2LCH,a1
-                    beq      lbC02457C
+                    beq      bpchannel_3_active
                     cmp.l    #CUSTOM+AUD3LCH,a1
-                    beq      lbC02459C
+                    beq      bpchannel_4_active
 bploop2_channels:   btst     #15,(a2)
                     beq.b    bpskip7
                     bsr      bpplayit
@@ -17637,8 +17621,8 @@ bpskip7:            asl.w    #1,d1
                     dbf      d0,bploop2
                     rts
 
-lbC02453C:          tst.w    bpchannel1_status
-                    beq.b    lbC024558
+bpchannel_1_active: tst.w    bpchannel1_status
+                    beq.b    .active
                     asl.w    #1,d1
                     lea      $10(a1),a1
                     lea      32(a2),a2
@@ -17646,10 +17630,10 @@ lbC02453C:          tst.w    bpchannel1_status
                     dbf      d0,bploop2
                     rts
 
-lbC024558:          bra      bploop2_channels
+.active:            bra      bploop2_channels
 
-lbC02455C:          tst.w    bpchannel2_status
-                    beq.b    lbC024578
+bpchannel_2_active: tst.w    bpchannel2_status
+                    beq.b    .active
                     asl.w    #1,d1
                     lea      $10(a1),a1
                     lea      32(a2),a2
@@ -17657,10 +17641,10 @@ lbC02455C:          tst.w    bpchannel2_status
                     dbf      d0,bploop2
                     rts
 
-lbC024578:          bra      bploop2_channels
+.active:            bra      bploop2_channels
 
-lbC02457C:          tst.w    bpchannel3_status
-                    beq.b    lbC024598
+bpchannel_3_active: tst.w    bpchannel3_status
+                    beq.b    .active
                     asl.w    #1,d1
                     lea      $10(a1),a1
                     lea      32(a2),a2
@@ -17668,10 +17652,10 @@ lbC02457C:          tst.w    bpchannel3_status
                     dbf      d0,bploop2
                     rts
 
-lbC024598:          bra      bploop2_channels
+.active:            bra      bploop2_channels
 
-lbC02459C:          tst.w    bpchannel4_status
-                    beq.b    lbC0245B8
+bpchannel_4_active: tst.w    bpchannel4_status
+                    beq.b    .active
                     asl.w    #1,d1
                     lea      16(a1),a1
                     lea      32(a2),a2
@@ -17679,7 +17663,7 @@ lbC02459C:          tst.w    bpchannel4_status
                     dbf      d0,bploop2
                     rts
 
-lbC0245B8:          bra      bploop2_channels
+.active:            bra      bploop2_channels
 
 bpnext:             clr.w    dma
                     lea      bpsong,a0
@@ -18020,44 +18004,44 @@ bpnosynth:          lea      36(a5),a5
                     rts
 
 lbC024A52:          tst.w    bpchannel1_status
-                    beq.b    lbC024A6C
+                    beq.b    .active
                     lea      36(a5),a5
                     lea      32(a2),a2
                     lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
-lbC024A6C:          bra      lbC024A36
+.active:            bra      lbC024A36
 
 lbC024A70:          tst.w    bpchannel2_status
-                    beq.b    lbC024A8A
+                    beq.b    .active
                     lea      36(a5),a5
                     lea      32(a2),a2
                     lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
-lbC024A8A:          bra      lbC024A36
+.active:            bra      lbC024A36
 
 lbC024A8E:          tst.w    bpchannel3_status
-                    beq.b    lbC024AA8
+                    beq.b    .active
                     lea      36(a5),a5
                     lea      32(a2),a2
                     lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
-lbC024AA8:          bra      lbC024A36
+.active:            bra      lbC024A36
 
 lbC024AAC:          tst.w    bpchannel4_status
-                    beq.b    lbC024AC6
+                    beq.b    .active
                     lea      36(a5),a5
                     lea      32(a2),a2
                     lea      $10(a1),a1
                     dbf      d0,bpsynthloop
                     rts
 
-lbC024AC6:          bra      lbC024A36
+.active:            bra      lbC024A36
 
 bpyessynth:         clr.w    d7
                     move.b   3(a2),d7
@@ -18406,97 +18390,97 @@ reloc_exe:          movem.l  d0-d7/a0-a6,-(sp)
                     move.l   (a0)+,d0
                     cmp.l    #$3F3,d0
                     bne      not_an_exe
-lbC0255B0:          move.l   (a0)+,d0
-                    beq.b    lbC0255BC
+.pad_loop:          move.l   (a0)+,d0
+                    beq.b    .skip
                     add.l    d0,d0
                     add.l    d0,d0
                     add.l    d0,a0
-                    bra.b    lbC0255B0
+                    bra.b    .pad_loop
 
-lbC0255BC:          move.l   (a0)+,d7
+.skip:              move.l   (a0)+,d7
                     move.l   d7,d6
                     lsl.l    #3,d7
                     sub.l    d7,sp
                     addq.w   #8,a0
                     move.l   sp,a1
                     move.l   sp,a5
-lbC0255CA:          move.l   (a0)+,d0
+.set_size:          move.l   (a0)+,d0
                     add.l    d0,d0
                     add.l    d0,d0
                     move.l   d0,(a1)+
                     move.l   a3,(a1)+
                     add.l    d0,a3
                     subq.l   #1,d6
-                    bne.b    lbC0255CA
+                    bne.b    .set_size
                     move.l   d7,d6
-lbC0255DC:          move.l   (a0)+,d0
+.next_hunk:         move.l   (a0)+,d0
                     move.l   d0,d1
                     sub.l    #$3E7,d1
                     add.l    d1,d1
                     add.l    d1,d1
-                    jsr      lbC0255F4(pc,d1.w)
-                    bne.b    lbC0255DC
+                    jsr      hunks_table(pc,d1.w)
+                    bne.b    .next_hunk
                     bra      relocated_exe
 
-lbC0255F4:          bra.w    lbC025624
-                    bra.w    lbC025624
-                    bra.w    lbC025634
-                    bra.w    lbC025634
-                    bra.w    lbC025652
-                    bra.w    lbC025662
-                    bra.w    lbC025630
-                    bra.w    lbC025630
-                    bra.w    lbC025630
-                    bra.w    lbC025630
-                    bra.w    lbC025630
-                    bra.w    lbC025682
+hunks_table:        bra.w    skip_hunk              ; 0
+                    bra.w    skip_hunk              ; 4
+                    bra.w    copy_hunk              ; 8
+                    bra.w    copy_hunk              ; 12
+                    bra.w    clear_hunk             ; 16
+                    bra.w    reloc_hunk             ; 20
+                    bra.w    end_of_hunks           ; 24
+                    bra.w    end_of_hunks           ; 28
+                    bra.w    end_of_hunks           ; 32
+                    bra.w    end_of_hunks           ; 36
+                    bra.w    end_of_hunks           ; 40
+                    bra.w    lbC025682              ; 44
 
-lbC025624:          move.l   (a0)+,d0
+skip_hunk:          move.l   (a0)+,d0
                     add.l    d0,d0
                     add.l    d0,d0
                     add.l    d0,a0
                     moveq    #1,d0
                     rts
 
-lbC025630:          moveq    #0,d0
+end_of_hunks:       moveq    #0,d0
                     rts
 
-lbC025634:          move.l   (a0)+,d0
+copy_hunk:          move.l   (a0)+,d0
                     move.l   (a5),d1
                     move.l   4(a5),a6
-lbC02563C:          move.l   (a0)+,(a6)+
+.copy_loop:         move.l   (a0)+,(a6)+
                     subq.l   #4,d1
                     subq.l   #1,d0
-                    bne.b    lbC02563C
+                    bne.b    .copy_loop
                     tst.l    d1
-                    beq.b    lbC02564E
-lbC025648:          clr.l    (a6)+
+                    beq.b    .done
+.clear_loop:        clr.l    (a6)+
                     subq.l   #4,d1
-                    bne.b    lbC025648
-lbC02564E:          moveq    #1,d0
+                    bne.b    .clear_loop
+.done:              moveq    #1,d0
                     rts
 
-lbC025652:          move.l   (a0)+,d0
+clear_hunk:         move.l   (a0)+,d0
                     move.l   4(a5),a6
-lbC025658:          clr.l    (a6)+
+.clear:             clr.l    (a6)+
                     subq.l   #1,d0
-                    bne.b    lbC025658
+                    bne.b    .clear
                     moveq    #1,d0
                     rts
 
-lbC025662:          move.l   (a0)+,d0
-                    beq.b    lbC02567E
+reloc_hunk:         move.l   (a0)+,d0
+                    beq.b    .done
                     move.l   (a0)+,d1
                     lsl.l    #3,d1
                     move.l   8(sp,d1.l),d3
                     move.l   4(a5),a6
-lbC025672:          move.l   (a0)+,d2
+.loop:              move.l   (a0)+,d2
                     add.l    d3,0(a6,d2.l)
                     subq.l   #1,d0
-                    bne.b    lbC025672
-                    bra.b    lbC025662
+                    bne.b    .loop
+                    bra.b    reloc_hunk
 
-lbC02567E:          moveq    #1,d0
+.done:              moveq    #1,d0
                     rts
 
 lbC025682:          addq.w   #8,a5
@@ -19102,6 +19086,6 @@ lbL101098:          ds.l     3087
 lbL1040D4:          ds.l     12348
 lbL1101C4:          ds.l     4928
 lbL114EC4:          ds.l     128
-lbL1150C4:          ds.l     4
+blank_sample:          ds.l     4
 
                     end
