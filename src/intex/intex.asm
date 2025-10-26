@@ -101,7 +101,6 @@ scr_disconnecting:  bsr      copy_bkgnd_pic
                     bsr      remove_caret
                     move.l   #copperlist_blank,CUSTOM+COP1LCH
                     lea      cur_holocode(pc),a0
-                    ;move.l   lbL007190(pc),d2
                     move.l   owned_weapons(pc),d0
                     move.l   purchased_supplies(pc),d1
                     rts
@@ -420,7 +419,7 @@ disp_holocode:      bsr      clear_holocode_back
                     ; no rts
 
 disp_caret_holocode:
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
                     move.w   cur_holocode_position(pc),d0
                     lsl.w    #3,d0
                     add.w    #128,d0
@@ -596,7 +595,7 @@ text_tool_credit_limit:
                     even
 
 disp_caret_in_tool_supplies:
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
                     move.l   supplies_caret_pos(pc),d0
                     mulu     #24,d0
                     add.l    #72,d0
@@ -779,9 +778,9 @@ scr_map:            bsr      copy_bkgnd_pic
                     lsr.l    #3,d1
                     add.l    #29,d0
                     add.l    #24,d1
-                    move.w   d0,caret_position_dat
+                    move.w   d0,caret_struct
                     move.w   d1,caret_position_y
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
                     bsr      disp_caret
 .loop:              bsr      flash_caret
                     btst     #7,CIAA
@@ -806,7 +805,6 @@ plot_map:           lea      map_plane,a5
                     move.l   d0,d7
 .loop:              move.w   -(a0),d2
                     and.w    #$3F,d2
-                    ;tst.w    d2
                     beq.b    .no_plot
                     cmp.w    #3,d2
                     beq      .plot_door
@@ -923,7 +921,7 @@ scr_weapons:        bsr      copy_bkgnd_pic
                     move.l   key_pressed(pc),a0
                     bra      .loop
 
-disp_caret_in_menu: lea      caret_position_dat(pc),a0
+disp_caret_in_menu: lea      caret_struct(pc),a0
                     move.l   menu_choice(pc),d0
                     mulu     #12,d0
                     add.l    #68,d0
@@ -932,7 +930,7 @@ disp_caret_in_menu: lea      caret_position_dat(pc),a0
                     bra      disp_caret
 
 disp_caret_in_weapons:
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
                     move.l   buy_weapon_yes_no(pc),d0
                     not.l    d0
                     and.l    #1,d0
@@ -1221,12 +1219,12 @@ weapons_pic_table:  dc.l     weapons_pic+(176*40)
 
 set_gfx_context:    move.l   #copperlist_main,CUSTOM+COP1LCH
                     bsr      copy_bkgnd_pic
-                    lea      caret_position_dat(pc),a0
-                    bsr      set_caret_sprite
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
+                    bsr      set_sprite_bp
+                    lea      caret_struct(pc),a0
                     bra      disp_caret
 
-remove_caret:       lea      caret_position_dat(pc),a0
+remove_caret:       lea      caret_struct(pc),a0
                     move.w   #-16,(a0)
                     move.w   #-16,2(a0)
                     bra      disp_caret
@@ -1270,7 +1268,6 @@ construct_credit_limit_ascii:
                     move.l   (a1),d1
                     addq.b   #1,d2
                     sub.l    d1,d0
-                    ;tst.l    d0
                     beq.b    .got_digit
                     bgt.b    .loop
                     add.l    d1,d0
@@ -1331,7 +1328,6 @@ construct_number_ascii:
                     move.l   (a1),d1
                     addq.b   #1,d2
                     sub.l    d1,d0
-                    ;tst.l    d0
                     beq.b    .got_digit
                     bgt.b    .loop
                     add.l    d1,d0
@@ -1391,7 +1387,6 @@ disp_weapon:        bsr      clear_weapon_back
 wait_input_release: move.l   gameport_register(pc),a0
                     move.w   (a0),d0
                     and.w    #$303,d0
-                    ;tst.w    d0
                     bne.b    wait_input_release
                     bra      play_sample_caret_move
 
@@ -1401,10 +1396,11 @@ flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    .wait
                     bra      change_caret_color
 
-set_caret_sprite:   tst.l    16(a0)
-                    bne.b    .alt_spr_pic
+set_sprite_bp:      tst.l    16(a0)
+                    bne.b    .set_sprite_ptr
                     move.l   12(a0),d0
-.set_copper:        move.l   8(a0),a1
+.set_spr_copper_dat:
+                    move.l   8(a0),a1
                     move.w   6(a0),d1
                     or.w     d1,14(a1)
                     move.w   d0,6(a1)
@@ -1412,39 +1408,39 @@ set_caret_sprite:   tst.l    16(a0)
                     move.w   d0,2(a1)
                     rts
 
-.alt_spr_pic:       move.l   16(a0),a1
+.set_sprite_ptr:    move.l   16(a0),a1
                     move.l   a1,20(a0)
                     move.w   6(a1),24(a0)
                     move.l   (a1),d0
-                    bra.b    .set_copper
+                    bra.b    .set_spr_copper_dat
 
 disp_caret:         move.l   8(a0),a1
                     tst.l    16(a0)
-                    bne      lbC00207E
-lbC001FF2:          and.w    #$80,14(a1)
-                    move.w   0(a0),d0
+                    bne      .animate
+.set_spr_pos:       and.w    #$80,14(a1)
+                    move.w   (a0),d0
                     add.w    #$80,d0
                     btst     #0,d0
-                    beq.b    lbC00200C
+                    beq.b    .upper_x_pos_bit
                     or.w     #1,14(a1)
-lbC00200C:          lsr.w    #1,d0
+.upper_x_pos_bit:   lsr.w    #1,d0
                     move.b   d0,11(a1)
                     move.w   2(a0),d0
                     add.w    #44,d0
                     move.w   d0,d1
                     add.w    4(a0),d1
                     cmp.w    #256,d1
-                    bmi.b    lbC002030
+                    bmi.b    .pal_bottom
                     sub.w    #255,d1
                     or.b     #2,15(a1)
-lbC002030:          move.b   d1,14(a1)
+.pal_bottom:        move.b   d1,14(a1)
                     cmp.w    #256,d0
-                    bmi.b    lbC002044
+                    bmi.b    .pal_top
                     sub.w    #255,d0
                     or.b     #4,15(a1)
-lbC002044:          move.b   d0,10(a1)
+.pal_top:           move.b   d0,10(a1)
                     tst.w    6(a0)
-                    beq.b    lbC00207C
+                    beq.b    .done
                     move.w   10(a1),26(a1)
                     move.w   14(a1),30(a1)
                     move.w   2(a1),d0
@@ -1459,29 +1455,33 @@ lbC002044:          move.b   d0,10(a1)
                     move.w   d0,22(a1)
                     swap     d0
                     move.w   d0,18(a1)
-lbC00207C:          rts
+.done:              rts
 
-lbC00207E:          subq.w   #1,24(a0)
-                    bpl      lbC001FF2
+.animate:           subq.w   #1,24(a0)
+                    bpl      .set_spr_pos
                     addq.l   #8,20(a0)
-lbC00208A:          move.l   20(a0),a2
+.set_sprite_copper: move.l   20(a0),a2
                     move.l   (a2),d0
-                    tst.l    d0
-                    bmi.b    lbC0020A8
+                    bmi.b    .reset_anim
                     move.w   6(a2),24(a0)
                     move.w   d0,6(a1)
                     swap     d0
                     move.w   d0,2(a1)
-                    bra      lbC001FF2
+                    bra      .set_spr_pos
 
-lbC0020A8:          move.l   16(a0),20(a0)
-                    bra.b    lbC00208A
+.reset_anim:        move.l   16(a0),20(a0)
+                    bra.b    .set_sprite_copper
 
-caret_position_dat: dc.w     -16
-caret_position_y:   dc.w     -16,11,0
+caret_struct:       dc.w     -16
+caret_position_y:   dc.w     -16
+                    dc.w     11
+                    dc.w     0
                     dc.l     copper_caret_sprite
                     dc.l     caret_pic
-                    dcb.w    6,0
+                    dc.l     0
+                    dc.l     0
+                    dc.w     0
+                    dc.w     0
 caret_pic:          dcb.w    22,%1111111100000000
                     dcb.w    128,0
 
@@ -1579,7 +1579,7 @@ copy_text_to_screen:
                     subq.b   #1,d5
                     bne.b    copy_text_to_screen
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      caret_position_dat(pc),a0
+                    lea      caret_struct(pc),a0
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
                     subq.w   #1,2(a0)
@@ -1602,7 +1602,7 @@ skip_char:          add.l    16(a1),d0
                     add.l    20(a1),d1
                     bra      loop_text
 
-end_of_line:        lea      caret_position_dat(pc),a0
+end_of_line:        lea      caret_struct(pc),a0
                     add.w    #12,(a0)
                     bra      disp_caret
 
@@ -1613,7 +1613,7 @@ slowdown_flash_caret:
 slowdown_play_sample:
                     dc.w     0
 letter_buffer:      dcb.l    (16*2),0
-font_struct:        dc.l     bitplanes,(256*40),4,36,8,12,80,1008,font_pic,ascii_letters
+font_struct:        dc.l     bitplanes,(256*40),4,36,8,12,80,(16*63),font_pic,ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
                     even
 text_map_system:    dc.w     0,12
@@ -2303,10 +2303,7 @@ player_struct:      dc.l     0
 cur_credits:        dc.l     0
 buy_weapon_yes_no:  dc.l     1
 menu_choice:        dc.l     0
-;lbL007190:          dc.l     2000000,130,1500,0,100,10
 player_health:      dc.l     2
-                    ;dc.l     7
-                    ;dc.l     11111
 
 welcome_sample_struct:
                     dc.w     1,VOICE_WELCOME_TO,3
@@ -2342,7 +2339,7 @@ weapons_pic:        incbin   "weapons_264x40.lo4"
 
 ; -----------------------------------------------------
 
-bitplanes:          dcb.b    (256*4*40),0
+bitplanes:          dcb.b    (256*40*4),0
 map_plane:          dcb.b    (256*40),0
 
                     end
