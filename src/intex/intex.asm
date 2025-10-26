@@ -25,7 +25,7 @@ start:              move.l   d0,player_pos_x
                     move.l   a5,sound_routine
                     move.l   a6,schedule_sample_to_play
                     bsr      set_bitplanes_and_palette
-                    bsr      lbC001BA6
+                    bsr      set_gfx_context
                     bsr      display_intex_startup_seq
                     lea      lbW0071B4(pc),a6
                     move.l   schedule_sample_to_play(pc),a5
@@ -60,10 +60,11 @@ main_loop:          bsr      copy_bkgnd_pic
                     moveq    #CIAB_GAMEPORT0,d0
 .game_port_1:       btst     d0,CIAA
                     bne      .wait_user_input
-                    bsr      lbC000BD4
+                    bsr      play_sample_caret_move
                     cmp.l    #4,menu_choice
                     beq      enter_holocode
-lbC00015E:          cmp.l    #7,menu_choice
+return_from_holocode:
+                    cmp.l    #7,menu_choice
                     beq      scr_disconnecting
                     tst.l    menu_choice
                     bne.b    go_scr_weapons
@@ -71,9 +72,9 @@ lbC00015E:          cmp.l    #7,menu_choice
                     bsr      scr_weapons
                     move.l   #$FFFFFFFE,copper_scr_weapon_block
 go_scr_weapons:     cmp.l    #1,menu_choice
-                    bne.b    go_scr_tools_supplies
-                    bsr      scr_tools_supplies
-go_scr_tools_supplies: 
+                    bne.b    go_scr_tool_supplies
+                    bsr      scr_tool_supplies
+go_scr_tool_supplies: 
                     cmp.l    #2,menu_choice
                     bne.b    go_scr_map
                     bsr      scr_map
@@ -97,7 +98,7 @@ scr_disconnecting:  bsr      copy_bkgnd_pic
                     move.l   #6,d0
                     bsr      mess_up_screen
                     move.l   #copperlist_blank,CUSTOM+COP1LCH
-                    bsr      lbC001BCA
+                    bsr      remove_caret
                     move.l   #copperlist_blank,CUSTOM+COP1LCH
                     lea      cur_holocode(pc),a0
                     move.l   lbL007190(pc),d2
@@ -192,34 +193,34 @@ scr_stats:          bsr      copy_bkgnd_pic
                     move.l   #2,d1
                     move.l   #6,d2
                     lea      NO_MSG(pc),a0
-lbC000534:          btst     d1,d0
-                    beq.b    lbC00054A
+.next_weapon:       btst     d1,d0
+                    beq.b    .weapon_not_owned
                     move.b   #'Y',(a0)
                     move.b   #'E',1(a0)
                     move.b   #'S',2(a0)
-                    bra.b    lbC00055A
+                    bra.b    .weapon_owned
 
-lbC00054A:          move.b   #' ',(a0)
+.weapon_not_owned:  move.b   #' ',(a0)
                     move.b   #'N',1(a0)
                     move.b   #'O',2(a0)
-lbC00055A:          addq.w   #1,d1
+.weapon_owned:      addq.w   #1,d1
                     add.l    #41,a0
                     subq.w   #1,d2
-                    bne.b    lbC000534
+                    bne.b    .next_weapon
                     move.l   player_struct(pc),a0
                     move.l   INTEX_ALIENS_KILLED(a0),d0
                     move.l   d0,number_to_display
                     bsr      construct_number_ascii
                     lea      number_ascii_block(pc),a0
                     lea      text_aliens_killed(pc),a1
-                    bsr      lbC000A8E
+                    bsr      copy_stat_number
                     move.l   player_struct(pc),a0
                     move.l   INTEX_SHOTS_FIRED(a0),d0
                     move.l   d0,number_to_display
                     bsr      construct_number_ascii
                     lea      number_ascii_block(pc),a0
                     lea      text_bullets_fired(pc),a1
-                    bsr      lbC000A8E
+                    bsr      copy_stat_number
                     move.l   player_struct(pc),a0
                     move.l   INTEX_CUR_CREDITS(a0),d0
                     divu     #50,d0
@@ -228,52 +229,51 @@ lbC00055A:          addq.w   #1,d1
                     bsr      construct_number_ascii
                     lea      number_ascii_block(pc),a0
                     lea      text_credits_owned,a1
-                    bsr      lbC000A8E
+                    bsr      copy_stat_number
                     move.l   player_struct(pc),a0
                     move.l   INTEX_DOORS_OPENED(a0),d0
                     move.l   d0,number_to_display
                     bsr      construct_number_ascii
                     lea      number_ascii_block(pc),a0
                     lea      text_doors_opened(pc),a1
-                    bsr      lbC000A8E
+                    bsr      copy_stat_number
                     move.l   player_struct(pc),a0
                     move.l   INTEX_AMMO_PACKS(a0),d0
                     move.l   d0,number_to_display
                     bsr      construct_number_ascii
                     lea      number_ascii_block(pc),a0
                     lea      text_ammopacks_owned(pc),a1
-                    bsr      lbC000A8E
+                    bsr      copy_stat_number
                     move.l   player_struct(pc),a0
                     move.l   INTEX_HEALTH(a0),d0
                     lea      text_health_levels(pc),a0
                     lea      text_energy_left(pc),a1
                     cmp.w    #21,d0
-                    bls.b    lbC00064E
-                    add.l    #8,a0
+                    bls.b    .sel_health_text
+                    addq.l   #8,a0
                     cmp.w    #42,d0
-                    bls.b    lbC00064E
-                    add.l    #8,a0
-lbC00064E:          move.l   #8,d0
-lbC000654:          move.b   (a0)+,(a1)+
+                    bls.b    .sel_health_text
+                    addq.l   #8,a0
+.sel_health_text:   move.l   #8,d0
+.copy_health_text:  move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    lbC000654
+                    bne.b    .copy_health_text
                     move.l   player_struct(pc),a0
                     move.l   INTEX_CUR_WEAPON(a0),d0
                     lea      text_current_weapon(pc),a1
                     lea      table_text_owned_weapons(pc),a0
-lbC000670:          cmp.l    #-1,(a0)
-                    beq.b    lbC000684
+.sel_weapon_entry:  cmp.l    #-1,(a0)
+                    beq.b    .done
                     cmp.l    (a0),d0
-                    beq      lbC000684
+                    beq      .done
                     addq.l   #8,a0
-                    bra      lbC000670
-
-lbC000684:          add.l    #4,a0
+                    bra      .sel_weapon_entry
+.done:              addq.l   #4,a0
                     move.l   (a0),a0
                     moveq    #14,d0
-lbC000692:          move.b   (a0)+,(a1)+
+.copy_weapon_text:  move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    lbC000692
+                    bne.b    .copy_weapon_text
                     lea      text_statistics(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -333,19 +333,19 @@ NO_MSG:             dc.b     ' NO         ',0
                     dc.b     -1
                     even
 
-lbC000A8E:          move.l   #6,d0
+copy_stat_number:   move.l   #6,d0
                     tst.b    (a0)
-                    beq      lbC000AA8
-lbC000A9A:          tst.b    (a0)
-                    beq      lbC000AA8
+                    beq      .pad_text
+.loop:              tst.b    (a0)
+                    beq      .pad_text
                     move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    lbC000A9A
+                    bne.b    .loop
                     rts
 
-lbC000AA8:          move.b   #' ',(a1)+
+.pad_text:          move.b   #' ',(a1)+
                     subq.w   #1,d0
-                    bpl.b    lbC000AA8
+                    bpl.b    .pad_text
                     rts
 
 text_holocode:      dc.w     128,120
@@ -359,67 +359,68 @@ enter_holocode:     bsr      copy_bkgnd_pic
                     lea      text_enter_holocode(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    bsr      lbC000BB4
-lbC000AD8:          move.l   gameport_register(pc),a0
+                    bsr      disp_caret_holocode
+.loop:              move.l   gameport_register(pc),a0
                     move.w   (a0),d0
                     and.w    #$303,d0
                     move.w   cur_holocode_position(pc),d1
                     lea      cur_holocode(pc),a1
                     cmp.w    #$100,d0
-                    bne.b    lbC000B12
+                    bne.b    .increase_digit
                     move.b   0(a1,d1.w),d2
                     cmp.b    #'9',d2
-                    bne.b    lbC000B02
-                    move.b   #'/',0(a1,d1.w)
-lbC000B02:          addq.b   #1,0(a1,d1.w)
-                    bsr      lbC000B98
+                    bne.b    .max_digit
+                    move.b   #'0'-1,0(a1,d1.w)
+.max_digit:         addq.b   #1,0(a1,d1.w)
+                    bsr      disp_holocode
                     bsr      wait_input_release
-                    bra.b    lbC000B70
+                    bra.b    .wait_user_input
 
-lbC000B12:          cmp.w    #1,d0
-                    bne.b    lbC000B38
+.increase_digit:    cmp.w    #1,d0
+                    bne.b    .decrease_digit
                     move.b   0(a1,d1.w),d2
-                    cmp.b    #$30,d2
-                    bne.b    lbC000B28
-                    move.b   #':',0(a1,d1.w)
-lbC000B28:          subq.b   #1,0(a1,d1.w)
-                    bsr      lbC000B98
+                    cmp.b    #'0',d2
+                    bne.b    .min_digit
+                    move.b   #'9'+1,0(a1,d1.w)
+.min_digit:         subq.b   #1,0(a1,d1.w)
+                    bsr      disp_holocode
                     bsr      wait_input_release
-                    bra.b    lbC000B70
+                    bra.b    .wait_user_input
 
-lbC000B38:          cmp.w    #$300,d0
-                    bne.b    lbC000B54
+.decrease_digit:    cmp.w    #$300,d0
+                    bne.b    .prev_holocode_pos
                     tst.w    d1
-                    beq.b    lbC000B70
+                    beq.b    .wait_user_input
                     subq.w   #1,cur_holocode_position
-                    bsr      lbC000BB4
+                    bsr      disp_caret_holocode
                     bsr      wait_input_release
-                    bra.b    lbC000B70
+                    bra.b    .wait_user_input
 
-lbC000B54:          cmp.w    #3,d0
-                    bne.b    lbC000B70
+.prev_holocode_pos: cmp.w    #3,d0
+                    bne.b    .wait_user_input
                     cmp.w    #4,d1
-                    beq.b    lbC000B70
+                    beq.b    .wait_user_input
                     addq.w   #1,cur_holocode_position
-                    bsr      lbC000BB4
+                    bsr      disp_caret_holocode
                     bsr      wait_input_release
-lbC000B70:          bsr      flash_caret
+.wait_user_input:   bsr      flash_caret
                     moveq    #CIAB_GAMEPORT1,d0
                     move.l   gameport_register(pc),a0
                     cmp.l    #CUSTOM+JOY0DAT,a0
                     bne.b    .port_2
                     moveq    #CIAB_GAMEPORT0,d0
 .port_2:            btst     d0,CIAA
-                    bne      lbC000AD8
-                    bra      lbC00015E
+                    bne      .loop
+                    bra      return_from_holocode
 
-lbC000B98:          bsr      lbC001960
+disp_holocode:      bsr      clear_holocode_back
                     lea      text_holocode(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
                     ; no rts
 
-lbC000BB4:          lea      caret_position_dat(pc),a0
+disp_caret_holocode:
+                    lea      caret_position_dat(pc),a0
                     move.w   cur_holocode_position(pc),d0
                     lsl.w    #3,d0
                     add.w    #$80,d0
@@ -427,7 +428,7 @@ lbC000BB4:          lea      caret_position_dat(pc),a0
                     move.w   #$84,2(a0)
                     bra      disp_caret
 
-lbC000BD4:          movem.l  d0-d7/a0-a6,-(sp)
+play_sample_caret_move:          movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #14,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
@@ -443,45 +444,45 @@ lbC000BF2:          movem.l  d0-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-scr_tools_supplies: bsr      copy_bkgnd_pic
+scr_tool_supplies:  bsr      copy_bkgnd_pic
                     bsr      get_credit_limit
                     lea      text_tool_supplies(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    clr.l    lbL000DC4
-lbC000C4E:          move.l   gameport_register(pc),a0
+                    clr.l    supplies_caret_pos
+.loop:              move.l   gameport_register(pc),a0
                     move.w   (a0),d0
                     and.w    #$303,d0
                     cmp.w    #$100,d0
-                    bne.b    lbC000C78
-                    tst.l    lbL000DC4
-                    beq.b    lbC000C78
-                    subq.l   #1,lbL000DC4
-                    bsr      lbC0010EE
+                    bne.b    .prev_supply
+                    tst.l    supplies_caret_pos
+                    beq.b    .prev_supply
+                    subq.l   #1,supplies_caret_pos
+                    bsr      disp_caret_in_tool_supplies
                     bsr      wait_input_release
-lbC000C78:          cmp.w    #1,d0
-                    bne.b    lbC000C9A
-                    cmp.l    #5,lbL000DC4
-                    beq.b    lbC000C9A
-                    addq.l   #1,lbL000DC4
-                    bsr      lbC0010EE
+.prev_supply:       cmp.w    #1,d0
+                    bne.b    .next_supply
+                    cmp.l    #5,supplies_caret_pos
+                    beq.b    .next_supply
+                    addq.l   #1,supplies_caret_pos
+                    bsr      disp_caret_in_tool_supplies
                     bsr      wait_input_release
-lbC000C9A:          bsr      lbC0010EE
+.next_supply:       bsr      disp_caret_in_tool_supplies
                     bsr      flash_caret
                     moveq    #CIAB_GAMEPORT1,d0
                     move.l   gameport_register(pc),a0
                     cmp.l    #CUSTOM+JOY0DAT,a0
-                    bne.b    lbC000CBC
+                    bne.b    .port_2
                     moveq    #CIAB_GAMEPORT0,d0
-lbC000CBC:          btst     d0,CIAA
-                    bne      lbC000C4E
-                    bsr      lbC000BD4
-                    move.l   lbL000DC4(pc),d0
+.port_2:            btst     d0,CIAA
+                    bne      .loop
+                    bsr      play_sample_caret_move
+                    move.l   supplies_caret_pos(pc),d0
                     cmp.l    #5,d0
                     beq      return
                     move.l   purchased_supplies(pc),d1
                     btst     d0,d1
-                    bne      lbC000C4E
+                    bne      .loop
                     lea      supplies_prices_list(pc),a0
                     move.l   d0,d1
                     ext.l    d1
@@ -497,8 +498,8 @@ lbC000CBC:          btst     d0,CIAA
                     bsr      display_text
                     moveq    #1,d0
                     bsr      wait_timed_frames
-                    bsr      lbC0018F4
-                    bra      lbC000C4E
+                    bsr      clear_insufficient_funds_back
+                    bra      .loop
 
 enough_money:       sub.l    d1,(a5)
                     cmp.w    #2,d0                      ; energy injection
@@ -526,7 +527,7 @@ add_player_health:  movem.l  d0-d7/a0-a6,-(sp)
                     move.b   #'H',(a0)+
                     move.b   #'T',(a0)+
                     move.b   #'.',(a0)+
-                    bra      scr_tools_supplies
+                    bra      scr_tool_supplies
 
 supplies_prices_list:
                     dc.l     500000
@@ -538,7 +539,7 @@ supplies_prices_list:
                     dc.l     0
                     dc.l     0
                     dc.l     0
-lbL000DC4:          dc.l     0
+supplies_caret_pos: dc.l     0
 purchased_supplies: dc.l     0
 
 play_sample_supply_purchased:
@@ -592,8 +593,9 @@ text_tool_credit_limit:
                     dc.b    -1
                     even
 
-lbC0010EE:          lea      caret_position_dat(pc),a0
-                    move.l   lbL000DC4(pc),d0
+disp_caret_in_tool_supplies:
+                    lea      caret_position_dat(pc),a0
+                    move.l   supplies_caret_pos(pc),d0
                     mulu     #24,d0
                     add.l    #72,d0
                     move.w   d0,2(a0)
@@ -641,7 +643,7 @@ wait_joy_button:    moveq    #CIAB_GAMEPORT1,d0
                     moveq    #CIAB_GAMEPORT0,d0
 .loop:              btst     d0,CIAA
                     bne.b    .loop
-                    bra      lbC000BD4
+                    bra      play_sample_caret_move
 
 display_intex_startup_seq:
                     move.b   CIAB+CIATODLOW,d1
@@ -677,7 +679,7 @@ display_intex_startup_seq:
                     tst.l    d0
                     bmi      startup_seq_interrupted
                     move.l   #1,d0
-                    bsr      lbC001342
+                    bsr      wait_timed_frames_startup
                     lea      text_system_status(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -687,7 +689,7 @@ display_intex_startup_seq:
                     tst.l    d0
                     bmi      startup_seq_interrupted
                     move.l   #2,d0
-                    bsr      lbC001342
+                    bsr      wait_timed_frames_startup
                     lea      text_downloading(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -709,9 +711,9 @@ mess_up_screen:     movem.l  d0-d7/a0-a6,-(sp)
                     jsr      (a0)
                     movem.l  (sp)+,d0-d7/a0-a6
 .loop:              btst     #7,CIAA
-                    beq.b    lbC001336
+                    beq.b    .button_pressed
                     btst     #6,CIAA
-                    beq.b    lbC001336
+                    beq.b    .button_pressed
                     bsr      flash_caret
                     move.b   CIAB+CIATODLOW,d1
                     ext.w    d1
@@ -720,7 +722,7 @@ mess_up_screen:     movem.l  d0-d7/a0-a6,-(sp)
                     move.b   d1,copper_diwstrt
                     subq.l   #1,d0
                     bne.b    .loop
-lbC001308:          move.w   #$2C81,copper_diwstrt
+.abort:             move.w   #$2C81,copper_diwstrt
                     move.w   #$2CC1,copper_diwstop
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #75,d0
@@ -730,10 +732,11 @@ lbC001308:          move.w   #$2C81,copper_diwstrt
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbC001336:          move.w   #1,interrupted_by_user_flag
-                    bra      lbC001308
+.button_pressed:    move.w   #1,interrupted_by_user_flag
+                    bra      .abort
 
-lbC001342:          mulu     #50,d0
+wait_timed_frames_startup:
+                    mulu     #50,d0
                     move.l   d0,d7
 .loop:              bsr      peek_joy_button
                     tst.l    d0
@@ -1089,52 +1092,54 @@ clear_weapon_back:  move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     lea      background_pic+(82*40),a0
                     lea      bitplanes+(82*40),a1
                     moveq    #4,d0
-loop_copy_back:     move.l   a0,CUSTOM+BLTAPTH
+loop_clear_weapon:  move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(138*64)+20,CUSTOM+BLTSIZE
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
                     WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    loop_copy_back
+                    bne.b    loop_clear_weapon
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbC0018F4:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
+clear_insufficient_funds_back:
+                    move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     WAIT_BLIT
                     move.l   #$9F00000,CUSTOM+BLTCON0
                     move.l   #-1,CUSTOM+BLTAFWM
                     clr.l    CUSTOM+BLTAMOD
                     lea      background_pic+(228*40),a0
-                    lea      bitplanes+(226*40),a1
+                    lea      bitplanes+(228*40),a1
                     moveq    #4,d0
-loop_copy_bot:      move.l   a0,CUSTOM+BLTAPTH
+loop_clear_funds:   move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(28*64)+20,CUSTOM+BLTSIZE
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
                     WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    loop_copy_bot
+                    bne.b    loop_clear_funds
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbC001960:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
+clear_holocode_back:
+                    move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     WAIT_BLIT
                     move.l   #$9F00000,CUSTOM+BLTCON0
                     move.l   #-1,CUSTOM+BLTAFWM
                     clr.l    CUSTOM+BLTAMOD
                     lea      background_pic+(108*40),a0
-                    lea      bitplanes+(106*40),a1
+                    lea      bitplanes+(108*40),a1
                     moveq    #4,d0
-loop_copy_mid:      move.l   a0,CUSTOM+BLTAPTH
+loop_clear_holo:    move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.w   #(28*64)+20,CUSTOM+BLTSIZE
                     add.l    #(256*40),a0
                     add.l    #(256*40),a1
                     WAIT_BLIT
                     subq.b   #1,d0
-                    bne.b    loop_copy_mid
+                    bne.b    loop_clear_holo
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
@@ -1209,14 +1214,14 @@ weapons_pic_table:  dc.l     weapons_pic+(176*40)
                     dc.l     weapons_pic+(88*40)+20
                     dc.l     weapons_pic+(88*40)
 
-lbC001BA6:          move.l   #copperlist_main,CUSTOM+COP1LCH
+set_gfx_context:    move.l   #copperlist_main,CUSTOM+COP1LCH
                     bsr      copy_bkgnd_pic
                     lea      caret_position_dat(pc),a0
-                    bsr      lbC001FB0
+                    bsr      set_caret_sprite
                     lea      caret_position_dat(pc),a0
                     bra      disp_caret
 
-lbC001BCA:          lea      caret_position_dat(pc),a0
+remove_caret:       lea      caret_position_dat(pc),a0
                     move.w   #-16,(a0)
                     move.w   #-16,2(a0)
                     bra      disp_caret
@@ -1383,7 +1388,7 @@ wait_input_release: move.l   gameport_register(pc),a0
                     and.w    #$303,d0
                     ;tst.w    d0
                     bne.b    wait_input_release
-                    bra      lbC000BD4
+                    bra      play_sample_caret_move
 
 flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    flash_caret
@@ -1391,7 +1396,7 @@ flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    .wait
                     bra      change_caret_color
 
-lbC001FB0:          tst.l    16(a0)
+set_caret_sprite:   tst.l    16(a0)
                     bne.b    lbC001FD2
                     move.l   12(a0),d0
 lbC001FBA:          move.l   8(a0),a1
