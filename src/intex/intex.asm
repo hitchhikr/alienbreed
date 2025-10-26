@@ -27,7 +27,7 @@ start:              move.l   d0,player_pos_x
                     bsr      set_bitplanes_and_palette
                     bsr      set_gfx_context
                     bsr      display_intex_startup_seq
-                    lea      lbW0071B4(pc),a6
+                    lea      welcome_sample_struct(pc),a6
                     move.l   schedule_sample_to_play(pc),a5
                     jsr      (a5)
 main_loop:          bsr      copy_bkgnd_pic
@@ -101,7 +101,7 @@ scr_disconnecting:  bsr      copy_bkgnd_pic
                     bsr      remove_caret
                     move.l   #copperlist_blank,CUSTOM+COP1LCH
                     lea      cur_holocode(pc),a0
-                    move.l   lbL007190(pc),d2
+                    ;move.l   lbL007190(pc),d2
                     move.l   owned_weapons(pc),d0
                     move.l   purchased_supplies(pc),d1
                     rts
@@ -423,12 +423,13 @@ disp_caret_holocode:
                     lea      caret_position_dat(pc),a0
                     move.w   cur_holocode_position(pc),d0
                     lsl.w    #3,d0
-                    add.w    #$80,d0
+                    add.w    #128,d0
                     move.w   d0,(a0)
-                    move.w   #$84,2(a0)
+                    move.w   #132,2(a0)
                     bra      disp_caret
 
-play_sample_caret_move:          movem.l  d0-d7/a0-a6,-(sp)
+play_sample_caret_move:
+                    movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #14,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
@@ -436,7 +437,8 @@ play_sample_caret_move:          movem.l  d0-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d0-d7/a0-a6
                     rts
 
-lbC000BF2:          movem.l  d0-d7/a0-a6,-(sp)
+play_sample_disp_char:
+                    movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #48,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
@@ -599,7 +601,7 @@ disp_caret_in_tool_supplies:
                     mulu     #24,d0
                     add.l    #72,d0
                     move.w   d0,2(a0)
-                    move.w   #$10,(a0)
+                    move.w   #16,(a0)
                     bra      disp_caret
 
 get_credit_limit:   move.l   cur_credits(pc),a0
@@ -623,7 +625,10 @@ scr_briefing:       bsr      copy_bkgnd_pic
                     move.l   briefing_text(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
-                    bra      wait_joy_button
+                    move.l   #$960020,sprites_dmacon
+                    bsr      wait_joy_button
+                    move.l   #$968020,sprites_dmacon
+                    rts
 
 peek_joy_button:    moveq    #CIAB_GAMEPORT1,d1
                     move.l   gameport_register(pc),a0
@@ -649,23 +654,23 @@ display_intex_startup_seq:
                     move.b   CIAB+CIATODLOW,d1
                     cmp.b    #$7F,d1
                     bpl      .no_mess_up
-                    move.l   #10,d0
+                    moveq    #10,d0
                     bsr      mess_up_screen
                     tst.w    interrupted_by_user_flag
                     bne      startup_seq_interrupted
-                    move.l   #1,d0
+                    moveq    #1,d0
                     bsr      wait_timed_frames
                     tst.w    interrupted_by_user_flag
                     bne      startup_seq_interrupted
-                    move.l   #$19,d0
+                    moveq    #25,d0
                     bsr      mess_up_screen
                     tst.w    interrupted_by_user_flag
                     bne      startup_seq_interrupted
-                    move.l   #1,d0
+                    moveq    #1,d0
                     bsr      wait_timed_frames
                     tst.w    interrupted_by_user_flag
                     bne      startup_seq_interrupted
-                    move.l   #6,d0
+                    moveq    #6,d0
                     bsr      mess_up_screen
                     tst.w    interrupted_by_user_flag
                     bne.b    startup_seq_interrupted
@@ -678,7 +683,7 @@ display_intex_startup_seq:
                     bsr      peek_joy_button
                     tst.l    d0
                     bmi      startup_seq_interrupted
-                    move.l   #1,d0
+                    moveq    #1,d0
                     bsr      wait_timed_frames_startup
                     lea      text_system_status(pc),a0
                     lea      font_struct(pc),a1
@@ -688,7 +693,7 @@ display_intex_startup_seq:
                     bsr      peek_joy_button
                     tst.l    d0
                     bmi      startup_seq_interrupted
-                    move.l   #2,d0
+                    moveq    #2,d0
                     bsr      wait_timed_frames_startup
                     lea      text_downloading(pc),a0
                     lea      font_struct(pc),a1
@@ -789,15 +794,15 @@ scr_map:            bsr      copy_bkgnd_pic
                     bsr      clear_map_plane
                     bra      copy_bkgnd_pic
 
-lbL00140E:          dc.l     $F8
-lbL001412:          dc.l     $CA
-lbL001416:          dc.l     $61D8
+cur_map_x:          dc.l     248
+cur_map_y:          dc.l     202
+cur_map_offset:     dc.l     25048
 
 plot_map:           lea      map_plane,a5
                     move.l   cur_map_top(pc),a0
-                    add.l    lbL001416(pc),a0
-                    move.l   lbL00140E(pc),d0
-                    move.l   lbL001412(pc),d1
+                    add.l    cur_map_offset(pc),a0
+                    move.l   cur_map_x(pc),d0
+                    move.l   cur_map_y(pc),d1
                     move.l   d0,d7
 .loop:              move.w   -(a0),d2
                     and.w    #$3F,d2
@@ -923,7 +928,7 @@ disp_caret_in_menu: lea      caret_position_dat(pc),a0
                     mulu     #12,d0
                     add.l    #68,d0
                     move.w   d0,2(a0)
-                    move.w   #$30,(a0)
+                    move.w   #48,(a0)
                     bra      disp_caret
 
 disp_caret_in_weapons:
@@ -934,7 +939,7 @@ disp_caret_in_weapons:
                     mulu     #12,d0
                     add.l    #227,d0
                     move.w   d0,2(a0)
-                    move.w   #$80,(a0)
+                    move.w   #128,(a0)
                     bra      disp_caret
 
 user_select_buy_weapon:
@@ -1158,8 +1163,8 @@ loop_copy:          move.w   #(256*64)+20,CUSTOM+BLTSIZE
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-disp_weapon_pic:    lea      lbL007222(pc),a0
-                    move.l   #2560,d0
+disp_weapon_pic:    lea      weapon_mask_pic(pc),a0
+                    move.l   #(128*20),d0
 .clear_dest:        clr.b    (a0)+
                     subq.w   #1,d0
                     bne.b    .clear_dest
@@ -1175,11 +1180,11 @@ disp_weapon_pic:    lea      lbL007222(pc),a0
                     move.l   #$DFC0000,CUSTOM+BLTCON0
                     clr.w    CUSTOM+BLTDMOD
                     clr.w    CUSTOM+BLTBMOD
-                    move.w   #$14,CUSTOM+BLTAMOD
+                    move.w   #20,CUSTOM+BLTAMOD
                     moveq    #4,d0
 loop_clear_w:       move.l   a0,CUSTOM+BLTAPTH
-                    move.l   #lbL007222,CUSTOM+BLTDPTH
-                    move.l   #lbL007222,CUSTOM+BLTBPTH
+                    move.l   #weapon_mask_pic,CUSTOM+BLTDPTH
+                    move.l   #weapon_mask_pic,CUSTOM+BLTBPTH
                     move.w   #(88*64)+10,CUSTOM+BLTSIZE
                     add.l    #(264*40),a0
                     WAIT_BLIT
@@ -1197,7 +1202,7 @@ loop_clear_w:       move.l   a0,CUSTOM+BLTAPTH
 loop_disp_w:        move.l   a0,CUSTOM+BLTAPTH
                     move.l   a1,CUSTOM+BLTDPTH
                     move.l   a1,CUSTOM+BLTCPTH
-                    move.l   #lbL007222,CUSTOM+BLTBPTH
+                    move.l   #weapon_mask_pic,CUSTOM+BLTBPTH
                     move.w   #(88*64)+10,CUSTOM+BLTSIZE
                     add.l    #(264*40),a0
                     add.l    #(256*40),a1
@@ -1256,7 +1261,7 @@ construct_credit_limit_ascii:
                     move.b   #'0',(a0)+
                     bra.b    credit_footer
 .zero_credits:      lea      decimal_table(pc),a1
-                    cmp.l    #$3B9AC9FF,d0
+                    cmp.l    #999999999,d0
                     bhi.b    max_credit
                     clr.l    leading_zeroes_flag
                     moveq    #'0',d2
@@ -1317,7 +1322,7 @@ construct_number_ascii:
                     move.b   #'0',(a0)+
                     bra.b    pad_text
 .zero:              lea      decimal_table(pc),a1
-                    cmp.l    #$3B9AC9FF,d0
+                    cmp.l    #999999999,d0
                     bhi.b    max_number
                     clr.l    leading_zeroes_flag
                     moveq    #'0',d2
@@ -1397,9 +1402,9 @@ flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
                     bra      change_caret_color
 
 set_caret_sprite:   tst.l    16(a0)
-                    bne.b    lbC001FD2
+                    bne.b    .alt_spr_pic
                     move.l   12(a0),d0
-lbC001FBA:          move.l   8(a0),a1
+.set_copper:        move.l   8(a0),a1
                     move.w   6(a0),d1
                     or.w     d1,14(a1)
                     move.w   d0,6(a1)
@@ -1407,11 +1412,11 @@ lbC001FBA:          move.l   8(a0),a1
                     move.w   d0,2(a1)
                     rts
 
-lbC001FD2:          move.l   16(a0),a1
+.alt_spr_pic:       move.l   16(a0),a1
                     move.l   a1,20(a0)
                     move.w   6(a1),24(a0)
                     move.l   (a1),d0
-                    bra.b    lbC001FBA
+                    bra.b    .set_copper
 
 disp_caret:         move.l   8(a0),a1
                     tst.l    16(a0)
@@ -1425,17 +1430,17 @@ lbC001FF2:          and.w    #$80,14(a1)
 lbC00200C:          lsr.w    #1,d0
                     move.b   d0,11(a1)
                     move.w   2(a0),d0
-                    add.w    #$2C,d0
+                    add.w    #44,d0
                     move.w   d0,d1
                     add.w    4(a0),d1
-                    cmp.w    #$100,d1
+                    cmp.w    #256,d1
                     bmi.b    lbC002030
-                    sub.w    #$FF,d1
+                    sub.w    #255,d1
                     or.b     #2,15(a1)
 lbC002030:          move.b   d1,14(a1)
-                    cmp.w    #$100,d0
+                    cmp.w    #256,d0
                     bmi.b    lbC002044
-                    sub.w    #$FF,d0
+                    sub.w    #255,d0
                     or.b     #4,15(a1)
 lbC002044:          move.b   d0,10(a1)
                     tst.w    6(a0)
@@ -1459,7 +1464,7 @@ lbC00207C:          rts
 lbC00207E:          subq.w   #1,24(a0)
                     bpl      lbC001FF2
                     addq.l   #8,20(a0)
-lbC00208A:          move.l   $14(a0),a2
+lbC00208A:          move.l   20(a0),a2
                     move.l   (a2),d0
                     tst.l    d0
                     bmi.b    lbC0020A8
@@ -1475,9 +1480,9 @@ lbC0020A8:          move.l   16(a0),20(a0)
 caret_position_dat: dc.w     -16
 caret_position_y:   dc.w     -16,11,0
                     dc.l     copper_caret_sprite
-                    dc.l     lbW0020E8
+                    dc.l     caret_pic
                     dcb.w    6,0
-lbW0020E8:          dcb.w    22,-256
+caret_pic:          dcb.w    22,%1111111100000000
                     dcb.w    128,0
 
 display_text:       lea      CUSTOM,a6
@@ -1486,13 +1491,13 @@ display_text:       lea      CUSTOM,a6
                     move.w   (a0)+,d0
                     move.w   (a0)+,d1
                     move.l   d0,d7
-lbC002224:          tst.w    interruptible_by_used_flag
+loop_text:          tst.w    interruptible_by_used_flag
                     beq.b    .not_interruptible
                     move.w   #1,interrupted_by_user_flag
                     btst     #7,CIAA
-                    beq      lbC0023FA
+                    beq      end_of_line
                     btst     #6,CIAA
-                    beq      lbC0023FA
+                    beq      end_of_line
                     clr.w    interrupted_by_user_flag
 .not_interruptible: move.l   (a1),a2
                     move.l   d0,d2
@@ -1507,19 +1512,18 @@ lbC002224:          tst.w    interruptible_by_used_flag
                     addq.l   #4,d2
                     mulu     d1,d2
                     add.l    d2,a2
-                    clr.l    d4
+                    moveq    #0,d4
                     move.b   (a0)+,d2
                     cmp.b    #' ',d2
-                    beq      lbC0023E0
+                    beq      skip_char
                     move.l   36(a1),a3
-lbC002284:          cmp.b    (a3)+,d2
-                    beq.b    lbC002292
+.search_char:       cmp.b    (a3)+,d2
+                    beq.b    .found_char
                     addq.l   #2,d4
                     tst.b    (a3)
-                    bne.b    lbC002284
-                    bra      lbC0023E0
-
-lbC002292:          move.l   $20(a1),a3
+                    bne.b    .search_char
+                    bra      skip_char
+.found_char:        move.l   32(a1),a3
                     add.l    d4,a3
                     WAIT_BLIT
                     move.l   #$1000000,BLTCON0(a6)
@@ -1538,7 +1542,7 @@ lbC002292:          move.l   $20(a1),a3
                     move.w   #2,BLTDMOD(a6)
                     move.w   #2,BLTBMOD(a6)
                     move.l   a3,d6
-lbC0022FE:          
+copy_letter_to_buffer:
                     WAIT_BLIT
                     move.l   d6,BLTAPTH(a6)
                     move.l   d4,BLTBPTH(a6)
@@ -1546,7 +1550,7 @@ lbC0022FE:
                     move.w   #(16*64)+1,BLTSIZE(a6)
                     add.l    d5,d6
                     subq.w   #1,d2
-                    bne.b    lbC0022FE
+                    bne.b    copy_letter_to_buffer
                     WAIT_BLIT
                     move.l   #$FFFF0000,BLTAFWM(a6)
                     move.w   d3,BLTCON1(a6)
@@ -1558,12 +1562,12 @@ lbC0022FE:
                     move.w   14(a1),BLTCMOD(a6)
                     move.l   8(a1),d5
                     move.l   4(a1),d2
-                    move.l   $1C(a1),d3
+                    move.l   28(a1),d3
                     move.l   #letter_buffer,d4
-                    move.w   $16(a1),d6
+                    move.w   22(a1),d6
                     lsl.w    #6,d6
                     addq.w   #2,d6
-lbC002372:          
+copy_text_to_screen:
                     WAIT_BLIT
                     move.l   d4,BLTBPTH(a6)
                     move.l   a3,BLTAPTH(a6)
@@ -1573,41 +1577,41 @@ lbC002372:
                     add.l    d2,a2
                     add.l    d3,a3
                     subq.b   #1,d5
-                    bne.b    lbC002372
-
+                    bne.b    copy_text_to_screen
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      caret_position_dat(pc),a0
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
                     subq.w   #1,2(a0)
                     bsr      disp_caret
-                    addq.w   #1,lbW00240C
-                    cmp.w    #3,lbW00240C
-                    bne.b    lbC0023CE
-                    clr.w    lbW00240C
-                    bsr      lbC000BF2
-lbC0023CE:          not.w    lbW00240A
-                    beq.b    lbC0023DC
+                    addq.w   #1,slowdown_play_sample
+                    cmp.w    #3,slowdown_play_sample
+                    bne.b    .dont_play_sample
+                    clr.w    slowdown_play_sample
+                    bsr      play_sample_disp_char
+.dont_play_sample:  not.w    slowdown_flash_caret
+                    beq.b    .dont_flash_caret
                     bsr      flash_caret
-lbC0023DC:          movem.l  (sp)+,d0-d7/a0-a6
-lbC0023E0:          
-                    add.l    16(a1),d0
+.dont_flash_caret:  movem.l  (sp)+,d0-d7/a0-a6
+skip_char:          add.l    16(a1),d0
                     tst.b    (a0)
-                    bmi.b    lbC0023FA
-                    bne      lbC002224
+                    bmi.b    end_of_line
+                    bne      loop_text
                     addq.l   #1,a0
                     move.l   d7,d0
                     add.l    20(a1),d1
-                    bra      lbC002224
+                    bra      loop_text
 
-lbC0023FA:          lea      caret_position_dat(pc),a0
+end_of_line:        lea      caret_position_dat(pc),a0
                     add.w    #12,(a0)
                     bra      disp_caret
 
 ; -----------------------------------------------------
 
-lbW00240A:          dc.w     0
-lbW00240C:          dc.w     0
+slowdown_flash_caret:
+                    dc.w     0
+slowdown_play_sample:
+                    dc.w     0
 letter_buffer:      dcb.l    (16*2),0
 font_struct:        dc.l     bitplanes,(256*40),4,36,8,12,80,1008,font_pic,ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ>1234567890.!?: ',0
@@ -2288,10 +2292,6 @@ current_weapon:     dc.l     0
 gameport_register:  dc.l     0
 key_pressed:        dc.l     0
 owned_weapons:      dc.l     0
-player_struct:      dc.l     0
-buy_weapon_yes_no:  dc.l     1
-menu_choice:        dc.l     0
-cur_credits:        dc.l     0
 ; credits
 ; aliens killed
 ; shots fired
@@ -2299,14 +2299,20 @@ cur_credits:        dc.l     0
 ; doors opened
 ; ammo packs
 ; currently used weapon
-lbL007190:          dc.l     2000000,130,1500,0,100,10
+player_struct:      dc.l     0
+cur_credits:        dc.l     0
+buy_weapon_yes_no:  dc.l     1
+menu_choice:        dc.l     0
+;lbL007190:          dc.l     2000000,130,1500,0,100,10
 player_health:      dc.l     2
-                    dc.l     7
-                    dc.l     11111
+                    ;dc.l     7
+                    ;dc.l     11111
 
-lbW0071B4:          dc.w     1,VOICE_WELCOME_TO,3
-                    dc.l     lbW0071BE
-lbW0071BE:          dc.w     18,VOICE_INTEX_SYSTEM,3
+welcome_sample_struct:
+                    dc.w     1,VOICE_WELCOME_TO,3
+                    dc.l     welcome_sample_struct_2
+welcome_sample_struct_2:
+                    dc.w     18,VOICE_INTEX_SYSTEM,3
                     dc.l     0
 lbW0071C8:          dc.w     1,13,3
                     dc.l     0
@@ -2326,7 +2332,7 @@ lbW00720E:          dc.w     1,13,3
                     dc.l     lbW007218
 lbW007218:          dc.w     21,73,3
                     dc.l     0
-lbL007222:          dcb.b    2560,0
+weapon_mask_pic:    dcb.b    (128*20),0
 
 ; -----------------------------------------------------
 

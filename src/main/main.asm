@@ -8148,7 +8148,7 @@ copy_PALB_chunk:    add.l    #68,a0
 
 cur_holocode:       dc.l     0
 
-lbC00B6B2:          move.l   a0,cur_holocode
+retrieve_holocode:  move.l   a0,cur_holocode
                     move.l   a0,a1
                     lea      current_keysequence(pc),a2
 .loop:              move.b   (a1)+,d0
@@ -8967,7 +8967,7 @@ run_intex:          tst.w    self_destruct_initiated
                     jsr      temp_buffer                            ; run the prog
                     move.l   #copper_blank,CUSTOM+COP1LCH
                     movem.l  d0-d7/a0-a6,-(sp)
-                    bsr      lbC00B6B2
+                    bsr      retrieve_holocode
                     movem.l  (sp)+,d0-d7/a0-a6
                     movem.l  d0-d7/a0-a6,-(sp)
                     lea      lbL1101C4,a0
@@ -8994,7 +8994,8 @@ run_intex:          tst.w    self_destruct_initiated
                     bra.b    lbC00DABA
 
 lbC00DAB2:          move.l   cur_credits,PLAYER_CREDITS(a0)
-lbC00DABA:          move.w   d1,d2
+lbC00DABA:          ; purchased_supplies
+                    move.w   d1,d2
                     beq      .no_extra_life
                     move.w   d2,d1
                     and.w    #SUPPLY_MAP_OVERVIEW,d1
@@ -9032,11 +9033,12 @@ lbC00DABA:          move.w   d1,d2
                     cmp.w    #SUPPLY_EXTRA_LIFE,d1
                     bne.b    .no_extra_life
                     addq.w   #1,PLAYER_LIVES(a0)
-.no_extra_life:     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
+.no_extra_life:     ; new owned weapons from intex system
+                    move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.w   save_player_owned_weapons(pc),d1
                     cmp.w    d0,d1
-                    beq.b    lbC00DB8E
+                    beq.b    .weapon_not_changed
                     move.l   player_using_intex,a0
                     not.w    d1
                     and.w    d1,d0
@@ -9045,14 +9047,16 @@ lbC00DABA:          move.w   d1,d2
                     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
                     cmp.l    #player_1_dats,a0
-                    bne.b    lbC00DB80
+                    bne.b    .player_2
                     jsr      player_1_select_weapon
-                    bra.b    lbC00DB86
+                    bra.b    .player_weapon_selected
 
-lbC00DB80:          jsr      player_2_select_weapon
-lbC00DB86:          movem.l  (sp)+,d0-d7/a0-a6
+.player_2:          jsr      player_2_select_weapon
+.player_weapon_selected:
+                    movem.l  (sp)+,d0-d7/a0-a6
                     move.w   (sp)+,PLAYER_OWNEDWEAPONS(a0)
-lbC00DB8E:          movem.l  (sp)+,d0-d7/a0-a6
+.weapon_not_changed:
+                    movem.l  (sp)+,d0-d7/a0-a6
                     movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #40,d0
                     moveq    #3,d2
