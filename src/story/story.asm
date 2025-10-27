@@ -92,9 +92,9 @@ display_title_screen:
 
 display_beam_title: move.w   #$8020,CUSTOM+DMACON
                     lea      sprite_struct(pc),a0
-                    bsr      set_caret_bp
+                    bsr      set_sprite_bp
                     lea      sprite_struct(pc),a0
-                    bsr      disp_caret
+                    bsr      disp_sprite
                     lea      colors_up(pc),a0
                     lea      color_palette_light(pc),a1
                     moveq    #32,d0
@@ -114,7 +114,7 @@ move_beam:          movem.l  d0-d7/a0-a6,-(sp)
                     bne.b    .max_y
                     move.w   #244,d0
 .max_y:             move.w   d0,2(a0)
-                    bsr      disp_caret
+                    bsr      disp_sprite
                     movem.l  (sp)+,d0-d7/a0-a6
                     addq.w   #1,d1
                     cmp.w    #32,d1
@@ -131,7 +131,7 @@ reached_pal:        addq.w   #1,d0
                     bne.b    move_beam
                     lea      sprite_struct(pc),a0
                     move.w   #336,(a0)
-                    bsr      disp_caret
+                    bsr      disp_sprite
                     move.l   #300,d0
                     bsr      wait_x_frames
                     tst.l    exit_flag
@@ -363,8 +363,7 @@ fade_in_planet:     lea      color_palette_planet(pc),a0
 
 FADE_SPEED          equ      2
                     include  "palette.asm"
-
-                    include  "caret.asm"
+                    include  "sprite.asm"
 
 ; -----------------------------------------------------
 

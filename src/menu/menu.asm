@@ -359,7 +359,7 @@ setup_context:      bsr      setup_stars
                     bsr      set_menu_bps
                     move.l   #copperlist_blank,CUSTOM+COP1LCH
                     lea      caret_struct(pc),a0
-                    bsr      set_caret_bp
+                    bsr      set_sprite_bp
                     lea      caret_struct(pc),a0
                     bra      set_random_seed
 
@@ -419,7 +419,7 @@ lev3irq:            movem.l  d0-d7/a0-a6,-(sp)
                     bsr      menu_flash
                     bsr      display_title
                     lea      caret_struct(pc),a0
-                    bsr      disp_caret
+                    bsr      disp_sprite
                     move.w   #321,caret_struct
                     btst     #CIAB_GAMEPORT0,CIAA
                     beq.b    .button_pressed
@@ -486,8 +486,7 @@ wait_vsync_with_done_fade_2:
 
 FADE_SPEED          equ      3
                     include  "palette.asm"
-
-                    include  "caret.asm"
+                    include  "sprite.asm"
 
 caret_struct:       dc.w     -32,-32
                     dc.w     11,0

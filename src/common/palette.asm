@@ -378,5 +378,5 @@ ptr_source_palette: dc.l     0
 ptr_copper_palette: dc.l     0
 rgb_speeds_block_to_rgb:
                     dcb.l    24,0
-rgb_speeds_block:   dcb.l    48,0
-cur_rgb_block:      dcb.l    48,0
+rgb_speeds_block:   dcb.w    (32*3),0
+cur_rgb_block:      dcb.w    (32*3),0

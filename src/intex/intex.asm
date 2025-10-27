@@ -425,7 +425,7 @@ disp_caret_holocode:
                     add.w    #128,d0
                     move.w   d0,(a0)
                     move.w   #132,2(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 play_sample_caret_move:
                     movem.l  d0-d7/a0-a6,-(sp)
@@ -601,7 +601,7 @@ disp_caret_in_tool_supplies:
                     add.l    #72,d0
                     move.w   d0,2(a0)
                     move.w   #16,(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 get_credit_limit:   move.l   cur_credits(pc),a0
                     move.l   (a0),d0
@@ -781,7 +781,7 @@ scr_map:            bsr      copy_bkgnd_pic
                     move.w   d0,caret_struct
                     move.w   d1,caret_position_y
                     lea      caret_struct(pc),a0
-                    bsr      disp_caret
+                    bsr      disp_sprite
 .loop:              bsr      flash_caret
                     btst     #7,CIAA
                     beq.b    .interrupted_by_user
@@ -927,7 +927,7 @@ disp_caret_in_menu: lea      caret_struct(pc),a0
                     add.l    #68,d0
                     move.w   d0,2(a0)
                     move.w   #48,(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 disp_caret_in_weapons:
                     lea      caret_struct(pc),a0
@@ -938,7 +938,7 @@ disp_caret_in_weapons:
                     add.l    #227,d0
                     move.w   d0,2(a0)
                     move.w   #128,(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 user_select_buy_weapon:
                     move.l   gameport_register(pc),a0
@@ -1220,14 +1220,14 @@ weapons_pic_table:  dc.l     weapons_pic+(176*40)
 set_gfx_context:    move.l   #copperlist_main,CUSTOM+COP1LCH
                     bsr      copy_bkgnd_pic
                     lea      caret_struct(pc),a0
-                    bsr      set_caret_bp
+                    bsr      set_sprite_bp
                     lea      caret_struct(pc),a0
-                    bra      disp_caret
+                    bra      disp_sprite
 
 remove_caret:       lea      caret_struct(pc),a0
                     move.w   #-16,(a0)
                     move.w   #-16,2(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 display_credit_limit:
                     move.l   cur_credits(pc),a0
@@ -1396,7 +1396,7 @@ flash_caret:        cmp.b    #255,CUSTOM+VHPOSR
                     bne.b    .wait
                     bra      change_caret_color
 
-                    include  "caret.asm"
+                    include  "sprite.asm"
 
 caret_struct:       dc.w     -16
 caret_position_y:   dc.w     -16
@@ -1519,7 +1519,7 @@ copy_text_to_screen:
                     move.w   d0,(a0)
                     move.w   d1,2(a0)
                     subq.w   #1,2(a0)
-                    bsr      disp_caret
+                    bsr      disp_sprite
                     addq.w   #1,slowdown_play_sample
                     cmp.w    #3,slowdown_play_sample
                     bne.b    .dont_play_sample
@@ -1540,7 +1540,7 @@ skip_char:          add.l    16(a1),d0
 
 end_of_line:        lea      caret_struct(pc),a0
                     add.w    #12,(a0)
-                    bra      disp_caret
+                    bra      disp_sprite
 
 ; -----------------------------------------------------
 
