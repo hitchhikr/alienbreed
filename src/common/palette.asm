@@ -62,7 +62,7 @@ fade_palette_to_rgb:
                     tst.w    done_fade
                     bne      return
                     moveq    #0,d7
-                    add.w    #1,cur_frame_counter
+                    addq.w   #1,cur_frame_counter
                     move.w   cur_frame_counter(pc),d0
                     cmp.w    frames_slowdown(pc),d0
                     bmi      return
@@ -271,7 +271,7 @@ prep_fade_speeds_fade_out:
                     ext.l    d6
                     move.w   d6,(a3)+
                     move.w   (a2),d6
-                    add.l    #4,a2
+                    addq.l   #4,a2
                     lsl.w    #8,d6
                     and.w    #$F00,d6
                     divu     #$F,d6
@@ -377,6 +377,6 @@ colors_amount:      dc.w     0
 ptr_source_palette: dc.l     0
 ptr_copper_palette: dc.l     0
 rgb_speeds_block_to_rgb:
-                    dcb.l    24,0
+                    dcb.b    90,0
 rgb_speeds_block:   dcb.w    (32*3),0
 cur_rgb_block:      dcb.w    (32*3),0

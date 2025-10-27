@@ -154,6 +154,7 @@ SAMPLE_DESCENT      equ      41
 SAMPLE_DESCENT_END  equ      42
 SAMPLE_TYPE_WRITER  equ      48
 SAMPLE_DYING_PLAYER equ      73
+SAMPLE_EMPTY        equ      76
 
 ALIEN_SPEED         equ      10
 ALIEN_POS_X         equ      30

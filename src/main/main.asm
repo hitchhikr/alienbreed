@@ -68,10 +68,9 @@ player_2_old_input: dc.b     0
 player_1_old_input: dc.b     0
 slowdown_pause_display:
                     dc.w     5
+done_fade:          dc.w     0
 
-some_variable:      dc.w     0
-
-wait:               tst.w    some_variable
+wait:               tst.w    done_fade
                     beq.b    wait
                     rts
 
@@ -271,7 +270,7 @@ loop_from_gameover: jsr      run_menu
 
                     ; level 1
                     clr.l    cur_level
-                    bsr      lbC0026A4
+                    bsr      init_global_game_vars
                     clr.w    global_aliens_extra_strength
                     jsr      set_players_startup_weapons
                     jsr      reset_game_variables
@@ -828,7 +827,6 @@ lev3irq:            movem.l  d0-d7/a0-a6,-(sp)
                     bne      copper_int
                     btst     #5,CUSTOM+INTREQR+1
                     beq      vblank_int
-                    ;st       lbB022C32
                     not.w    frame_flipflop
                     beq.b    lbC0014E8
                     move.w   #-1,lbW0004B4
@@ -869,9 +867,9 @@ lbC001596:          addq.w   #1,frames_counter
                     clr.w    frames_counter
                     addq.l   #1,elapsed_seconds
 count_elapsed_seconds:
-                    jsr      palette_fade
-                    jsr      lbC01097E
-                    jsr      lbC010BAC
+                    jsr      fade_palette_to_rgb
+                    jsr      fade_palette_in
+                    jsr      fade_palette_out
                     jsr      lbC024142
                     jsr      bpmusic
                     jsr      lbC022C34
@@ -981,17 +979,16 @@ lbC0025B0:          lea      lbL0025D2(pc),a0
 lbL0025D2:          dcb.w    103,0
                     dc.w     -1
 
-lbC0026A4:          clr.l    flag_jump_to_gameover
+init_global_game_vars:
+                    clr.l    flag_jump_to_gameover
                     clr.l    lbL000586
                     clr.l    flag_destruct_level
                     clr.l    elapsed_seconds
                     lea      lbW09A250,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW09A2C4,a0
-                    bsr      lbC005A9A
-                    ; no rts
- 
-lbC0026D6:          move.l   #lbL00E9C2,lbL005D40
+                    bsr      rem_sprites_regs_in_copperlist
+                    move.l   #lbL00E9C2,lbL005D40
                     move.l   #lbL00E9C2,lbL005D44
                     move.l   #lbL00E9D2,lbL0064E0
                     move.l   #lbL00E9D2,lbL0064E4
@@ -1298,9 +1295,9 @@ destruction_sequence:
                     move.l   a1,cur_palette_ptr
                     lea      copper_main_palette,a2
                     moveq    #32,d0
-                    move.w   #4,lbW010CDE
+                    move.w   #4,frames_slowdown
                     move.w   #1,lbW002FDE
-                    jsr      compute_palette_fading_directions
+                    jsr      prep_fade_speeds_fade_to_rgb
                     move.w   #1,lbW00057A
                     move.l   #lbW02316A,sample_struct_to_play
                     clr.w    lbW023204
@@ -1612,7 +1609,7 @@ copy_map_datas:     move.l   #(end_map_datas-cur_map_datas),d0
                     rts
 
 lbC003832:          clr.w    lbW0039A4
-                    clr.l    lbL0039A6
+                    clr.l    number_of_tiles_to_draw
                     clr.l    lbL0039AA
                     clr.l    lbL0039AE
                     clr.w    lbB0039B2
@@ -1649,23 +1646,23 @@ lbC003878:          bsr      lbC003832
                     move.l   cur_palette_ptr(pc),a1
                     lea      copper_main_palette,a2
                     moveq    #32,d0
-                    move.w   #2,lbW010CDE
-                    jsr      compute_palette_fading_directions
+                    move.w   #2,frames_slowdown
+                    jsr      prep_fade_speeds_fade_to_rgb
                     jsr      set_bitplanes_nbr
                     jsr      display_status_bars
                     jsr      wait
-                    clr.w    lbW023124+2
+                    clr.w    smp_zone_struct_2+2
                     rts
 
 lbC003954:          move.l   #-1,lbL0035D8
                     move.l   #18,lbL0035E0
-                    move.l   #21,lbL0039A6
+                    move.l   #21,number_of_tiles_to_draw
                     clr.l    lbL0039AA
                     lea      lbW003E92(pc),a0
                     clr.w    0(a0)
                     lea      lbW003EA0(pc),a0
                     clr.w    0(a0)
-lbC003988:          bsr      display_tiles
+lbC003988:          bsr      draw_tiles_horiz
                     bsr      lbC003EFC
                     addq.l   #1,lbL0035D8
                     subq.l   #1,lbL0035E0
@@ -1673,7 +1670,8 @@ lbC003988:          bsr      display_tiles
                     rts
 
 lbW0039A4:          dc.w     0
-lbL0039A6:          dc.l     0
+number_of_tiles_to_draw:
+                    dc.l     0
 lbL0039AA:          dc.l     0
 lbL0039AE:          dc.l     0
 lbB0039B2:          dc.b     0
@@ -1764,128 +1762,128 @@ lbL003ADE:          dc.l     lbC003DAA
 
 lbC003AF2:          move.l   #-1,lbL0035D8
                     move.l   #0,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW0041D8,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003B2C:          move.l   #-1,lbL0035D8
                     move.l   #5,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW0041E4,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003B66:          move.l   #-1,lbL0035D8
                     move.l   #10,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW0041F0,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003BA0:          move.l   #-1,lbL0035D8
                     move.l   #15,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW0041FC,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003BDA:          move.l   #16,lbL0035D8
                     move.l   #0,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW00422E,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003C14:          move.l   #16,lbL0035D8
                     move.l   #5,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW00423A,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003C4E:          move.l   #16,lbL0035D8
                     move.l   #10,lbL0039AA
-                    move.l   #6,lbL0039A6
-                    bsr      display_tiles
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_horiz
                     move.l   #lbW004246,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
 lbC003C88:          move.l   #15,lbL0039AA
-                    move.l   #6,lbL0039A6
+                    move.l   #6,number_of_tiles_to_draw
                     move.l   #$10,lbL0035D8
-                    bsr      display_tiles
+                    bsr      draw_tiles_horiz
                     move.l   #lbW004252,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003CC2:          move.l   #20,lbL0035DC
                     move.l   #0,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW004206,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003CFC:          move.l   #20,lbL0035DC
                     move.l   #5,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW004210,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003D36:          move.l   #20,lbL0035DC
                     move.l   #10,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW00421A,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003D70:          move.l   #20,lbL0035DC
                     move.l   #12,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW004224,lbL00411C
                     move.l   #5,lbL004120
                     bra      lbC004176
 
 lbC003DAA:          move.l   #0,lbL0035DC
                     move.l   #0,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW00425C,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003DE4:          move.l   #0,lbL0035DC
                     move.l   #5,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW004266,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003E1E:          move.l   #0,lbL0035DC
                     move.l   #10,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW004270,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
 lbC003E58:          move.l   #0,lbL0035DC
                     move.l   #12,lbL0039AE
-                    move.l   #6,lbL0039A6
-                    bsr      lbC005620
+                    move.l   #6,number_of_tiles_to_draw
+                    bsr      draw_tiles_vert
                     move.l   #lbW00427A,lbL00411C
                     move.l   #5,lbL004120
                     bra      lbC004176
@@ -3120,7 +3118,7 @@ lbC005404:          bsr      lbC00AE2E
                     bsr      lbC00AF10
                     bra      lbC00AED8
 
-lbC005416:          add.l    #$F8,a3
+lbC005416:          add.l    #248,a3
                     bsr      lbC00AE2E
                     lea      lbL020BAA,a1
                     bsr      lbC00AF10
@@ -3143,7 +3141,7 @@ lbC005452:          bsr      lbC00AE2E
 
 none:               rts
 
-display_tiles:      move.l   map_pos_x(pc),d0
+draw_tiles_horiz:   move.l   map_pos_x(pc),d0
                     move.l   map_pos_y(pc),d1
                     lsr.l    #4,d0
                     add.l    lbL0039AA(pc),d0
@@ -3162,8 +3160,8 @@ display_tiles:      move.l   map_pos_x(pc),d0
                     subq.l   #2,a2
                     lea      bkgnd_tiles_block_table(pc),a3
                     move.l   #294*42,d1
-                    move.l   #-49390,d2
-                    move.l   lbL0039A6(pc),d3
+                    move.l   #-((294*42)-2),d2
+                    move.l   number_of_tiles_to_draw(pc),d3
                     moveq    #0,d4
                     bsr      lbC003EAE
 .loop:              move.w   (a2)+,d4
@@ -3171,95 +3169,95 @@ display_tiles:      move.l   map_pos_x(pc),d0
                     asr.w    #4,d4
                     move.l   (a3,d4.l),a0
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d1,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d1,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d1,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d1,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d2,a1
                     subq.b   #1,d3
                     bne      .loop
                     rts
 
-lbC005620:          move.l   map_pos_x(pc),d0
+draw_tiles_vert:    move.l   map_pos_x(pc),d0
                     move.l   map_pos_y(pc),d1
                     lsr.w    #4,d0
                     lsr.w    #4,d1
@@ -3277,9 +3275,10 @@ lbC005620:          move.l   map_pos_x(pc),d0
                     lea      lbL0023D4,a4
                     add.l    d1,a4
                     move.l   d0,d0
+                    ; stride in map
                     move.l   #248,d1
                     move.l   #(294*42),d2
-                    move.l   lbL0039A6(pc),d3
+                    move.l   number_of_tiles_to_draw(pc),d3
                     move.l   (a4),a1
                     add.l    #(294*42*10),a1
                     add.l    d0,a1
@@ -3289,94 +3288,95 @@ lbC005620:          move.l   map_pos_x(pc),d0
                     add.l    #(294*42*10),a1
                     add.l    d0,a1
                     move.w   (a2),d4
+                    ; next tile vertically
                     add.l    d1,a2
                     and.w    #$FFC0,d4
                     lsr.w    #4,d4
                     move.l   0(a3,d4.l),a0
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d2,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d2,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d2,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     add.l    d2,a1
                     move.w   (a0)+,(a1)
-                    move.w   (a0)+,42(a1)
-                    move.w   (a0)+,84(a1)
-                    move.w   (a0)+,126(a1)
-                    move.w   (a0)+,168(a1)
-                    move.w   (a0)+,210(a1)
-                    move.w   (a0)+,252(a1)
-                    move.w   (a0)+,294(a1)
-                    move.w   (a0)+,336(a1)
-                    move.w   (a0)+,378(a1)
-                    move.w   (a0)+,420(a1)
-                    move.w   (a0)+,462(a1)
-                    move.w   (a0)+,504(a1)
-                    move.w   (a0)+,546(a1)
-                    move.w   (a0)+,588(a1)
-                    move.w   (a0)+,630(a1)
+                    move.w   (a0)+,(42*1)(a1)
+                    move.w   (a0)+,(42*2)(a1)
+                    move.w   (a0)+,(42*3)(a1)
+                    move.w   (a0)+,(42*4)(a1)
+                    move.w   (a0)+,(42*5)(a1)
+                    move.w   (a0)+,(42*6)(a1)
+                    move.w   (a0)+,(42*7)(a1)
+                    move.w   (a0)+,(42*8)(a1)
+                    move.w   (a0)+,(42*9)(a1)
+                    move.w   (a0)+,(42*10)(a1)
+                    move.w   (a0)+,(42*11)(a1)
+                    move.w   (a0)+,(42*12)(a1)
+                    move.w   (a0)+,(42*13)(a1)
+                    move.w   (a0)+,(42*14)(a1)
+                    move.w   (a0)+,(42*15)(a1)
                     subq.b   #1,d3
                     bne      .loop
                     rts
@@ -3518,44 +3518,45 @@ lbC0059DE:          subq.w   #2,d0
                     cmp.w    d1,d0
                     bpl.b    lbC005A26
 lbC0059FA:          lea      lbW09A2C4,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW09A250,a0
-                    bsr      lbC005B00
+                    bsr      set_sprites_regs_in_copperlist
                     move.l   a2,a0
                     lea      lbW09A254,a1
-                    bsr      lbC005B6A
+                    bsr      copy_sprites_data_in_copperlist
                     move.l   a3,a0
                     lea      sprite_5_6_bps,a1
-                    bra      lbC005B6A
+                    bra      copy_sprites_data_in_copperlist
 
 lbC005A26:          lea      lbW09A250,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW09A2C4,a0
-                    bsr      lbC005B00
+                    bsr      set_sprites_regs_in_copperlist
                     move.l   a2,a0
                     lea      lbW09A2C8,a1
-                    bsr      lbC005B6A
+                    bsr      copy_sprites_data_in_copperlist
                     move.l   a3,a0
                     lea      sprite_5_6_bps,a1
-                    bra      lbC005B6A
+                    bra      copy_sprites_data_in_copperlist
 
 lbC005A52:          lea      lbW09A250,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW09A2C4,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW005BCC,a0
                     lea      sprite_5_6_bps,a1
-                    bra      lbC005B6A
+                    bra      copy_sprites_data_in_copperlist
 
 lbC005A76:          lea      lbW09A250,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW09A2C4,a0
-                    bsr      lbC005A9A
+                    bsr      rem_sprites_regs_in_copperlist
                     lea      lbW005C0C,a0
                     lea      sprite_5_6_bps,a1
-                    bra      lbC005B6A
+                    bra      copy_sprites_data_in_copperlist
 
-lbC005A9A:          move.w   #$98,(a0)
+rem_sprites_regs_in_copperlist:
+                    move.w   #$98,(a0)
                     move.w   #$98,4(a0)
                     move.w   #$98,8(a0)
                     move.w   #$98,12(a0)
@@ -3574,7 +3575,8 @@ lbC005A9A:          move.w   #$98,(a0)
                     move.w   #$98,64(a0)
                     rts
 
-lbC005B00:          move.b   d0,(a0)
+set_sprites_regs_in_copperlist:
+                    move.b   d0,(a0)
                     move.b   #1,1(a0)
                     move.w   #SPR0PTH,4(a0)
                     move.w   #SPR0PTL,8(a0)
@@ -3594,7 +3596,8 @@ lbC005B00:          move.b   d0,(a0)
                     move.w   #SPR3CTL,64(a0)
                     rts
 
-lbC005B6A:          move.w   2(a0),2(a1)
+copy_sprites_data_in_copperlist:
+                    move.w   2(a0),2(a1)
                     move.w   6(a0),6(a1)
                     move.w   10(a0),10(a1)
                     move.w   14(a0),14(a1)
@@ -3955,12 +3958,12 @@ lbC006CD0:          tst.w    PLAYER_HEALTH(a0)
                     tst.w    424(a0)
                     bne      void
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbL02312E,a6
-                    move.w   #VOICE_FIRST_AID,lbW02314C+2
-                    move.w   #VOICE_ONE,lbW023138+2
+                    lea      smp_player_requires_struct_1,a6
+                    move.w   #VOICE_FIRST_AID,smp_player_requires_struct_4+2
+                    move.w   #VOICE_ONE,smp_player_requires_struct_2+2
                     cmp.l    #player_1_dats,a0
                     beq.b    lbC006D14
-                    move.w   #VOICE_TWO,lbW023138+2
+                    move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC006D14:          jsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     beq.b    lbC006D2A
@@ -5222,12 +5225,12 @@ tile_door:          tst.w    lbW007B48
                     tst.w    PLAYER_KEYS(a0)
                     bhi.b    force_door
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbL02312E,a6
-                    move.w   #VOICE_KEYS,lbW02314C+2
-                    move.w   #VOICE_ONE,lbW023138+2
+                    lea      smp_player_requires_struct_1,a6
+                    move.w   #VOICE_KEYS,smp_player_requires_struct_4+2
+                    move.w   #VOICE_ONE,smp_player_requires_struct_2+2
                     cmp.l    #player_1_dats,a0
                     beq.b    lbC007F30
-                    move.w   #VOICE_TWO,lbW023138+2
+                    move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
                     bra      tile_wall
 
@@ -8583,12 +8586,12 @@ lbC00D2BA:          lea      lbW008C9C(pc),a0
 display_map_overview:
                     clr.w    lbW0004C2
                     move.w   #1,lbW0004D0
-                    move.w   #1,lbW010CDE
+                    move.w   #1,frames_slowdown
                     lea      copper_main_palette,a0
                     lea      palette_black,a1
                     bsr      lbC0108DA
                     move.l   #32,d0
-                    bsr      lbC010AA4
+                    bsr      prep_fade_speeds_fade_out
                     jsr      wait
                     lea      lbL0FE76C,a0
                     move.l   #(256*40),d0
@@ -8601,7 +8604,7 @@ display_map_overview:
                     bsr      wait_raster
                     lea      lbL02266A,a1
                     moveq    #32,d0
-                    bsr      lbC010906
+                    bsr      prep_fade_speeds_fade_in
                     lea      text_scanning(pc),a0
                     lea      font_struct(pc),a1
                     bsr      display_text
@@ -8641,7 +8644,7 @@ exit_map_overview:  bsr      wait_raster
                     lea      overmap_palette,a0
                     lea      lbL02266A,a1
                     moveq    #32,d0
-                    bsr      lbC010AA4
+                    bsr      prep_fade_speeds_fade_out
                     jsr      wait
                     bsr      lbC003954
                     bsr      wait_raster
@@ -8649,7 +8652,7 @@ exit_map_overview:  bsr      wait_raster
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
                     moveq    #32,d0
-                    bsr      lbC010906
+                    bsr      prep_fade_speeds_fade_in
                     bsr      lbC00D67A
                     clr.w    lbW0004D0
                     move.w   #1,lbW0004C2
@@ -8922,8 +8925,8 @@ run_intex:          tst.w    self_destruct_initiated
                     lea      palette_black,a1
                     bsr      lbC0108DA
                     moveq    #32,d0
-                    move.w   #1,lbW010CDE
-                    bsr      lbC010AA4
+                    move.w   #1,frames_slowdown
+                    bsr      prep_fade_speeds_fade_out
                     jsr      wait
                     move.l   #copper_blank,CUSTOM+COP1LCH
                     lea      exe_intex,a0
@@ -9064,8 +9067,8 @@ lbC00DABA:          ; purchased_supplies
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
                     moveq    #32,d0
-                    move.w   #1,lbW010CDE
-                    bsr      lbC010906
+                    move.w   #1,frames_slowdown
+                    bsr      prep_fade_speeds_fade_in
                     bsr      wait_raster
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     jsr      wait
@@ -9110,9 +9113,9 @@ do_level_destruction:
                     move.l   cur_palette_ptr,a0
                     lea      palette_white,a1
                     lea      copper_main_palette,a2
-                    move.w   #4,lbW010CDE
+                    move.w   #4,frames_slowdown
                     moveq    #32,d0
-                    bsr      compute_palette_fading_directions
+                    bsr      prep_fade_speeds_fade_to_rgb
                     bsr      lbC00DDB8
                     moveq    #10,d0
                     moveq    #4,d1
@@ -9124,9 +9127,9 @@ do_level_destruction:
                     lea      palette_white,a0
                     lea.l    level_palette2,a1
                     lea      copper_main_palette,a2
-                    move.w   #2,lbW010CDE
+                    move.w   #2,frames_slowdown
                     moveq    #32,d0
-                    bsr      compute_palette_fading_directions
+                    bsr      prep_fade_speeds_fade_to_rgb
                     lea      palette_black,a0
                     bsr      lbC0108DA
                     moveq    #64,d0
@@ -9143,12 +9146,12 @@ lbC00DD6A:          move.w   d0,-(sp)
                     lea      palette_black,a1
                     bsr      lbC0108DA
                     lea      copper_main_palette,a2
-                    move.w   #3,lbW010CDE
+                    move.w   #3,frames_slowdown
                     moveq    #32,d0
-                    bsr      compute_palette_fading_directions
+                    bsr      prep_fade_speeds_fade_to_rgb
 
 lbC00DDA2:          bsr      lbC00DE18
-                    tst.w    some_variable
+                    tst.w    done_fade
                     beq.b    lbC00DDA2
                     move.w   #DMAF_SETCLR|DMAF_SPRITE,sprites_dma
                     rts
@@ -9344,12 +9347,12 @@ lbC00E0C8:          subq.w   #1,360(a0)
                     tst.w    420(a0)
                     bne.b    lbC00E13A
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbL02312E,a6
-                    move.w   #VOICE_AMMO,lbW02314C+2
-                    move.w   #VOICE_ONE,lbW023138+2
+                    lea      smp_player_requires_struct_1,a6
+                    move.w   #VOICE_AMMO,smp_player_requires_struct_4+2
+                    move.w   #VOICE_ONE,smp_player_requires_struct_2+2
                     cmp.l    #player_1_dats,a0
                     beq      lbC00E118
-                    move.w   #VOICE_TWO,lbW023138+2
+                    move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC00E118:          jsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     beq      lbC00E12E
@@ -10339,8 +10342,8 @@ lbC00F4A6:          lea      lbL02266A,a0
                     lea      palette_white,a1
                     move.l   exe_return_palette(pc),a2
                     moveq    #32,d0
-                    move.w   #2,lbW010CDE
-                    bsr      compute_palette_fading_directions
+                    move.w   #2,frames_slowdown
+                    bsr      prep_fade_speeds_fade_to_rgb
                     jsr      wait
 lbC00F4D2:          lea      palette_white,a0
                     lea      copper_main_palette,a1
@@ -10349,21 +10352,21 @@ lbC00F4D2:          lea      palette_white,a0
                     bsr      clear_bitplanes_nbr
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     move.l   #copper_blank,CUSTOM+COP2LCH
-                    move.w   #76,d0
+                    move.w   #SAMPLE_EMPTY,d0
                     move.w   #2,d2
                     jmp      trigger_sample_select_channel
 
 lbC00F51C:          jsr      stop_sound
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #0,d2
                     jsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #1,d2
                     jsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #2,d2
                     jsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #3,d2
                     jsr      trigger_sample_select_channel
                     lea      leveltune,a0
@@ -10379,8 +10382,8 @@ lbC00F58E:          lea      copper_main_palette,a0
                     lea      palette_black,a1
                     bsr      lbC0108DA
                     move.l   #32,d0
-                    move.w   #1,lbW010CDE
-                    bsr      lbC010AA4
+                    move.w   #1,frames_slowdown
+                    bsr      prep_fade_speeds_fade_out
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
                     move.l   #608,d0
@@ -11272,7 +11275,7 @@ clear_copper_palette:
                     bne.b    clear_copper_palette
                     rts
 
-compute_palette_fading_directions:
+prep_fade_speeds_fade_to_rgb:
                     move.w   #INTF_INTEN,CUSTOM+INTENA
                     movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #0,d1
@@ -11286,75 +11289,69 @@ compute_palette_fading_directions:
                     move.l   d1,a4
                     move.l   d1,a5
                     move.l   d1,a6
-                    move.w   #1,lbW010CDC
-                    move.w   d0,lbW010CE2
-                    move.l   a1,lbL010CE4
-                    move.l   a2,lbL010CE8
+                    move.w   #1,fading_go_flag
+                    move.w   d0,colors_amount
+                    move.l   a1,ptr_source_palette
+                    move.l   a2,ptr_copper_palette
                     move.l   a0,a2
-                    lea      palette_fading_directions(pc),a3
-                    move.w   lbW010CE2(pc),d0
-lbC010736:          move.w   (a2),d1
+                    lea      rgb_speeds_block_to_rgb(pc),a3
+                    move.w   colors_amount(pc),d0
+.loop:              move.w   (a2),d1
                     move.w   (a1),d2
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC01074C
-                    bhi.b    lbC010752
+                    bmi.b    .red_negative
+                    bhi.b    .red_positive
                     clr.b    (a3)+
-                    bra.b    lbC010756
-
-lbC01074C:          move.b   #-1,(a3)+
-                    bra.b    lbC010756
-
-lbC010752:          move.b   #1,(a3)+
-lbC010756:          move.w   (a2),d1
+                    bra.b    .red_done
+.red_negative:      move.b   #-1,(a3)+
+                    bra.b    .red_done
+.red_positive:      move.b   #1,(a3)+
+.red_done:          move.w   (a2),d1
                     move.w   (a1),d2
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC01076C
-                    bhi.b    lbC010772
+                    bmi.b    .green_negative
+                    bhi.b    .green_positive
                     clr.b    (a3)+
-                    bra.b    lbC010776
-
-lbC01076C:          move.b   #-1,(a3)+
-                    bra.b    lbC010776
-
-lbC010772:          move.b   #1,(a3)+
-lbC010776:          move.w   (a2)+,d1
+                    bra.b    .green_done
+.green_negative:    move.b   #-1,(a3)+
+                    bra.b    .green_done
+.green_positive:    move.b   #1,(a3)+
+.green_done:        move.w   (a2)+,d1
                     move.w   (a1)+,d2
                     and.w    #$F,d1
                     and.w    #$F,d2
                     cmp.w    d1,d2
-                    bmi.b    lbC01078C
-                    bhi.b    lbC010792
+                    bmi.b    .blue_negative
+                    bhi.b    .blue_positive
                     clr.b    (a3)+
-                    bra.b    lbC010796
-
-lbC01078C:          move.b   #-1,(a3)+
-                    bra.b    lbC010796
-
-lbC010792:          move.b   #1,(a3)+
-lbC010796:          subq.b   #1,d0
-                    bne.b    lbC010736
-
-                    move.l   lbL010CE8(pc),a2
-                    move.w   lbW010CE2(pc),d0
+                    bra.b    .blue_done
+.blue_negative:     move.b   #-1,(a3)+
+                    bra.b    .blue_done
+.blue_positive:     move.b   #1,(a3)+
+.blue_done:         subq.b   #1,d0
+                    bne.b    .loop
+                    move.l   ptr_copper_palette(pc),a2
+                    move.w   colors_amount(pc),d0
                     addq.l   #2,a2
-lbC0107A8:          move.w   (a0)+,(a2)
+.copy:              move.w   (a0)+,(a2)
                     addq.l   #4,a2
                     subq.b   #1,d0
-                    bne.b    lbC0107A8
-                    clr.w    some_variable
+                    bne.b    .copy
+                    clr.w    done_fade
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     rts
 
-palette_fade:       cmp.w    #1,lbW010CDC
-                    bne      return3
-                    tst.w    some_variable
-                    bne      return3
-                    add.w    #1,lbW010CE0
+fade_palette_to_rgb:
+                    cmp.w    #1,fading_go_flag
+                    bne      return
+                    tst.w    done_fade
+                    bne      return
+                    addq.w   #1,cur_frame_counter
                     moveq    #0,d0
                     moveq    #0,d1
                     moveq    #0,d2
@@ -11370,70 +11367,67 @@ palette_fade:       cmp.w    #1,lbW010CDC
                     move.l   d0,a4
                     move.l   d0,a5
                     move.l   d0,a6
-                    move.w   lbW010CE0(pc),d0
-                    cmp.w    lbW010CDE(pc),d0
-                    bmi      return3
-                    clr.w    lbW010CE0
-                    move.w   lbW010CE2(pc),d0
-                    move.l   lbL010CE8(pc),a0
-                    move.l   lbL010CE4(pc),a1
-                    lea      palette_fading_directions(pc),a3
+                    move.w   cur_frame_counter(pc),d0
+                    cmp.w    frames_slowdown(pc),d0
+                    bmi      return
+                    clr.w    cur_frame_counter
+                    move.w   colors_amount(pc),d0
+                    move.l   ptr_copper_palette(pc),a0
+                    move.l   ptr_source_palette(pc),a1
+                    lea      rgb_speeds_block_to_rgb(pc),a3
                     addq.l   #2,a0
-lbC01084C:          move.w   (a0),d1
+.loop:              move.w   (a0),d1
                     move.w   (a1),d2
                     and.w    #$F00,d1
                     and.w    #$F00,d2
                     cmp.w    d1,d2
-                    bne.b    lbC010862
+                    bne.b    .red_fade
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC010870
-
-lbC010862:          move.b   (a3)+,d3
+                    bra.b    .red_done
+.red_fade:          move.b   (a3)+,d3
                     lsr.w    #8,d1
                     add.b    d3,d1
                     lsl.w    #8,d1
                     and.w    #$FF,(a0)
                     or.w     d1,(a0)
-lbC010870:          move.w   (a0),d1
+.red_done:          move.w   (a0),d1
                     move.w   (a1),d2
                     and.w    #$F0,d1
                     and.w    #$F0,d2
                     cmp.w    d1,d2
-                    bne.b    lbC010886
+                    bne.b    .green_fade
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC010894
-
-lbC010886:          move.b   (a3)+,d3
+                    bra.b    .green_done
+.green_fade:        move.b   (a3)+,d3
                     lsr.w    #4,d1
                     add.b    d3,d1
                     lsl.w    #4,d1
                     and.w    #$F0F,(a0)
                     or.w     d1,(a0)
-lbC010894:          move.w   (a0),d1
+.green_done:        move.w   (a0),d1
                     move.w   (a1)+,d2
                     and.w    #$f,d1
                     and.w    #$f,d2
                     cmp.w    d1,d2
-                    bne.b    lbC0108AA
+                    bne.b    .blue_fade
                     addq.b   #1,d7
                     addq.l   #1,a3
-                    bra.b    lbC0108B4
-
-lbC0108AA:          move.b   (a3)+,d3
+                    bra.b    .blue_done
+.blue_fade:         move.b   (a3)+,d3
                     add.b    d3,d1
                     and.w    #$FF0,(a0)
                     or.w     d1,(a0)
-lbC0108B4:          addq.l   #4,a0
+.blue_done:         addq.l   #4,a0
                     subq.b   #1,d0
-                    bne.b    lbC01084C
+                    bne.b    .loop
                     divu     #3,d7
-                    cmp.w    lbW010CE2(pc),d7
-                    bne.b    lbC0108D4
-                    move.w   #1,some_variable
-                    clr.w    lbW010CDC
-lbC0108D4:          bra      lbC010ECE
+                    cmp.w    colors_amount(pc),d7
+                    bne.b    .fade_end
+                    move.w   #1,done_fade
+                    clr.w    fading_go_flag
+.fade_end:          bra      lbC010ECE
 
 lbC0108DA:          movem.l  d0/a0,-(sp)
                     moveq    #32,d0
@@ -11452,17 +11446,18 @@ lbC0108F8:          move.w   (a0)+,(a1)
                     bne.b    lbC0108F8
                     bra      lbC010ECE
 
-lbC010906:          move.w   #2,lbW010CDC
-                    lea      lbL010E0E(pc),a4
+prep_fade_speeds_fade_in:
+                    move.w   #2,fading_go_flag
+                    lea      cur_rgb_block(pc),a4
                     moveq    #48,d2
-lbC010916:          clr.l    (a4)+
+.clear:             clr.l    (a4)+
                     subq.l   #1,d2
-                    bne      lbC010916
+                    bne      .clear
                     move.l   d0,d7
                     move.l   a1,a2
                     moveq    #0,d6
-                    lea      lbL010D4E(pc),a3
-lbC01092A:          move.w   (a2),d6
+                    lea      rgb_speeds_block(pc),a3
+.loop:              move.w   (a2),d6
                     and.w    #$F00,d6
                     divu     #$F,d6
                     ext.l    d6
@@ -11480,21 +11475,21 @@ lbC01092A:          move.w   (a2),d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne.b    lbC01092A
+                    bne.b    .loop
                     move.l   d1,d4
                     subq.l   #2,a0
                     subq.l   #2,a1
-                    move.w   d0,lbW010CE2
-                    move.l   a0,lbL010CE8
-                    move.l   a1,lbL010CE4
-                    clr.w    some_variable
+                    move.w   d0,colors_amount
+                    move.l   a0,ptr_copper_palette
+                    move.l   a1,ptr_source_palette
+                    clr.w    done_fade
                     rts
 
-lbC01097E:          cmp.w    #2,lbW010CDC
-                    bne      return3
-                    tst.w    some_variable
-                    bne      return3
-                    add.w    #1,lbW010CE0
+fade_palette_in:    cmp.w    #2,fading_go_flag
+                    bne      return
+                    tst.w    done_fade
+                    bne      return
+                    addq.w   #1,cur_frame_counter
                     moveq    #0,d0
                     moveq    #0,d1
                     moveq    #0,d2
@@ -11503,28 +11498,28 @@ lbC01097E:          cmp.w    #2,lbW010CDC
                     moveq    #0,d5
                     moveq    #0,d6
                     moveq    #0,d7
-                    move.w   lbW010CE0(pc),d0
-                    cmp.w    lbW010CDE(pc),d0
-                    bmi      return3
-                    clr.w    lbW010CE0
-                    move.l   lbL010CE8(pc),a0
-                    move.l   lbL010CE4(pc),a1
+                    move.w   cur_frame_counter(pc),d0
+                    cmp.w    frames_slowdown(pc),d0
+                    bmi      return
+                    clr.w    cur_frame_counter
+                    move.l   ptr_copper_palette(pc),a0
+                    move.l   ptr_source_palette(pc),a1
                     moveq    #0,d0
-                    move.w   lbW010CE2(pc),d0
+                    move.w   colors_amount(pc),d0
                     move.l   d0,d6
                     mulu     #3,d6
-                    lea      lbL010D4E(pc),a2
-                    lea      lbL010E0E(pc),a3
+                    lea      rgb_speeds_block(pc),a2
+                    lea      cur_rgb_block(pc),a3
                     move.l   d6,d7
                     move.l   d0,d1
-lbC0109EC:          addq.l   #4,a0
+.loop:              addq.l   #4,a0
                     addq.l   #2,a1
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F00,d2
                     and.w    #$F00,d3
                     cmp.w    d2,d3
-                    beq      lbC010A14
+                    beq.b    .fade_red
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -11532,14 +11527,14 @@ lbC0109EC:          addq.l   #4,a0
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A14:          addq.l   #2,a2
+.fade_red:          addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F0,d2
                     and.w    #$F0,d3
                     cmp.w    d2,d3
-                    beq      lbC010A46
+                    beq.b    .fade_green
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -11548,14 +11543,14 @@ lbC010A14:          addq.l   #2,a2
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A46:          addq.l   #2,a2
+.fade_green:        addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F,d2
                     and.w    #$F,d3
                     cmp.w    d2,d3
-                    beq      lbC010A78
+                    beq      .fade_blue
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -11564,17 +11559,18 @@ lbC010A46:          addq.l   #2,a2
                     and.w    #$FFF0,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-lbC010A78:          addq.l   #2,a2
+.fade_blue:         addq.l   #2,a2
                     addq.l   #2,a3
                     subq.w   #1,d1
-                    bne      lbC0109EC
+                    bne      .loop
                     cmp.l    d6,d7
-                    bne      lbC010A9E
-                    move.w   #1,some_variable
-                    clr.w    lbW010CDC
-lbC010A9E:          bra      lbC010ECE
+                    bne      .fade_end
+                    move.w   #1,done_fade
+                    clr.w    fading_go_flag
+.fade_end:          bra      lbC010ECE
 
-lbC010AA4:          moveq    #0,d1
+prep_fade_speeds_fade_out:
+                    moveq    #0,d1
                     moveq    #0,d2
                     moveq    #0,d3
                     moveq    #0,d4
@@ -11587,18 +11583,18 @@ lbC010AA4:          moveq    #0,d1
                     move.l   d1,a5
                     move.l   d1,a6
                     move.w   #INTF_INTEN,CUSTOM+INTENA
-                    move.w   #3,lbW010CDC
-                    lea      lbL010E0E(pc),a4
+                    move.w   #3,fading_go_flag
+                    lea      cur_rgb_block(pc),a4
                     moveq    #48,d2
-lbC010AEC:          clr.l    (a4)+
+.clear:             clr.l    (a4)+
                     subq.l   #1,d2
-                    bne.b    lbC010AEC
+                    bne.b    .clear
                     move.l   d0,d7
                     move.l   a0,a2
                     addq.l   #2,a2
                     moveq    #0,d6
-                    lea      lbL010D4E(pc),a3
-lbC010B06:          move.w   (a2),d6
+                    lea      rgb_speeds_block(pc),a3
+.set_speeds:        move.w   (a2),d6
                     and.w    #$F00,d6
                     divu     #$F,d6
                     ext.l    d6
@@ -11617,12 +11613,12 @@ lbC010B06:          move.w   (a2),d6
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne.b    lbC010B06
-                    lea      lbL010E0E(pc),a3
+                    bne.b    .set_speeds
+                    lea      cur_rgb_block(pc),a3
                     move.l   a0,a2
                     addq.l   #2,a2
                     move.l   d0,d4
-lbC010B50:          move.w   (a2),d7
+.set_cur_rgb:       move.w   (a2),d7
                     and.w    #$F00,d7
                     move.w   d7,(a3)+
                     move.w   (a2),d7
@@ -11635,22 +11631,22 @@ lbC010B50:          move.w   (a2),d7
                     move.w   d7,(a3)+
                     addq.l   #4,a2
                     subq.l   #1,d4
-                    bne      lbC010B50
-                    lea      lbL010D4E(pc),a2
-                    lea      lbL010E0E(pc),a3
+                    bne.b    .set_cur_rgb
+                    lea      rgb_speeds_block(pc),a2
+                    lea      cur_rgb_block(pc),a3
                     move.l   d1,d4
                     subq.l   #2,a0
-                    move.w   d0,lbW010CE2
-                    move.l   a0,lbL010CE8
-                    clr.w    some_variable
+                    move.w   d0,colors_amount
+                    move.l   a0,ptr_copper_palette
+                    clr.w    done_fade
                     move.w   #INTF_SETCLR|INTF_INTEN,CUSTOM+INTENA
                     rts
 
-lbC010BAC:          cmp.w    #3,lbW010CDC
-                    bne      return3
-                    tst.w    some_variable
-                    bne      return3
-                    addq.w   #1,lbW010CE0
+fade_palette_out:   cmp.w    #3,fading_go_flag
+                    bne      return
+                    tst.w    done_fade
+                    bne      return
+                    addq.w   #1,cur_frame_counter
                     moveq    #0,d0
                     moveq    #0,d1
                     moveq    #0,d2
@@ -11666,21 +11662,21 @@ lbC010BAC:          cmp.w    #3,lbW010CDC
                     move.l   d0,a4
                     move.l   d0,a5
                     move.l   d0,a6
-                    move.w   lbW010CE0(pc),d0
-                    cmp.w    lbW010CDE(pc),d0
-                    bmi      return3
-                    clr.w    lbW010CE0
+                    move.w   cur_frame_counter(pc),d0
+                    cmp.w    frames_slowdown(pc),d0
+                    bmi      return
+                    clr.w    cur_frame_counter
                     moveq    #0,d0
-                    move.w   lbW010CE2(pc),d0
-                    move.l   lbL010CE8(pc),a0
+                    move.w   colors_amount(pc),d0
+                    move.l   ptr_copper_palette(pc),a0
                     move.l   d0,d1
                     moveq    #0,d7
-                    lea      lbL010D4E(pc),a2
-                    lea      lbL010E0E(pc),a3
-lbC010C38:          addq.l   #4,a0
+                    lea      rgb_speeds_block(pc),a2
+                    lea      cur_rgb_block(pc),a3
+.loop:              addq.l   #4,a0
                     move.w   (a0),d2
                     and.w    #$F00,d2
-                    beq.b    lbC010C58
+                    beq.b    .fade_red
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11688,11 +11684,11 @@ lbC010C38:          addq.l   #4,a0
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010C58:          addq.l   #2,a2
+.fade_red:          addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F0,d2
-                    beq.b    lbC010C84
+                    beq.b    .fade_green
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11701,11 +11697,11 @@ lbC010C58:          addq.l   #2,a2
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010C84:          addq.l   #2,a2
+.fade_green:        addq.l   #2,a2
                     addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F,d2
-                    beq.b    lbC010CB0
+                    beq.b    .fade_blue
                     move.w   (a2),d3
                     sub.w    d3,(a3)
                     move.w   (a3),d3
@@ -11714,29 +11710,26 @@ lbC010C84:          addq.l   #2,a2
                     and.w    #$FFF0,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-lbC010CB0:          addq.l   #2,a2
+.fade_blue:         addq.l   #2,a2
                     addq.l   #2,a3
                     subq.w   #1,d1
-                    bne.b    lbC010C38
+                    bne.b    .loop
                     tst.l    d7
-                    bne.b    lbC010CD6
-                    move.w   #1,some_variable
-                    clr.w    lbW010CDC
-lbC010CD6:          bra      lbC010ECE
+                    bne.b    .fade_end
+                    move.w   #1,done_fade
+                    clr.w    fading_go_flag
+.fade_end:          bra      lbC010ECE
 
-lbW010CDC:          dc.w     0
-lbW010CDE:          dc.w     2
-lbW010CE0:          dc.w     0
-lbW010CE2:          dc.w     0
-lbL010CE4:          dc.l     0
-lbL010CE8:          dc.l     0
-palette_fading_directions:
+fading_go_flag:     dc.w     0
+frames_slowdown:    dc.w     2
+cur_frame_counter:  dc.w     0
+colors_amount:      dc.w     0
+ptr_source_palette: dc.l     0
+ptr_copper_palette: dc.l     0
+rgb_speeds_block_to_rgb:
                     dcb.b    96,0
-
-return3:            rts
-
-lbL010D4E:          dcb.w    96,0
-lbL010E0E:          dcb.w    96,0
+rgb_speeds_block:   dcb.w    (32*3),0
+cur_rgb_block:      dcb.w    (32*3),0
 
 lbC010ECE:          lea      copper_main_palette,a0
                     lea      lbW09A20C,a1
@@ -11796,90 +11789,90 @@ display_status_bars:
                     moveq    #19,d7
 lbC010F96:          move.l   #2,number_frames_to_wait
                     jsr      sleep_frames
-                    move.b   0(a0),0(a1)
-                    move.b   38(a0),38(a1)
-                    move.b   76(a0),76(a1)
-                    move.b   114(a0),114(a1)
-                    move.b   152(a0),152(a1)
-                    move.b   190(a0),190(a1)
-                    move.b   228(a0),228(a1)
-                    move.b   266(a0),266(a1)
-                    add.l    #304,a0
-                    add.l    #304,a1
-                    move.b   0(a0),0(a1)
-                    move.b   38(a0),38(a1)
-                    move.b   76(a0),76(a1)
-                    move.b   114(a0),114(a1)
-                    move.b   152(a0),152(a1)
-                    move.b   190(a0),190(a1)
-                    move.b   228(a0),228(a1)
-                    move.b   266(a0),266(a1)
-                    sub.l    #304,a0
-                    sub.l    #304,a1
-                    move.b   0(a2),0(a3)
-                    move.b   38(a2),38(a3)
-                    move.b   76(a2),76(a3)
-                    move.b   114(a2),114(a3)
-                    move.b   152(a2),152(a3)
-                    move.b   190(a2),190(a3)
-                    move.b   228(a2),228(a3)
-                    move.b   266(a2),266(a3)
-                    add.l    #304,a2
-                    add.l    #304,a3
-                    move.b   0(a2),0(a3)
-                    move.b   38(a2),38(a3)
-                    move.b   76(a2),76(a3)
-                    move.b   114(a2),114(a3)
-                    move.b   152(a2),152(a3)
-                    move.b   190(a2),190(a3)
-                    move.b   228(a2),228(a3)
-                    move.b   266(a2),266(a3)
-                    sub.l    #304,a2
-                    sub.l    #304,a3
+                    move.b   (a0),(a1)
+                    move.b   (38*1)(a0),(38*1)(a1)
+                    move.b   (38*2)(a0),(38*2)(a1)
+                    move.b   (38*3)(a0),(38*3)(a1)
+                    move.b   (38*4)(a0),(38*4)(a1)
+                    move.b   (38*5)(a0),(38*5)(a1)
+                    move.b   (38*6)(a0),(38*6)(a1)
+                    move.b   (38*7)(a0),(38*7)(a1)
+                    add.l    #(38*8),a0
+                    add.l    #(38*8),a1
+                    move.b   (a0),(a1)
+                    move.b   (38*1)(a0),(38*1)(a1)
+                    move.b   (38*2)(a0),(38*2)(a1)
+                    move.b   (38*3)(a0),(38*3)(a1)
+                    move.b   (38*4)(a0),(38*4)(a1)
+                    move.b   (38*5)(a0),(38*5)(a1)
+                    move.b   (38*6)(a0),(38*6)(a1)
+                    move.b   (38*7)(a0),(38*7)(a1)
+                    sub.l    #(38*8),a0
+                    sub.l    #(38*8),a1
+                    move.b   (a2),(a3)
+                    move.b   (38*1)(a2),(38*1)(a3)
+                    move.b   (38*2)(a2),(38*2)(a3)
+                    move.b   (38*3)(a2),(38*3)(a3)
+                    move.b   (38*4)(a2),(38*4)(a3)
+                    move.b   (38*5)(a2),(38*5)(a3)
+                    move.b   (38*6)(a2),(38*6)(a3)
+                    move.b   (38*7)(a2),(38*7)(a3)
+                    add.l    #(38*8),a2
+                    add.l    #(38*8),a3
+                    move.b   (a2),(a3)
+                    move.b   (38*1)(a2),(38*1)(a3)
+                    move.b   (38*2)(a2),(38*2)(a3)
+                    move.b   (38*3)(a2),(38*3)(a3)
+                    move.b   (38*4)(a2),(38*4)(a3)
+                    move.b   (38*5)(a2),(38*5)(a3)
+                    move.b   (38*6)(a2),(38*6)(a3)
+                    move.b   (38*7)(a2),(38*7)(a3)
+                    sub.l    #(38*8),a2
+                    sub.l    #(38*8),a3
                     exg      d0,a0
                     exg      d1,a1
                     exg      d2,a2
                     exg      d3,a3
-                    move.b   0(a0),0(a1)
-                    move.b   38(a0),38(a1)
-                    move.b   76(a0),76(a1)
-                    move.b   114(a0),114(a1)
-                    move.b   152(a0),152(a1)
-                    move.b   190(a0),190(a1)
-                    move.b   228(a0),228(a1)
-                    move.b   266(a0),266(a1)
-                    add.l    #304,a0
-                    add.l    #304,a1
-                    move.b   0(a0),0(a1)
-                    move.b   38(a0),38(a1)
-                    move.b   76(a0),76(a1)
-                    move.b   114(a0),114(a1)
-                    move.b   152(a0),152(a1)
-                    move.b   190(a0),190(a1)
-                    move.b   228(a0),228(a1)
-                    move.b   266(a0),266(a1)
-                    sub.l    #304,a0
-                    sub.l    #304,a1
-                    move.b   0(a2),0(a3)
-                    move.b   38(a2),38(a3)
-                    move.b   76(a2),76(a3)
-                    move.b   114(a2),114(a3)
-                    move.b   152(a2),152(a3)
-                    move.b   190(a2),190(a3)
-                    move.b   228(a2),228(a3)
-                    move.b   266(a2),266(a3)
-                    add.l    #304,a2
-                    add.l    #304,a3
-                    move.b   0(a2),0(a3)
-                    move.b   38(a2),38(a3)
-                    move.b   76(a2),76(a3)
-                    move.b   114(a2),114(a3)
-                    move.b   152(a2),152(a3)
-                    move.b   190(a2),190(a3)
-                    move.b   228(a2),228(a3)
-                    move.b   266(a2),266(a3)
-                    sub.l    #304,a2
-                    sub.l    #304,a3
+                    move.b   (a0),(a1)
+                    move.b   (38*1)(a0),(38*1)(a1)
+                    move.b   (38*2)(a0),(38*2)(a1)
+                    move.b   (38*3)(a0),(38*3)(a1)
+                    move.b   (38*4)(a0),(38*4)(a1)
+                    move.b   (38*5)(a0),(38*5)(a1)
+                    move.b   (38*6)(a0),(38*6)(a1)
+                    move.b   (38*7)(a0),(38*7)(a1)
+                    add.l    #(38*8),a0
+                    add.l    #(38*8),a1
+                    move.b   (a0),(a1)
+                    move.b   (38*1)(a0),(38*1)(a1)
+                    move.b   (38*2)(a0),(38*2)(a1)
+                    move.b   (38*3)(a0),(38*3)(a1)
+                    move.b   (38*4)(a0),(38*4)(a1)
+                    move.b   (38*5)(a0),(38*5)(a1)
+                    move.b   (38*6)(a0),(38*6)(a1)
+                    move.b   (38*7)(a0),(38*7)(a1)
+                    sub.l    #(38*8),a0
+                    sub.l    #(38*8),a1
+                    move.b   (a2),(a3)
+                    move.b   (38*1)(a2),(38*1)(a3)
+                    move.b   (38*2)(a2),(38*2)(a3)
+                    move.b   (38*3)(a2),(38*3)(a3)
+                    move.b   (38*4)(a2),(38*4)(a3)
+                    move.b   (38*5)(a2),(38*5)(a3)
+                    move.b   (38*6)(a2),(38*6)(a3)
+                    move.b   (38*7)(a2),(38*7)(a3)
+                    add.l    #(38*8),a2
+                    add.l    #(38*8),a3
+                    move.b   (a2),(a3)
+                    move.b   (38*1)(a2),(38*1)(a3)
+                    move.b   (38*2)(a2),(38*2)(a3)
+                    move.b   (38*3)(a2),(38*3)(a3)
+                    move.b   (38*4)(a2),(38*4)(a3)
+                    move.b   (38*5)(a2),(38*5)(a3)
+                    move.b   (38*6)(a2),(38*6)(a3)
+                    move.b   (38*7)(a2),(38*7)(a3)
+                    sub.l    #(38*8),a2
+                    sub.l    #(38*8),a3
                     exg      d0,a0
                     exg      d1,a1
                     exg      d2,a2
@@ -12159,7 +12152,7 @@ lbC011710:          move.l   (a2),a3
                     move.l   d7,28(a3)
                     rts
 
-lbC01176E:          
+lbC01176E:
                     WAIT_BLIT
                     lea      CUSTOM,a6
                     move.w   #DMAF_SETCLR|DMAF_BLITHOG,DMACON(a6)
@@ -12540,11 +12533,9 @@ lbC011CE2:          tst.w    (a2)
 lbC011CF4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
-                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   d5,d6
                     and.w    #$FFC0,d6
-                    ;tst.w    d6
                     beq      lbC011DEC
                     move.l   a1,16(a2)
                     move.w   0(a2),d6
@@ -12735,11 +12726,9 @@ lbC011FB2:          tst.w    (a2)
 lbC011FC4:          move.w   ALIEN_POS_X(a2),d5
                     move.w   d5,d6
                     and.w    #$3F,d6
-                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   d5,d6
                     and.w    #$FFC0,d6
-                    ;tst.w    d6
                     beq      lbC011DEC
                     move.w   38(a2),BLTDMOD(a6)
                     move.w   36(a2),BLTAMOD(a6)
@@ -15313,37 +15302,37 @@ lbW01E1FA:          dc.w     $00,$80,$10,$10,$00,$00,$00,$00
                     dc.w     $110,$00,$30,$10,$5AC1,$5AC1,$5AC1,$00
                     dcb.w    768,$10
                     
-                    dc.w     -1,2,$F8,$FA                    ; ????
+                    dc.w     -1,2,248,$FA                    ; ????
 lbW01EB12:          dc.l     lbL016A0A
                     dcb.w    2,0
                     dc.l     lbL016A9A
                     dcb.w    2,0
                     dcb.w    3,-1
-                    dc.w     2,$F8,$FA
+                    dc.w     2,248,$FA
 lbW01EB2E:          dc.l     lbL016A3A
                     dcb.w    2,0
                     dc.l     lbL016ACA
                     dcb.w    2,0
                     dcb.w    3,-1
-                    dc.w     2,$F8,$FA
+                    dc.w     2,248,$FA
 lbW01EB4A:          dc.l     lbL016A6A
                     dcb.w    2,0
                     dc.l     lbL016AFA
                     dcb.w    2,0
                     dcb.w    3,-1
-                    dc.w     2,$F8,$FA
+                    dc.w     2,248,$FA
 lbW01EB66:          dc.l     lbL016B2A
                     dcb.w    2,0
                     dc.l     lbL016BBA
                     dcb.w    2,0
                     dcb.w    3,-1
-                    dc.w     2,$F8,$FA
+                    dc.w     2,248,$FA
 lbW01EB82:          dc.l     lbL016B5A
                     dcb.w    2,0
                     dc.l     lbL016BEA
                     dcb.w    2,0
                     dcb.w    3,-1
-                    dc.w     2,$F8,$FA
+                    dc.w     2,248,$FA
 lbW01EB9E:          dc.l     lbL016B8A
                     dcb.w    2,0
                     dc.l     lbL016C1A
@@ -15383,7 +15372,7 @@ lbL01ECF6:          dc.l     lbL016B5A,0
                     dc.l     lbL016BBA,0
                     dc.l     lbL016BEA,0
                     dc.l     lbL016BBA,0
-                    dc.l     lbL016B8A,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL016B8A,0,-1,$000000F8,$1F0FFFF
 lbL01ED32:          dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
@@ -15486,7 +15475,7 @@ lbL01ED32:          dc.l     lbL016ACA,0
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$000000F8,$1F0FFFF
 lbL01F076:          dc.l     lbL016A9A,100
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
@@ -15590,7 +15579,7 @@ lbL01F076:          dc.l     lbL016A9A,100
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$000000F8,$1F0FFFF
 lbL01F3C2:          dc.l     lbL016A9A,200
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
@@ -15694,7 +15683,7 @@ lbL01F3C2:          dc.l     lbL016A9A,200
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$000000F8,$1F0FFFF
 lbL01F70E:          dc.l     lbL016A9A,300
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
@@ -15798,7 +15787,7 @@ lbL01F70E:          dc.l     lbL016A9A,300
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$000000F8,$1F0FFFF
 lbL01FA5A:          dc.l     lbL016A9A,400
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
@@ -15902,7 +15891,7 @@ lbL01FA5A:          dc.l     lbL016A9A,400
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,$F8,$1F0FFFF
+                    dc.l     lbL016A9A,32000,-1,$000000F8,$1F0FFFF
 lbL01FDA6:          dc.l     lbL016A9A
 lbL01FDAA:          dc.l     500
                     dc.l     lbL016ACA,0
@@ -16007,7 +15996,7 @@ lbL01FDAA:          dc.l     500
                     dc.l     lbL016ACA,0
                     dc.l     lbL016AFA,0
                     dc.l     lbL016B2A,0
-                    dc.l     lbL016A9A,32000,-1,2,$F800FA
+                    dc.l     lbL016A9A,32000,-1,2,$00F800FA
 lbL0200F2:          dc.l     lbL016F7A,1
                     dc.l     lbL016FAA,1
                     dc.l     lbL016FDA,1
@@ -16019,7 +16008,7 @@ lbL0200F2:          dc.l     lbL016F7A,1
 lbL02013E:          dc.l     lbL016EEA,3
                     dc.l     lbL016F1A,4
                     dc.l     lbL016F4A,2
-                    dc.l     lbL016F1A,2,-1,2,$F800FA
+                    dc.l     lbL016F1A,2,-1,2,$00F800FA
 
 patch_dat_reactors: dc.l     lbL016CDA,12
                     dc.l     lbL016CDA,-2
@@ -16058,7 +16047,7 @@ lbL020276:          dc.l     lbL016D3A,10
                     dc.l     lbL016D3A,$14
                     dc.l     lbL016D6A,1
                     dc.l     lbL016D3A,$1E
-                    dc.l     lbL016D6A,2,-1,2,$F800FA
+                    dc.l     lbL016D6A,2,-1,2,$00F800FA
 lbL0202D2:          dc.l     lbL016A0A,0
                     dc.l     lbL016A3A,0
                     dc.l     lbL016A6A,0
@@ -16080,7 +16069,7 @@ lbL0202D2:          dc.l     lbL016A0A,0
                     dc.l     lbL016D6A,0
                     dc.l     lbL016D9A,0
                     dc.l     lbL016DCA,0
-                    dc.l     lbL016DFA,0,-1,2,$F800FA
+                    dc.l     lbL016DFA,0,-1,2,$00F800FA
 lbL02038E:          dc.l     lbL016E2A,0
                     dc.l     lbL016E5A,0
                     dc.l     lbL016E8A,0
@@ -16109,7 +16098,7 @@ lbL02038E:          dc.l     lbL016E2A,0
 lbL020466:          dc.l     lbL0173FA,$78
                     dc.l     lbL01745A,3
                     dc.l     lbL01742A,$50
-                    dc.l     lbL01745A,3,-1,$F8,$1F0FFFF
+                    dc.l     lbL01745A,3,-1,$000000F8,$1F0FFFF
 
 lbL020596:          dc.l     lbL016A0A,0
                     dc.l     lbL016A3A,0
@@ -16147,7 +16136,7 @@ lbL020702:          dc.l     lbL01703A,1
 lbL02072E:          dc.l     lbL01709A,1
                     dc.l     lbL01709A,-2
                     dc.l     lbL01709A,1,-1
-                    dc.l     lbL01709A,1,$F8,$1F0FFFF
+                    dc.l     lbL01709A,1,$000000F8,$1F0FFFF
 lbL02075A:          dc.l     lbL0170CA,1
                     dc.l     lbL0170CA,-2
                     dc.l     lbL0170CA,1,-1
@@ -16170,13 +16159,13 @@ lbL02082A:          dc.l     lbL016E5A,1
 lbL020846:          dc.l     lbL01700A,6
                     dc.l     lbL01703A,6,-1,-1,-1
 lbL020862:          dc.l     lbL01706A,6
-                    dc.l     lbL01709A,6,-1,$F8,$1F002E8
+                    dc.l     lbL01709A,6,-1,$000000F8,$1F002E8
 lbL02087E:          dc.l     lbL01715A,-2
                     dc.l     lbL01715A,0
-                    dc.l     lbL01715A,0,-1,$F8,$1F002E8
+                    dc.l     lbL01715A,0,-1,$000000F8,$1F002E8
                     dc.l     lbL01718A,-2
                     dc.l     lbL01718A,0
-                    dc.l     lbL01718A,0,-1,2,$F800FA
+                    dc.l     lbL01718A,0,-1,2,$00F800FA
 lbL0208C6:          dc.l     lbL016A0A,$4B
                     dc.l     lbL016A3A,1
                     dc.l     lbL016A6A,1
@@ -16228,21 +16217,21 @@ lbL0209E2:          dc.l     lbL016C1A,0
                     dc.l     lbL016F7A,0
                     dc.l     lbL016FAA,-2
                     dc.l     lbL016FAA,0
-                    dc.l     lbL016FAA,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL016FAA,0,-1,$000000F8,$1F0FFFF
 
 lbL020B0A:          dc.l     lbL016EBA,-2
                     dc.l     lbL016EBA,0
                     dc.l     lbL016EBA,0,-1,2,$4FFFF
 lbL020B2E:          dc.l     lbL016EEA,-2
                     dc.l     lbL016EEA,0
-                    dc.l     lbL016EEA,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL016EEA,0,-1,$000000F8,$1F0FFFF
 lbL020B52:          dc.l     lbL01679A,2
                     dc.l     lbL016E5A,-2
                     dc.l     lbL016E5A,0
-                    dc.l     lbL016E5A,0,-1,$F8,$1F0FFFF,$F8,$1F0FFFF
+                    dc.l     lbL016E5A,0,-1,$000000F8,$1F0FFFF,$000000F8,$1F0FFFF
 lbL020B86:          dc.l     lbL016E8A,-2
                     dc.l     lbL016E8A,0
-                    dc.l     lbL016E8A,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL016E8A,0,-1,$000000F8,$1F0FFFF
 lbL020BAA:          dc.l     lbL016A0A,10
                     dc.l     lbL016A3A,1
                     dc.l     lbL016A6A,1
@@ -16282,7 +16271,7 @@ lbL020CFE:          dc.l     lbL0168EA,1
                     dc.l     lbL01691A,1
                     dc.l     lbL01694A,-2
                     dc.l     lbL01694A,0
-                    dc.l     lbL01694A,0,-1,$F8,-1
+                    dc.l     lbL01694A,0,-1,$000000F8,-1
 lbL020D32:          dc.l     lbL01697A,1
                     dc.l     lbL0169AA,1
                     dc.l     lbL0169DA,-2
@@ -16298,18 +16287,18 @@ lbL020D92:          dc.l     lbL01682A,0
                     dc.l     lbL01685A,0,-1,$FFFF,-1
 lbL020DBE:          dc.l     lbL01688A,-2
                     dc.l     lbL01688A,0
-                    dc.l     lbL01688A,0,-1,$F8,$1F002E8
+                    dc.l     lbL01688A,0,-1,$000000F8,$1F002E8
 lbL020DE2:          dc.l     lbL01670A,2
                     dc.l     lbL01673A,-2
                     dc.l     lbL01673A,0
-                    dc.l     lbL01673A,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL01673A,0,-1,$000000F8,$1F0FFFF
 lbL020E0E:          dc.l     lbL01676A,2
                     dc.l     lbL01679A,-2
                     dc.l     lbL01679A,0
-                    dc.l     lbL01679A,0,-1,$F8,$1F002E8
+                    dc.l     lbL01679A,0,-1,$000000F8,$1F002E8
 lbL020E3A:          dc.l     lbL0167CA,-2
                     dc.l     lbL0167CA,0
-                    dc.l     lbL0167CA,0,-1,$F8,$1F0FFFF
+                    dc.l     lbL0167CA,0,-1,$000000F8,$1F0FFFF
 lbL020E5E:          dc.l     lbL0167FA,-2
                     dc.l     lbL0167FA,0
                     dc.l     lbL0167FA,0,-1,$FFFF,-1
@@ -16391,22 +16380,22 @@ keyboard_handler:   tst.w    music_enabled
                     move.b   CIAA+CIASDR,d0
                     not.b    d0
                     lsr.w    #1,d0
-                    bcs.b    lbC021074
+                    bcs.b    .released
                     and.w    #$7F,d0
                     move.b   d0,key_pressed
-                    bra      lbC02107E
+                    bra      .continue
 
-lbC021074:          and.w    #$7F,d0
+.released:          and.w    #$7F,d0
                     move.b   d0,key_released
-lbC02107E:          moveq    #0,d0
+.continue:          moveq    #0,d0
                     move.b   CIAA+CIAICR,d0
                     btst     #3,d0
-                    beq      lbC0210B8
+                    beq      .acknowledge
                     move.b   CIAA+CIASDR,d0
                     or.b     #$40,CIAA+CIACRA
                     move.b   #$FF,CIAA+CIASDR
                     and.b    #$BF,CIAA+CIACRA
-lbC0210B8:          movem.l  (sp)+,d0-d7/a0-a6
+.acknowledge:       movem.l  (sp)+,d0-d7/a0-a6
                     move.w   #INTF_PORTS,CUSTOM+INTREQ
                     rts
 
@@ -16675,16 +16664,16 @@ lbC022B92:          rts
 stop_sound:         tst.w    lbW0003A2
                     beq      lbC022C30
                     clr.w    lbW0004E0
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #0,d2
                     bsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #1,d2
                     bsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #2,d2
                     bsr      trigger_sample_select_channel
-                    moveq    #76,d0
+                    moveq    #SAMPLE_EMPTY,d0
                     moveq    #3,d2
                     bsr      trigger_sample_select_channel
                     move.l   #12,number_frames_to_wait
@@ -16702,8 +16691,6 @@ stop_sound:         tst.w    lbW0003A2
                     clr.w    bpchannel4_status
                     clr.w    lbW022C70
 lbC022C30:          rts
-
-;lbB022C32:          dcb.b    2,0
 
 lbC022C34:          tst.w    music_enabled
                     bne      return2
@@ -16724,7 +16711,7 @@ lbW022C70:          dc.l     0
 
 lbC022D1E:          tst.w    lbW0004C2
                     beq      return2
-                    move.l   #lbL02311A,d0
+                    move.l   #smp_zone_struct_1,d0
                     cmp.l    lbL02328C(pc),d0
                     beq      return2
                     cmp.l    lbL02320C(pc),d0
@@ -16732,14 +16719,14 @@ lbC022D1E:          tst.w    lbW0004C2
                     move.w   lbW008C9A,d7
                     subq.w   #1,d7
                     add.w    #VOICE_ONE,d7
-                    cmp.w    lbW023124+2(pc),d7
+                    cmp.w    smp_zone_struct_2+2(pc),d7
                     beq      return2
-                    move.w   d7,lbW023124+2
-                    lea      lbL02311A(pc),a6
+                    move.w   d7,smp_zone_struct_2+2
+                    lea      smp_zone_struct_1(pc),a6
                     bsr      schedule_sample_to_play
                     tst.w    lbW02328A
                     bne      return2
-                    lea      lbL02311A(pc),a6
+                    lea      smp_zone_struct_1(pc),a6
                     move.l   a6,lbL02328C
                     rts
 
@@ -16990,18 +16977,22 @@ lbW0230F8:          dc.w     0
 lbL0230FA:          dc.l     0
 lbL0230FE:          dc.l     0
 
-lbL02311A:          dc.w     30,VOICE_ZONE,3
-                    dc.l     lbW023124
-lbW023124:          dc.w     12,0,3
+smp_zone_struct_1:  dc.w     30,VOICE_ZONE,3
+                    dc.l     smp_zone_struct_2
+smp_zone_struct_2:  dc.w     12,0,3
                     dc.l     0
 
-lbL02312E:          dc.w     30,VOICE_PLAYER,3
-                    dc.l     lbW023138
-lbW023138:          dc.w     13,VOICE_TWO,3
-                    dc.l     lbW023142
-lbW023142:          dc.w     13,VOICE_REQUIRES,3
-                    dc.l     lbW02314C
-lbW02314C:          dc.w     16,0,3
+smp_player_requires_struct_1:
+                    dc.w     30,VOICE_PLAYER,3
+                    dc.l     smp_player_requires_struct_2
+smp_player_requires_struct_2: 
+                    dc.w     13,VOICE_TWO,3
+                    dc.l     smp_player_requires_struct_3
+smp_player_requires_struct_3:
+                    dc.w     13,VOICE_REQUIRES,3
+                    dc.l     smp_player_requires_struct_4
+smp_player_requires_struct_4:
+                    dc.w     16,0,3
                     dc.l     0
 
 lbW023156:          dc.w     1,25,1
@@ -17014,15 +17005,15 @@ lbW023174:          dc.w     20,15,2
                     dc.l     lbW02317E
 lbW02317E:          dc.w     1,17,3
                     dc.l     lbW023188
-lbW023188:          dc.w     30,18,3
+lbW023188:          dc.w     30,SAMPLE_DESTRUCT_IMM,3
                     dc.l     lbW023192
 lbW023192:          dc.w     220,17,3
                     dc.l     lbW02319C
-lbW02319C:          dc.w     30,18,3
+lbW02319C:          dc.w     30,SAMPLE_DESTRUCT_IMM,3
                     dc.l     lbW023192
 lbW0231A6:          dc.w     1,16,2
                     dc.l     lbW0231B0
-lbW0231B0:          dc.w     60,18,3
+lbW0231B0:          dc.w     60,SAMPLE_DESTRUCT_IMM,3
                     dc.l     lbW0231B0
 lbW0231BA:          dc.w     1,10,2
                     dc.l     lbW0231C4
@@ -17032,12 +17023,13 @@ lbW0231CE:          dc.w     20,10,1
                     dc.l     lbW0231D8
 lbW0231D8:          dc.w     50,11,2
                     dc.l     lbW0231C4
-                    dc.w     1,41,1
-                    dc.l     lbW0231EC
-lbW0231EC:          dc.w     150,42,2
-                    dc.l     lbW0231F6
-lbW0231F6:          dc.w     50,76,1
-                    dc.l     0
+
+;                    dc.w     1,SAMPLE_DESCENT,1
+;                    dc.l     lbW0231EC
+;lbW0231EC:          dc.w     150,SAMPLE_DESCENT_END,2
+;                    dc.l     lbW0231F6
+;lbW0231F6:          dc.w     50,76,1
+;                    dc.l     0
 
 sample_struct_to_play:
                     dc.l     0
@@ -17096,7 +17088,9 @@ trigger_sample_from_struct:
                     move.w   lbW023204(pc),d0
                     cmp.w    (a0),d0
                     bmi.b    lbC0232BC
+                    ; sample number
                     move.w   2(a0),d0
+                    ; channel
                     move.w   4(a0),d2
                     bsr      trigger_sample_select_channel
                     move.l   sample_struct_to_play(pc),a0
