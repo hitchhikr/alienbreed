@@ -75,103 +75,97 @@ display_title_screen:
                     lea      color_palette_dark(pc),a0
                     lea      colors_down(pc),a1
                     moveq    #32,d0
-                    bsr      lbC00089E
+                    bsr      prep_fade_speeds_fade_in
                     bsr      wait_frame_joystick
                     move.l   #copperlist_title,CUSTOM+COP1LCH
-                    move.w   #4,lbW000BEC
+                    move.w   #4,frames_slowdown
                     moveq    #52,d0
 .move:              bsr      wait_frame
                     move.l   d0,-(sp)
-                    bsr      lbC00091A
+                    bsr      fade_palette_in
                     move.l   (sp)+,d0
-                    subq.b   #4,diwstrt
+                    subq.b   #4,copper_diwstrt
                     subq.w   #1,d0
                     bne.b    .move
-                    move.b   #$2C,diwstrt
+                    move.b   #$2C,copper_diwstrt
                     rts
 
 display_beam_title: move.w   #$8020,CUSTOM+DMACON
-                    lea      lbW000EFA(pc),a0
-                    bsr      set_sprite_bp
-                    lea      lbW000EFA(pc),a0
-                    bsr      lbC000E14
-                    lea      lbW001336(pc),a0
+                    lea      sprite_struct(pc),a0
+                    bsr      set_caret_bp
+                    lea      sprite_struct(pc),a0
+                    bsr      disp_caret
+                    lea      colors_up(pc),a0
                     lea      color_palette_light(pc),a1
                     moveq    #32,d0
                     bsr      set_palette
                     moveq    #0,d0
                     moveq    #0,d1
                     move.l   #$2D01FF00,pos_copper_dark_pal
-                    lea      lbW000EFA(pc),a0
+                    lea      sprite_struct(pc),a0
 move_beam:          movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbW000EFA(pc),a0
+                    lea      sprite_struct(pc),a0
                     add.w    #48,(a0)
                     cmp.w    #320,(a0)
-                    bmi.b    lbC0001E2
+                    bmi.b    .reset_x
                     clr.w    (a0)
-lbC0001E2:          add.w    d1,(a0)
+.reset_x:           add.w    d1,(a0)
                     cmp.w    #243,d0
-                    bne.b    lbC0001EE
+                    bne.b    .max_y
                     move.w   #244,d0
-lbC0001EE:          move.w   d0,2(a0)
-                    bsr      lbC000E14
+.max_y:             move.w   d0,2(a0)
+                    bsr      disp_caret
                     movem.l  (sp)+,d0-d7/a0-a6
                     addq.w   #1,d1
                     cmp.w    #32,d1
-                    bne.b    lbC000204
+                    bne.b    .reset_x_speed
                     clr.w    d1
-lbC000204:          bsr      wait_frame_joystick
-                    add.l    #$1000000,pos_copper_beam_line
-                    add.l    #$1000000,pos_copper_dark_pal
-                    cmp.l    #$1FF00,pos_copper_beam_line
+.reset_x_speed:     bsr      wait_frame_joystick
+                    add.l    #$01000000,pos_copper_beam_line
+                    add.l    #$01000000,pos_copper_dark_pal
+                    cmp.l    #$0001FF00,pos_copper_beam_line
                     bne.b    reached_pal
                     move.l   #$FFE1FFFE,copper_pal_line
 reached_pal:        addq.w   #1,d0
                     cmp.w    #$FF,d0
                     bne.b    move_beam
-                    lea      lbW000EFA(pc),a0
+                    lea      sprite_struct(pc),a0
                     move.w   #336,(a0)
-                    bsr      lbC000E14
+                    bsr      disp_caret
                     move.l   #300,d0
                     bsr      wait_x_frames
                     tst.l    exit_flag
-                    beq.b    lbC000260
+                    beq.b    fade_out_pic
                     addq.l   #4,sp
                     bra      exit
 
-lbC000260:          move.w   #2,lbW000BEC
-                    lea      lbW001336(pc),a0
-                    lea      colors_up(pc),a1
-                    lea      color_palette_light(pc),a2
-                    moveq    #32,d0
-                    bsr      lbC000706
-                    bsr      lbC0002AA
+fade_out_pic:       move.w   #2,frames_slowdown
                     lea      colors_up(pc),a0
-                    lea      lbL0013F6,a1
+                    lea      colors_red(pc),a1
                     lea      color_palette_light(pc),a2
                     moveq    #32,d0
-                    bsr      lbC000706
+                    bsr      prep_fade_speeds_fade_to_rgb
+                    bsr      go_fade_to_red
+                    lea      colors_red(pc),a0
+                    lea      palette_black,a1
+                    lea      color_palette_light(pc),a2
+                    moveq    #32,d0
+                    bsr      prep_fade_speeds_fade_to_rgb
                     ; no rts
 
-lbC0002AA:          btst     #CIAB_GAMEPORT1,CIAA
+go_fade_to_red:     btst     #CIAB_GAMEPORT1,CIAA
                     beq.b    .interrupted
                     btst     #CIAB_GAMEPORT0,CIAA
                     beq.b    .interrupted
                     bsr      wait_frame_joystick
-                    bsr      lbC0007B8
-                    tst.w    lbW000BF0
-                    beq.b    lbC0002AA
+                    bsr      fade_palette_to_rgb
+                    tst.w    done_fade
+                    beq.b    go_fade_to_red
                     rts
 
 .interrupted:       move.w   #1,end_text_flag
                     move.l   #-1,exit_flag
-                    move.w   #1,lbW000BF0
-                    rts
-
-set_palette:        move.w   (a0)+,2(a1)
-                    addq.l   #4,a1
-                    subq.w   #1,d0
-                    bne.b    set_palette
+                    move.w   #1,done_fade
                     rts
 
 set_bps:            move.w   d0,6(a0)
@@ -202,48 +196,50 @@ scroll_blit_text:   not.w    scroll_slown_down
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-scroll_text:        addq.w   #1,lbW00045C
-                    cmp.w    #6,lbW00045C
-                    beq      lbC000446
-                    cmp.w    #12,lbW00045C
+scroll_text:        addq.w   #1,split_scroll_counter
+                    cmp.w    #6,split_scroll_counter
+                    beq      disp_scroll_text_2
+                    cmp.w    #12,split_scroll_counter
                     bmi      return
-                    clr.w    lbW00045C
-                    addq.w   #1,pause_scroll
-                    cmp.w    #18,pause_scroll
-                    bmi.b    lbC0003D6
-                    clr.w    pause_scroll
+                    clr.w    split_scroll_counter
+                    addq.w   #1,pause_scroll_counter
+                    cmp.w    #18,pause_scroll_counter
+                    bmi.b    mid_scroll_pause
+                    clr.w    pause_scroll_counter
                     move.l   #500,d0
                     bsr      wait_x_frames
-lbC0003D6:          move.l   text_ptr,a0
+mid_scroll_pause:   move.l   text_ptr,a0
                     moveq    #17,d0
-                    lea      lbL01D372,a1
-lbC0003E8:          move.b   (a0)+,(a1)+
+                    lea      scroll_text_block_1,a1
+.copy_block_1:      move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    lbC0003E8
+                    bne.b    .copy_block_1
                     move.l   text_ptr,a0
                     add.l    #17,a0
                     moveq    #18,d0
-                    lea      lbL01D38A,a1
-lbC000406:          move.b   (a0)+,(a1)+
+                    lea      scroll_text_block_2,a1
+.copy_block_2:      move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    lbC000406
+                    bne.b    .copy_block_2
                     add.l    #35,text_ptr
                     move.l   text_ptr,a0
                     tst.b    (a0)
                     bpl.b    reset_text
                     move.l   #text_story,text_ptr
                     move.w   #1,end_text_flag
-reset_text:         lea      lbL01D36E,a0
+reset_text:         lea      scroll_text_1,a0
                     lea      font_struct(pc),a1
                     bra.b    display_text
 
-lbC000446:          lea      lbL01D386,a0
+disp_scroll_text_2: lea      scroll_text_2,a0
                     lea      font_struct(pc),a1
                     bra.b    display_text
 
-pause_scroll:       dc.w     0
+pause_scroll_counter:
+                    dc.w     0
 scroll_slown_down:  dc.w     0
-lbW00045C:          dc.w     0
+split_scroll_counter:
+                    dc.w     0
 
 display_text:       lea      CUSTOM,a6
                     moveq    #0,d0
@@ -305,7 +301,7 @@ blit_letter_mask:
                     WAIT_BLIT
                     move.l   #$FFFF0000,BLTAFWM(a6)
                     move.w   d3,BLTCON1(a6)
-                    or.w     #$fe2,d3
+                    or.w     #$FE2,d3
                     move.w   d3,BLTCON0(a6)
                     clr.w    BLTBMOD(a6)
                     move.w   26(a1),BLTAMOD(a6)
@@ -341,505 +337,46 @@ blit_letter_on_screen:
 return:             rts
 
 letter_buffer:      dcb.l    32,0
-font_struct:        dc.l     text_bitplane1,(256*40),2,36,9,11,80,924
-                    dc.l     font_pic
-                    dc.l     ascii_letters
+font_struct:        dc.l     text_bitplane1,(256*40),2,36,9,11,80,924,font_pic,ascii_letters
 ascii_letters:      dc.b     'ABCDEFGHIJKLMNOPQRSTUVWXYZ,1234567890.!?: ',0
                     even
 
 fade_out_planet:    lea      color_palette_planet(pc),a0
                     lea      colors_planet(pc),a1
                     moveq    #32,d0
-                    bsr      lbC000A2C
+                    bsr      prep_fade_speeds_fade_out
 .loop:              bsr      wait_frame_joystick
-                    bsr      lbC000AF8
-                    tst.w    lbW000BF0
+                    bsr      fade_palette_out
+                    tst.w    done_fade
                     beq      .loop
                     rts
 
 fade_in_planet:     lea      color_palette_planet(pc),a0
                     lea      colors_planet(pc),a1
                     moveq    #32,d0
-                    bsr      lbC00089E
-lbC0006DC:          bsr      wait_frame_joystick
-                    bsr      lbC00091A
-                    tst.w    lbW000BF0
-                    beq      lbC0006DC
+                    bsr      prep_fade_speeds_fade_in
+.loop:              bsr      wait_frame_joystick
+                    bsr      fade_palette_in
+                    tst.w    done_fade
+                    beq      .loop
                     rts
 
-lbC000706:          movem.l  d0-d7/a0-a6,-(sp)
-                    move.w   #1,lbW000BEA
-                    move.w   d0,lbW000BF2
-                    move.l   a1,lbL000BF4
-                    move.l   a2,lbL000BF8
-                    move.l   a0,a2
-                    lea      lbL000BFC(pc),a3
-                    move.w   lbW000BF2(pc),d0
-lbC000732:          move.w   (a2),d1
-                    move.w   (a1),d2
-                    and.w    #$F00,d1
-                    and.w    #$F00,d2
-                    cmp.w    d1,d2
-                    bmi      lbC000748
-                    bhi      lbC00074E
-                    clr.b    (a3)+
-                    bra      lbC000752
+FADE_SPEED          equ      2
+                    include  "palette.asm"
 
-lbC000748:          move.b   #-1,(a3)+
-                    bra      lbC000752
-
-lbC00074E:          move.b   #1,(a3)+
-lbC000752:          move.w   (a2),d1
-                    move.w   (a1),d2
-                    and.w    #$F0,d1
-                    and.w    #$F0,d2
-                    cmp.w    d1,d2
-                    bmi      lbC000768
-                    bhi      lbC00076E
-                    clr.b    (a3)+
-                    bra      lbC000772
-
-lbC000768:          move.b   #-1,(a3)+
-                    bra      lbC000772
-
-lbC00076E:          move.b   #1,(a3)+
-lbC000772:          move.w   (a2)+,d1
-                    move.w   (a1)+,d2
-                    and.w    #$F,d1
-                    and.w    #$F,d2
-                    cmp.w    d1,d2
-                    bmi      lbC000788
-                    bhi      lbC00078E
-                    clr.b    (a3)+
-                    bra      lbC000792
-
-lbC000788:          move.b   #-1,(a3)+
-                    bra      lbC000792
-
-lbC00078E:          move.b   #1,(a3)+
-lbC000792:          subq.b   #1,d0
-                    bne      lbC000732
-                    move.l   lbL000BF8(pc),a2
-                    move.w   lbW000BF2(pc),d0
-                    addq.l   #2,a2
-lbC0007A4:          move.w   (a0)+,(a2)
-                    addq.l   #4,a2
-                    subq.b   #1,d0
-                    bne      lbC0007A4
-                    clr.w    lbW000BF0
-                    movem.l  (sp)+,d0-d7/a0-a6
-                    rts
-
-lbC0007B8:          cmp.w    #1,lbW000BEA
-                    bne      return_2
-                    tst.w    lbW000BF0
-                    bne      return_2
-                    moveq    #0,d7
-                    add.w    #1,lbW000BEE
-                    move.w   lbW000BEE(pc),d0
-                    cmp.w    lbW000BEC(pc),d0
-                    bmi      return_2
-                    clr.w    lbW000BEE
-                    move.w   lbW000BF2(pc),d0
-                    move.l   lbL000BF8(pc),a0
-                    move.l   lbL000BF4(pc),a1
-                    lea      lbL000BFC(pc),a3
-                    addq.l   #2,a0
-lbC000808:          move.w   (a0),d1
-                    move.w   (a1),d2
-                    and.w    #$F00,d1
-                    and.w    #$F00,d2
-                    cmp.w    d1,d2
-                    bne      lbC00081E
-                    addq.b   #1,d7
-                    addq.l   #1,a3
-                    bra      lbC00082C
-
-lbC00081E:          move.b   (a3)+,d3
-                    lsr.w    #8,d1
-                    add.b    d3,d1
-                    lsl.w    #8,d1
-                    and.w    #$FF,(a0)
-                    or.w     d1,(a0)
-lbC00082C:          move.w   (a0),d1
-                    move.w   (a1),d2
-                    and.w    #$F0,d1
-                    and.w    #$F0,d2
-                    cmp.w    d1,d2
-                    bne      lbC000842
-                    addq.b   #1,d7
-                    addq.l   #1,a3
-                    bra      lbC000850
-
-lbC000842:          move.b   (a3)+,d3
-                    lsr.w    #4,d1
-                    add.b    d3,d1
-                    lsl.w    #4,d1
-                    and.w    #$F0F,(a0)
-                    or.w     d1,(a0)
-lbC000850:          move.w   (a0),d1
-                    move.w   (a1)+,d2
-                    and.w    #$F,d1
-                    and.w    #$F,d2
-                    cmp.w    d1,d2
-                    bne      lbC000866
-                    addq.b   #1,d7
-                    addq.l   #1,a3
-                    bra      lbC000870
-
-lbC000866:          move.b   (a3)+,d3
-                    add.b    d3,d1
-                    and.w    #$FF0,(a0)
-                    or.w     d1,(a0)
-lbC000870:          addq.l   #4,a0
-                    subq.b   #1,d0
-                    bne      lbC000808
-                    divu     #3,d7
-                    cmp.w    lbW000BF2(pc),d7
-                    bne      lbC000890
-                    move.w   #1,lbW000BF0
-                    clr.w    lbW000BEA
-lbC000890:          rts
-
-                    addq.l   #2,a1
-lbC000894:          move.w   (a0)+,(a1)
-                    addq.l   #4,a1
-                    subq.b   #2,d0
-                    bne      lbC000894
-                    rts
-
-lbC00089E:          move.w   #2,lbW000BEA
-                    lea      lbL000D1E(pc),a4
-                    moveq    #48,d2
-lbC0008B2:          clr.l    (a4)+
-                    subq.l   #1,d2
-                    bne      lbC0008B2
-                    move.l   d0,d7
-                    move.l   a1,a2
-                    moveq    #0,d6
-                    lea      lbL000C5E(pc),a3
-lbC0008C6:          move.w   (a2),d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    move.w   (a2),d6
-                    lsl.w    #4,d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    move.w   (a2)+,d6
-                    lsl.w    #8,d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    subq.w   #1,d7
-                    bne      lbC0008C6
-                    move.l   d1,d4
-                    subq.l   #2,a0
-                    subq.l   #2,a1
-                    move.w   d0,lbW000BF2
-                    move.l   a0,lbL000BF8
-                    move.l   a1,lbL000BF4
-                    clr.w    lbW000BF0
-                    rts
-
-lbC00091A:          cmp.w    #2,lbW000BEA
-                    bne      return_2
-                    tst.w    lbW000BF0
-                    bne      return_2
-                    add.w    #1,lbW000BEE
-                    move.w   lbW000BEE(pc),d0
-                    cmp.w    lbW000BEC(pc),d0
-                    bmi      return_2
-                    clr.w    lbW000BEE
-                    move.l   lbL000BF8(pc),a0
-                    move.l   lbL000BF4(pc),a1
-                    moveq    #0,d0
-                    move.w   lbW000BF2(pc),d0
-                    move.l   d0,d6
-                    mulu     #3,d6
-                    lea      lbL000C5E(pc),a2
-                    lea      lbL000D1E(pc),a3
-                    move.l   d6,d7
-                    move.l   d0,d1
-lbC000978:          addq.l   #4,a0
-                    addq.l   #2,a1
-                    move.w   (a0),d2
-                    move.w   (a1),d3
-                    and.w    #$F00,d2
-                    and.w    #$F00,d3
-                    cmp.w    d2,d3
-                    beq      lbC0009A0
-                    move.w   (a2),d3
-                    add.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    and.w    #$F0FF,(a0)
-                    add.w    d3,(a0)
-                    subq.w   #1,d7
-lbC0009A0:          add.l    #2,a2
-                    add.l    #2,a3
-                    move.w   (a0),d2
-                    move.w   (a1),d3
-                    and.w    #$F0,d2
-                    and.w    #$F0,d3
-                    cmp.w    d2,d3
-                    beq      lbC0009D2
-                    move.w   (a2),d3
-                    add.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    lsr.w    #4,d3
-                    and.w    #$FF0F,(a0)
-                    add.w    d3,(a0)
-                    subq.w   #1,d7
-lbC0009D2:          add.l    #2,a2
-                    add.l    #2,a3
-                    move.w   (a0),d2
-                    move.w   (a1),d3
-                    and.w    #$F,d2
-                    and.w    #$F,d3
-                    cmp.w    d2,d3
-                    beq      lbC000A04
-                    move.w   (a2),d3
-                    add.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    lsr.w    #8,d3
-                    and.w    #$FFF0,(a0)
-                    add.w    d3,(a0)
-                    subq.w   #1,d7
-lbC000A04:          add.l    #2,a2
-                    add.l    #2,a3
-                    subq.w   #1,d1
-                    bne      lbC000978
-                    cmp.l    d6,d7
-                    bne      lbC000A2A
-                    move.w   #1,lbW000BF0
-                    clr.w    lbW000BEA
-lbC000A2A:          rts
-
-lbC000A2C:          move.w   #3,lbW000BEA
-                    lea      lbL000D1E(pc),a4
-                    moveq    #48,d2
-lbC000A40:          clr.l    (a4)+
-                    subq.l   #1,d2
-                    bne      lbC000A40
-                    move.l   d0,d7
-                    move.l   a0,a2
-                    addq.l   #2,a2
-                    moveq    #0,d6
-                    lea      lbL000C5E,a3
-lbC000A5A:          move.w   (a2),d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    move.w   (a2),d6
-                    lsl.w    #4,d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    move.w   (a2),d6
-                    add.l    #4,a2
-                    lsl.w    #8,d6
-                    and.w    #$F00,d6
-                    divu     #$F,d6
-                    ext.l    d6
-                    move.w   d6,(a3)+
-                    subq.w   #1,d7
-                    bne      lbC000A5A
-                    lea      lbL000D1E(pc),a3
-                    move.l   a0,a2
-                    addq.l   #2,a2
-                    move.l   d0,d4
-lbC000AA4:          move.w   (a2),d7
-                    and.w    #$F00,d7
-                    move.w   d7,(a3)+
-                    move.w   (a2),d7
-                    and.w    #$F0,d7
-                    lsl.w    #4,d7
-                    move.w   d7,(a3)+
-                    move.w   (a2),d7
-                    and.w    #$F,d7
-                    lsl.w    #8,d7
-                    move.w   d7,(a3)+
-                    addq.l   #4,a2
-                    subq.l   #1,d4
-                    bne      lbC000AA4
-                    lea      lbL000C5E(pc),a2
-                    lea      lbL000D1E(pc),a3
-                    move.l   d1,d4
-                    subq.l   #2,a0
-                    move.w   d0,lbW000BF2
-                    move.l   a0,lbL000BF8
-                    clr.w    lbW000BF0
-                    rts
-
-lbC000AF8:          cmp.w    #3,lbW000BEA
-                    bne      return_2
-                    tst.w    lbW000BF0
-                    bne      return_2
-                    addq.w   #1,lbW000BEE
-                    move.w   lbW000BEE(pc),d0
-                    cmp.w    lbW000BEC(pc),d0
-                    bmi      return_2
-                    clr.w    lbW000BEE
-                    moveq    #0,d0
-                    move.w   lbW000BF2(pc),d0
-                    move.l   lbL000BF8(pc),a0
-                    move.l   d0,d1
-                    moveq    #0,d7
-                    lea      lbL000C5E(pc),a2
-                    lea      lbL000D1E(pc),a3
-lbC000B4A:          addq.l   #4,a0
-                    move.w   (a0),d2
-                    and.w    #$F00,d2
-                    beq      lbC000B6A
-                    move.w   (a2),d3
-                    sub.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    and.w    #$F0FF,(a0)
-                    add.w    d3,(a0)
-                    addq.w   #1,d7
-lbC000B6A:          addq.l   #2,a2
-                    addq.l   #2,a3
-                    move.w   (a0),d2
-                    and.w    #$F0,d2
-                    beq      lbC000B96
-                    move.w   (a2),d3
-                    sub.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    lsr.w    #4,d3
-                    and.w    #$FF0F,(a0)
-                    add.w    d3,(a0)
-                    addq.w   #1,d7
-lbC000B96:          addq.l   #2,a2
-                    addq.l   #2,a3
-                    move.w   (a0),d2
-                    and.w    #$F,d2
-                    beq      lbC000BC2
-                    move.w   (a2),d3
-                    sub.w    d3,(a3)
-                    move.w   (a3),d3
-                    and.w    #$F00,d3
-                    lsr.l    #8,d3
-                    and.w    #$FFF0,(a0)
-                    add.w    d3,(a0)
-                    addq.w   #1,d7
-lbC000BC2:          addq.l   #2,a2
-                    addq.l   #2,a3
-                    subq.w   #1,d1
-                    bne      lbC000B4A
-                    tst.l    d7
-                    bne      lbC000BE8
-                    move.w   #1,lbW000BF0
-                    clr.w    lbW000BEA
-lbC000BE8:          rts
-
-lbW000BEA:          dc.w     0
-lbW000BEC:          dc.w     2
-lbW000BEE:          dc.w     0
-lbW000BF0:          dc.w     0
-lbW000BF2:          dc.w     0
-lbL000BF4:          dc.l     0
-lbL000BF8:          dc.l     0
-lbL000BFC:          dcb.l    24,0
-
-return_2:           rts
-
-lbL000C5E:          dcb.l    48,0
-lbL000D1E:          dcb.l    48,0
-
-set_sprite_bp:      tst.l    16(a0)
-                    bne      lbC000E00
-                    move.l   12(a0),d0
-lbC000DE8:          move.l   8(a0),a1
-                    move.w   6(a0),d1
-                    or.w     d1,14(a1)
-                    move.w   d0,6(a1)
-                    swap     d0
-                    move.w   d0,2(a1)
-                    rts
-
-lbC000E00:          move.l   16(a0),a1
-                    move.l   a1,20(a0)
-                    move.w   6(a1),24(a0)
-                    move.l   (a1),d0
-                    bra      lbC000DE8
-
-lbC000E14:          move.l   8(a0),a1
-                    tst.l    16(a0)
-                    bne      lbC000EAC
-lbC000E20:          and.w    #$80,14(a1)
-                    move.w   0(a0),d0
-                    add.w    #$80,d0
-                    btst     #0,d0
-                    beq      lbC000E3A
-                    or.w     #1,14(a1)
-lbC000E3A:          lsr.w    #1,d0
-                    move.b   d0,11(a1)
-                    move.w   2(a0),d0
-                    add.w    #$2C,d0
-                    move.w   d0,d1
-                    add.w    4(a0),d1
-                    cmp.w    #$FF,d1
-                    bmi      lbC000E5E
-                    sub.w    #$FF,d1
-                    or.b     #2,15(a1)
-lbC000E5E:          move.b   d1,14(a1)
-                    cmp.w    #$FF,d0
-                    bmi      lbC000E72
-                    sub.w    #$FF,d0
-                    or.b     #4,15(a1)
-lbC000E72:          move.b   d0,10(a1)
-                    tst.w    6(a0)
-                    beq      lbC000EAA
-                    move.w   10(a1),26(a1)
-                    move.w   14(a1),30(a1)
-                    move.w   2(a1),d0
-                    swap     d0
-                    move.w   6(a1),d0
-                    move.w   4(a0),d1
-                    ext.l    d1
-                    add.l    d1,d1
-                    add.l    d1,d1
-                    addq.l   #4,d1
-                    add.l    d1,d0
-                    move.w   d0,22(a1)
-                    swap     d0
-                    move.w   d0,18(a1)
-lbC000EAA:          rts
-
-lbC000EAC:          subq.w   #1,24(a0)
-                    bpl      lbC000E20
-                    addq.l   #8,20(a0)
-lbC000EB8:          move.l   20(a0),a2
-                    move.l   (a2),d0
-                    tst.l    d0
-                    bmi      lbC000ED6
-                    move.w   6(a2),24(a0)
-                    move.w   d0,6(a1)
-                    swap     d0
-                    move.w   d0,2(a1)
-                    bra      lbC000E20
-
-lbC000ED6:          move.l   16(a0),20(a0)
-                    bra      lbC000EB8
+                    include  "caret.asm"
 
 ; -----------------------------------------------------
 
-lbW000EFA:          dc.w     336,150,1,0
+sprite_struct:      dc.w     336,150,1,0
                     dc.l     sprite_bp
                     dc.l     sprite_data
-                    dcb.w    6,0
-sprite_data:        dc.l     -1,0,0
+                    dc.l     0
+                    dc.l     0
+                    dc.w     0
+                    dc.w     0
+sprite_data:        dc.w     %1111111111111111,%1111111111111111
+                    dc.w     0,0
 
 exit_flag:          dc.l     0
 end_text_flag:      dc.w     0
@@ -849,7 +386,7 @@ colors_planet:      dc.w     $000,$FFF,$222,$222,$222,$222,$222,$222
                     dc.w     $FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF
                     dc.w     $FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF,$FFF
 
-lbW001336:          dc.w     $000,$990,$221,$332,$443,$554,$665,$776
+colors_up:          dc.w     $000,$990,$221,$332,$443,$554,$665,$776
                     dc.w     $887,$998,$AA9,$BBA,$CCB,$DDD,$EEE,$FFF
                     dc.w     $000,$111,$222,$333,$444,$555,$666,$777
                     dc.w     $888,$999,$AAA,$BBB,$CCC,$DDD,$EEE,$FFF
@@ -859,18 +396,18 @@ colors_down:        dc.w     $000,$770,$000,$110,$221,$332,$443,$554
                     dc.w     $000,$000,$000,$111,$222,$333,$444,$555
                     dc.w     $666,$777,$888,$999,$AAA,$BBB,$CCC,$DDD
 
-colors_up:          dc.w     $D00,$F90,$F21,$F32,$F43,$F54,$F65,$F76
+colors_red:         dc.w     $D00,$F90,$F21,$F32,$F43,$F54,$F65,$F76
                     dc.w     $F87,$F98,$FA9,$FBA,$FCB,$FDD,$FEE,$FFF
                     dc.w     $D00,$E11,$F22,$F33,$F44,$F55,$F66,$F77
                     dc.w     $F88,$F99,$FAA,$FBB,$FCC,$FDD,$FEE,$FFF
 
-lbL0013F6:          dcb.w    32,0
+palette_black:      dcb.w    32,0
 
 ; -----------------------------------------------------
 
 copperlist_title:   dc.w     BPLCON0,$5200
                     dc.w     DIWSTRT
-diwstrt:            dc.w     $FF81,DIWSTOP,$2CC1
+copper_diwstrt:     dc.w     $FF81,DIWSTOP,$2CC1
                     dc.w     DDFSTRT,$38,DDFSTOP,$D0
                     dc.w     BPL1MOD,0,BPL2MOD,0
                     dc.w     BPLCON2,$24,BPLCON1,0
@@ -939,16 +476,17 @@ text_bps:           dc.w     BPL5PTH,0,BPL5PTL,0
 font_pic:           incbin   "font_16x462.lo2"
 
 text_bitplane1:     dcb.b    (256*40),0
-
 text_bitplane2:     dcb.b    (256*40),0
 
 planet_pic:         incbin   "planet_320x256.lo4"
 title_pic:          incbin   "title_320x256.lo5"
 
-lbL01D36E:          dc.w     3,244
-lbL01D372:          dcb.l    5,-1
-lbL01D386:          dc.w     156,238
-lbL01D38A:          dcb.l    5,-1
+scroll_text_1:      dc.w     3,244
+scroll_text_block_1:
+                    dcb.b    20,-1
+scroll_text_2:      dc.w     156,238
+scroll_text_block_2:
+                    dcb.b    20,-1
 
 ; -----------------------------------------------------
 
