@@ -93,6 +93,7 @@ PLAYER_MAX_AMMO     equ      32
 PLAYER_MAX_AMMOPCKS equ      4
 PLAYER_MAX_HEALTH   equ      64
 
+PLAYER_HW_REGISTER  equ      0
 PLAYER_CUR_WEAPON   equ      256
 PLAYER_POS_X        equ      300
 PLAYER_POS_Y        equ      302
@@ -195,6 +196,7 @@ INTEX_DOORS_OPENED  equ      16
 INTEX_AMMO_PACKS    equ      20
 INTEX_HEALTH        equ      24
 INTEX_CUR_WEAPON    equ      28
+INTEX_PLAYER_SCORE  equ      32
 
                     rsset    0
 TEXT_DEST_BP:       rs.l     1                                      ; 0 

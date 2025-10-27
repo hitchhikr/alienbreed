@@ -213,6 +213,7 @@ input_enabled:      dc.w     0
 done_holocode_jump: dc.w     0
 
 ; structure passed to the intex exe
+intex_struct:
 cur_credits:        dc.l     0              ; 0
 aliens_killed:      dc.l     0              ; 4
 intex_shots_fired:  dc.l     0              ; 8
@@ -221,7 +222,7 @@ doors_opened:       dc.l     0              ; 16
 intex_ammopacks:    dc.l     0              ; 20
 intex_health:       dc.l     0              ; 24
 intex_cur_weapon:   dc.l     0              ; 28
-intex_player_score: dc.l     10000          ; 32
+intex_player_score: dc.l     0              ; 32
 
 lbL00051C:          dc.l     0
 lbL000520:          dcb.l    10,0
@@ -232,7 +233,7 @@ lbL000554:          dc.l     lbW01945E
 lbL000558:          dc.l     lbW01C52A
 cur_briefing_text:  dc.l     text_briefing_level_2
 number_players:     dc.l     1
-lbL000572:          dc.l     -1
+level_flag:         dc.l     -1
 flag_end_level:     dcb.w    2,0
 lbW00057A:          dcb.w    2,0
 flag_jump_to_gameover:
@@ -279,13 +280,12 @@ loop_from_gameover: jsr      run_menu
                     jsr      display_briefing_1
                     jsr      init_level_1
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
@@ -293,38 +293,36 @@ loop_from_gameover: jsr      run_menu
 level_2:            move.l   #level_2,cur_level
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_2
                     jsr      init_level_2
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 3
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_3
                     jsr      init_level_3
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     clr.w    lbW002AC0
                     clr.l    lbL00E756
@@ -335,38 +333,36 @@ level_2:            move.l   #level_2,cur_level
 level_4:            move.l   #level_4,cur_level
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_4
                     jsr      init_level_4
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 5
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_5
                     jsr      init_level_5
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
@@ -374,38 +370,36 @@ level_4:            move.l   #level_4,cur_level
 level_6:            move.l   #level_6,cur_level
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_6
                     jsr      init_level_6
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 7
-level_7:            jsr      check_level_destruction
+                    jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_7
                     jsr      init_level_7
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     clr.w    boss_nbr
                     jsr      jump_to_level
@@ -414,19 +408,18 @@ level_7:            jsr      check_level_destruction
 level_8:            move.l   #level_8,cur_level
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #0,global_aliens_extra_strength
                     jsr      display_briefing_8
                     jsr      init_level_8
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     clr.w    boss_nbr
                     jsr      jump_to_level
@@ -434,19 +427,18 @@ level_8:            move.l   #level_8,cur_level
                     ; level 9
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #5,global_aliens_extra_strength
                     jsr      display_briefing_9
                     jsr      init_level_9
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
@@ -454,65 +446,62 @@ level_8:            move.l   #level_8,cur_level
 level_10:           move.l   #level_10,cur_level
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #10,global_aliens_extra_strength
                     jsr      display_briefing_10
                     jsr      init_level_10
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 11
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #15,global_aliens_extra_strength
                     jsr      display_briefing_11
                     jsr      init_level_11
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; level 12
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     move.w   #20,global_aliens_extra_strength
                     jsr      display_briefing_12
                     jsr      init_level_12
                     jsr      hold_briefing_screen
-                    jsr      lbC01208A
+                    jsr      copy_gfx
                     jsr      set_destruction_timer
-                    ;jsr      lbC0100C0
                     jsr      init_level_variables
-                    bsr      lbC006B94
-                    jsr      lbC00A61C
-                    bsr      lbC003878
+                    bsr      init_players_variables
+                    jsr      init_aliens_variables
+                    bsr      finalize_level
                     bsr      game_level_loop
                     jsr      jump_to_level
 
                     ; won the game
                     jsr      check_level_destruction
                     jsr      check_gameover
-                    jsr      lbC00F58E
-                    jsr      lbC00F51C
+                    jsr      remove_screen
+                    jsr      install_level_tune
                     bsr.b    run_end
                     bra      loop_wongame
 
@@ -540,7 +529,6 @@ lbC000E0E:          tst.w    lbW0004BA
                     bsr      lbC003EFC
                     jsr      lbC00ACE4
                     jsr      lbC00A6C2
-                    jsr      lbC0097D4
                     jsr      lbC0097F6
                     cmp.b    #7,timer_digit_lo
                     bne.b    lbC000E56
@@ -647,17 +635,17 @@ set_player_cur_weapon:
 
 set_players_startup_weapons:
                     lea      weapons_attr_table(pc),a1
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     bsr      lbC00126A
                     lea      weapons_attr_table(pc),a1
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     bsr      lbC00126A
                     move.l   #14,player_1_tbl_weapon_pos
                     move.l   #14,player_2_tbl_weapon_pos
                     rts
 
 player_1_next_weapon:
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      game_level_loop
                     lea      player_1_tbl_weapon_pos(pc),a1
@@ -672,7 +660,7 @@ player_1_next_weapon:
                     bra.b    lbC00123C
 
 player_2_next_weapon:
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      game_level_loop
                     lea      player_2_tbl_weapon_pos(pc),a1
@@ -704,7 +692,7 @@ lbC00126A:          move.w   0(a1),258(a0)
                     rts
 
 player_1_select_weapon:
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      void
                     lea      player_1_tbl_weapon_pos(pc),a1
@@ -719,7 +707,7 @@ player_1_select_weapon:
                     bra.b    lbC00126A
 
 player_2_select_weapon:
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      void
                     lea      player_2_tbl_weapon_pos(pc),a1
@@ -787,7 +775,7 @@ reset_game_variables:
                     rts
 
 print_more_6_keys_sign:
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     lea      top_owned_keys_gfx,a1
                     cmp.w    #6,PLAYER_KEYS(a0)
                     bhi.b    .more_player_1
@@ -804,7 +792,7 @@ print_more_6_keys_sign:
                     move.b   #%00100000,152(a1)
                     move.b   #%00100000,190(a1)
 
-.player_2:          lea      player_2_dats(pc),a0
+.player_2:          lea      player_2_data(pc),a0
                     lea      bottom_owned_keys_gfx,a1
                     cmp.w    #6,PLAYER_KEYS(a0)
                     bhi.b    .more_player_2
@@ -845,13 +833,13 @@ lbC001518:          jsr      keyboard_handler
 
 lbC00152C:          tst.w    lbW0004C2
                     beq      lbC001596
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     bsr      lbC007B4C
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     bsr      lbC007B4C
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     bsr      lbC006E96
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     bsr      lbC006E96
                     bsr      lbC007A20
                     clr.w    lbW003644
@@ -993,9 +981,9 @@ init_global_game_vars:
                     move.l   #lbL00E9D2,lbL0064E0
                     move.l   #lbL00E9D2,lbL0064E4
                     jsr      lbC00FA4C
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     jsr      init_player_dats
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     jsr      init_player_dats
                     cmp.w    #2,number_players+2
                     beq      void
@@ -1036,7 +1024,7 @@ init_player_dats:   clr.l    PLAYER_SHOTS(a0)
 init_level_1:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     move.w   #20,lbW0005AA
-                    move.l   #-256,lbL000572
+                    move.l   #-256,level_flag
                     move.b   #6,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1051,7 +1039,7 @@ init_level_2:       clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    clr.l    lbL000572
+                    clr.l    level_flag
                     move.b   #6,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1070,7 +1058,7 @@ init_level_3:       clr.w    lbW002AC0
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #512,lbL000572
+                    move.l   #512,level_flag
                     move.b   #4,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1087,7 +1075,7 @@ init_level_4:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #768,lbL000572
+                    move.l   #768,level_flag
                     move.b   #9,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1103,7 +1091,7 @@ init_level_5:       clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #768,lbL000572
+                    move.l   #768,level_flag
                     move.b   #9,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1118,7 +1106,7 @@ init_level_6:       move.w   #1,exit_unlocked                   ; that was silly
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #512,lbL000572
+                    move.l   #512,level_flag
                     sf.b     timer_digit_hi                     ; triggered by the evil 1up
                     move.b   #2,timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1143,7 +1131,7 @@ init_level_7:       clr.w    exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #256,lbL000572
+                    move.l   #256,level_flag
                     move.b   #9,timer_digit_hi
                     move.b   #9,timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1168,7 +1156,7 @@ init_level_8:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #256,lbL000572
+                    move.l   #256,level_flag
                     move.b   #6,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1183,7 +1171,7 @@ init_level_9:       move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #256,lbL000572
+                    move.l   #256,level_flag
                     move.w   #300,lbW002E04
                     move.b   #7,timer_digit_hi
                     move.b   #7,timer_digit_lo
@@ -1201,7 +1189,7 @@ init_level_10:      clr.w    exit_unlocked
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
                     clr.w    lbW0004EE
-                    clr.l    lbL000572
+                    clr.l    level_flag
                     move.b   #8,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1215,7 +1203,7 @@ init_level_10:      clr.w    exit_unlocked
 init_level_11:      move.w   #1,exit_unlocked
                     clr.w    select_speed_boss
                     move.w   #20,lbW0005AA
-                    clr.l    lbL000572
+                    clr.l    level_flag
                     move.b   #6,timer_digit_hi
                     sf.b     timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1233,7 +1221,7 @@ init_level_12:      move.w   #DEBUG,map_overview_on
                     clr.w    select_speed_boss
                     clr.w    lbW0004EA
                     move.w   #20,lbW0005AA
-                    move.l   #1024,lbL000572
+                    move.l   #1024,level_flag                        ; map not available
                     move.b   #1,timer_digit_hi
                     move.b   #4,timer_digit_lo
                     move.l   #level_palette1,cur_palette_ptr
@@ -1473,8 +1461,8 @@ set_players_starting_pos:
                     move.w   start_pos_y(pc),d1
                     move.w   #16,d2                     ; relative position of the 2nd player
                     move.w   #16,d3
-                    lea      player_1_dats(pc),a0
-                    lea      player_2_dats(pc),a1
+                    lea      player_1_data(pc),a0
+                    lea      player_2_data(pc),a1
                     move.l   16(a0),a2
                     move.l   16(a1),a3
                     move.w   d0,-4(a2)
@@ -1497,8 +1485,8 @@ lbW003644:          dc.w     0
 
 lbC003646:          tst.w    lbL000586
                     bne      void
-                    lea      player_1_dats(pc),a0
-                    lea      player_2_dats(pc),a1
+                    lea      player_1_data(pc),a0
+                    lea      player_2_data(pc),a1
                     move.w   PLAYER_POS_X(a0),d0
                     move.w   PLAYER_POS_Y(a0),d1
                     move.w   PLAYER_POS_X(a1),d2
@@ -1628,12 +1616,12 @@ lbC003832:          clr.w    lbW0039A4
                     clr.l    (a0)+
                     rts
 
-lbC003878:          bsr      lbC003832
+finalize_level:     bsr      lbC003832
                     bsr      lbC00412C
-                    bsr.w    lbC003954
-                    lea      player_1_dats(pc),a0
+                    bsr      draw_level_on_screen
+                    lea      player_1_data(pc),a0
                     jsr      lbC006E96
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     bsr      lbC006E96
                     bsr      lbC007A20
                     lea      lbW01227C,a0
@@ -1654,7 +1642,8 @@ lbC003878:          bsr      lbC003832
                     clr.w    smp_zone_struct_2+2
                     rts
 
-lbC003954:          move.l   #-1,lbL0035D8
+draw_level_on_screen:
+                    move.l   #-1,lbL0035D8
                     move.l   #18,lbL0035E0
                     move.l   #21,number_of_tiles_to_draw
                     clr.l    lbL0039AA
@@ -1662,11 +1651,11 @@ lbC003954:          move.l   #-1,lbL0035D8
                     clr.w    0(a0)
                     lea      lbW003EA0(pc),a0
                     clr.w    0(a0)
-lbC003988:          bsr      draw_tiles_horiz
+.loop:              bsr      draw_tiles_horiz
                     bsr      lbC003EFC
                     addq.l   #1,lbL0035D8
                     subq.l   #1,lbL0035E0
-                    bne.b    lbC003988
+                    bne.b    .loop
                     rts
 
 lbW0039A4:          dc.w     0
@@ -1933,20 +1922,20 @@ lbC003F0C:          tst.w    0(a0)
                     WAIT_BLIT2
                     move.w   d1,BLTAMOD(a6)
                     move.w   d1,BLTDMOD(a6)
-                    move.l   #$9f00000,BLTCON0(a6)
+                    move.l   #$9F00000,BLTCON0(a6)
                     move.l   #-1,BLTAFWM(a6)
                     move.l   10(a0),a1
                     move.l   a1,a2
                     move.l   a1,a3
                     sub.l    #(294*42*10),a2
-                    sub.l    #61740,a3
+                    sub.l    #(294*42*5),a3
                     bra      lbC003FE6
 
 lbC003F68:          
                     WAIT_BLIT2
                     move.w   #40,BLTAMOD(a6)
                     move.w   #40,BLTDMOD(a6)
-                    move.l   #$9f00000,BLTCON0(a6)
+                    move.l   #$9F00000,BLTCON0(a6)
                     move.l   #-1,BLTAFWM(a6)
                     move.l   10(a0),a1
                     move.w   4(a0),d0
@@ -1972,9 +1961,8 @@ lbC003FC4:
                     move.l   a1,a2
                     move.l   a1,a3
                     sub.l    #(294*42*10),a2
-                    sub.l    #61740,a3
+                    sub.l    #(294*42*5),a3
                     WAIT_BLIT2
-                    bra      lbC003FE6
 
 lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
@@ -2071,7 +2059,7 @@ lbC0041B8:          move.l   a6,a3
                     and.w    #$3F,d6
                     add.w    d6,d6
                     add.w    d6,d6
-                    add.l    lbL000572(pc),d6
+                    add.l    level_flag(pc),d6
                     jsr      0(a4,d6.w)
                     subq.w   #1,d7
                     bne.b    lbC0041B8
@@ -3160,7 +3148,7 @@ draw_tiles_horiz:   move.l   map_pos_x(pc),d0
                     subq.l   #2,a2
                     lea      bkgnd_tiles_block_table(pc),a3
                     move.l   #294*42,d1
-                    move.l   #-((294*42)-2),d2
+                    move.l   #-((294*42*4)-2),d2
                     move.l   number_of_tiles_to_draw(pc),d3
                     moveq    #0,d4
                     bsr      lbC003EAE
@@ -3423,24 +3411,23 @@ do_scroll_map:      add.w    #15,d0
                     move.w   #$F7,d6
 lbC00586C:          cmp.w    #$D4,d6
                     bmi.b    lbC005890
-                    move.l   #$2401ff00,lbW09A308
-                    move.w   #$ffdf,lbW09A294
+                    move.l   #$2401FF00,lbW09A308
+                    move.w   #$FFDF,lbW09A294
                     sub.w    #$D4,d6
                     move.b   d6,lbW09A298
                     bra.b    lbC0058AC
 
-lbC005890:          move.l   #$ffdffffe,lbW09A308
+lbC005890:          move.l   #$FFDFFFFE,lbW09A308
                     add.w    #$2C,d6
                     move.w   #$0001,lbW09A294
                     move.b   d6,lbW09A298
-lbC0058AC:          cmp.l    #$ffd7fffe,lbW09A298
+lbC0058AC:          cmp.l    #$FFD7FFFE,lbW09A298
                     bne.b    lbC0058C4
-                    move.l   #$2401ff00,lbW09A308
+                    move.l   #$2401FF00,lbW09A308
 lbC0058C4:          cmp.w    #1,frame_bkgnd_flag
                     beq.b    lbC0058DC
                     add.l    #(294*42)*5,d4
                     add.l    #(294*42)*5,d5
-
 lbC0058DC:          move.l   #(294*42),d7
                     move.w   d4,scroll_bp1+6
                     swap     d4
@@ -3491,10 +3478,10 @@ lbC0058DC:          move.l   #(294*42),d7
                     move.w   d5,lbW09A2BE+2
                     rts
 
-lbC005990:          lea      player_1_dats(pc),a0
+lbC005990:          lea      player_1_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      lbC005A76
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bmi      lbC005A52
                     move.b   lbW005BD6(pc),d0
@@ -3628,7 +3615,7 @@ lbW005C16:          dc.w     0
                     dc.w     SPR4CTL,0,SPR5PTH,0,SPR5PTL,0,SPR5POS,0,SPR5CTL,0
 lbW005C2C:          dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0,SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
 
-player_1_dats:      dc.l     CUSTOM+JOY1DAT
+player_1_data:      dc.l     CUSTOM+JOY1DAT
                     dc.l     7
                     dc.l     lbL006FEE
                     dc.l     lbL006B8C
@@ -3691,11 +3678,11 @@ player_1_dats:      dc.l     CUSTOM+JOY1DAT
                     dc.l     lbL0140AA              ; 240
 lbL005D40:          dc.l     lbL00E9C2
 lbL005D44:          dc.l     lbL00E9C2              ; 248
-                    dc.l     16                     ; 252
+                    dc.l     16                     ; 252 (some multiplier)
 player_1_cur_weapon:
                     dc.l     1                      ; 256
-                    dc.l     3                      ; 260
-lbL005D54:          dc.l     9                      ; 264 maybe the strength of the player (if used)
+                    dc.l     3                      ; 260 (not used ?)
+                    dc.l     9                      ; 264 maybe the strength of the player (if used)
                     dc.l     0                      ; 268
                     dc.l     0                      ; 272
                     dc.l     0                      ; 276
@@ -3752,7 +3739,7 @@ player_1_old_pos_y: dc.w     0                      ; 432
 player_1_shots:     dc.l     0                      ; 436
 player_1_score:     dcb.l    378,0                  ; 440
 
-player_2_dats:      dc.l     CUSTOM+JOY0DAT
+player_2_data:      dc.l     CUSTOM+JOY0DAT
                     dc.l     6
                     dc.l     lbL006FEE
                     dc.l     lbL006B90
@@ -3819,7 +3806,7 @@ lbL0064E4:          dc.l     lbL00E9D2
 player_2_cur_weapon:
                     dc.l     1                      ; 256
                     dc.l     3                      ; 260
-lbL0064F4:          dc.l     9                      ; 264
+                    dc.l     9                      ; 264
                     dc.l     0                      ; 268
                     dc.l     0                      ; 272
                     dc.l     0                      ; 276
@@ -3881,21 +3868,21 @@ lbL006B90:          dc.l     0
 
 ; -----------------------------------------------------
 
-lbC006B94:          lea      player_1_dats(pc),a0
+init_players_variables:
+                    lea      player_1_data(pc),a0
                     jsr      lbC006C08
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     jsr      lbC006C08
                     cmp.l    #2,number_players
                     beq      lbC006BD0
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     bsr      lbC006BE4
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     bra      lbC006BF6
 
-lbC006BD0:          lea      player_1_dats(pc),a0
+lbC006BD0:          lea      player_1_data(pc),a0
                     bsr      lbC006BE4
-                    lea      player_2_dats(pc),a0
-                    bra      lbC006BE4
+                    lea      player_2_data(pc),a0
 
 lbC006BE4:          move.l   16(a0),a1
                     move.w   PLAYER_POS_X(a0),-4(a1)
@@ -3918,10 +3905,10 @@ lbC006C08:          clr.w    274(a0)
                     rts
 
 lbC006C28:          bsr      lbC006C5E
-                    lea      player_1_dats(pc),a6
+                    lea      player_1_data(pc),a6
                     tst.w    PLAYER_ALIVE(a6)
                     bpl      void
-                    lea      player_2_dats(pc),a6
+                    lea      player_2_data(pc),a6
                     tst.w    PLAYER_ALIVE(a6)
                     bpl      void
                     move.l   #1,flag_jump_to_gameover
@@ -3945,11 +3932,11 @@ lbC006C9E:          cmp.w    #1,player_2_health
                     bpl.b    lbC006CC0
                     cmp.w    #1,lbW006504
                     bpl.b    lbC006CC0
-                    move.w   #$C8,lbW006504
+                    move.w   #200,lbW006504
                     clr.w    lbW006510
-lbC006CC0:          lea      player_1_dats(pc),a0
+lbC006CC0:          lea      player_1_data(pc),a0
                     bsr.b    lbC006CD0
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     ; no rts
 lbC006CD0:          tst.w    PLAYER_HEALTH(a0)
                     beq.b    lbC006D30
@@ -3961,7 +3948,7 @@ lbC006CD0:          tst.w    PLAYER_HEALTH(a0)
                     lea      smp_player_requires_struct_1,a6
                     move.w   #VOICE_FIRST_AID,smp_player_requires_struct_4+2
                     move.w   #VOICE_ONE,smp_player_requires_struct_2+2
-                    cmp.l    #player_1_dats,a0
+                    cmp.l    #player_1_data,a0
                     beq.b    lbC006D14
                     move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC006D14:          jsr      schedule_sample_to_play
@@ -3986,7 +3973,7 @@ lbC006D3C:          clr.w    lbW006D3A
                     beq      void
                     cmp.w    #-1,player_2_alive
                     beq      lbC006D6C
-                    cmp.l    #player_2_dats,a0
+                    cmp.l    #player_2_data,a0
                     bne      void
 lbC006D6C:          move.w   #1,lbW006D3A
                     move.w   lbW006D36(pc),d0
@@ -4871,8 +4858,8 @@ lbC0079FA:          move.l   16(a0),a6
                     move.w   #1,lbB006FEA
                     rts
 
-lbC007A20:          lea      player_1_dats(pc),a1
-                    lea      player_2_dats(pc),a2
+lbC007A20:          lea      player_1_data(pc),a1
+                    lea      player_2_data(pc),a2
                     move.l   16(a1),a3
                     move.l   16(a2),a4
                     tst.w    PLAYER_ALIVE(a1)
@@ -5108,9 +5095,9 @@ tiles_action_table: bra.w    tile_not_used
                     bra.w    tile_wall
                     bra.w    tile_one_deadly_way_left
                     bra.w    tile_climb_right
-                    bra.w    tile_unknown5                          ; 0x30
-                    bra.w    tile_unknown6
-                    bra.w    tile_unknown7
+                    bra.w    tile_unknown5                          ; 0x30 (not used)
+                    bra.w    tile_unknown6                          ; (not used)
+                    bra.w    tile_unknown7                          ; (not used)
                     bra.w    tile_force_fields_sequence
                     bra.w    tile_not_used
                     bra.w    tile_not_used                          ; 0x35
@@ -5127,7 +5114,7 @@ tiles_action_table: bra.w    tile_not_used
 
 tile_not_used:      rts
 
-lbC007D98:          cmp.l    #768,lbL000572
+lbC007D98:          cmp.l    #768,level_flag
                     bne      void
                     tst.w    lbW007B46
                     beq      void
@@ -5199,7 +5186,7 @@ tile_exit:          tst.w    lbW007B46
                     bne.b    lbC007EA6
                     tst.w    lbW00057A
                     beq      void
-lbC007EA6:          cmp.l    #player_1_dats,a0
+lbC007EA6:          cmp.l    #player_1_data,a0
                     beq.b    lbC007EC4
                     cmp.w    #-1,player_1_alive
                     beq.b    lbC007EDA
@@ -5228,7 +5215,7 @@ tile_door:          tst.w    lbW007B48
                     lea      smp_player_requires_struct_1,a6
                     move.w   #VOICE_KEYS,smp_player_requires_struct_4+2
                     move.w   #VOICE_ONE,smp_player_requires_struct_2+2
-                    cmp.l    #player_1_dats,a0
+                    cmp.l    #player_1_data,a0
                     beq.b    lbC007F30
                     move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC007F30:          movem.l  (sp)+,d0-d7/a0-a6
@@ -5420,7 +5407,7 @@ tile_facehuggers_hatch:
                     bne      void
                     tst.w    lbW007B46
                     beq      void
-                    move.l   lbL000572(pc),d0
+                    move.l   level_flag(pc),d0
                     tst.w    d0
                     beq.b    lbC0082C0
                     cmp.w    #256,d0
@@ -5530,7 +5517,7 @@ tile_acid_pool:     tst.w    274(a0)
                     move.w   #SAMPLE_ACID_POOL,sample_to_play
                     jsr      trigger_sample
                     movem.l  (sp)+,d0-d7/a0-a6
-                    cmp.l    #1024,lbL000572
+                    cmp.l    #1024,level_flag
                     beq      void
                     moveq    #SAMPLE_WATER_POOL,d0
                     moveq    #0,d2
@@ -5559,7 +5546,7 @@ lbC00853E:          tst.w    lbW007B46
                     beq      void
                     tst.w    lbW0004E6
                     bne      void
-                    tst.l    lbL000572
+                    tst.l    level_flag
                     bne      void
                     move.w   #1,lbW0004E6
                     lea      lbW062296,a3
@@ -5671,43 +5658,43 @@ boss_nbr_4:         tst.w    lbW0004D8
                     bne      lbC00885C
                     move.w   #1,lbW0004EE
                     bsr      lbC00D2BA
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     move.l   #lbW0256B4,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW06188C,a3
                     bsr      patch_boss_door
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     move.l   #lbW0256D8,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW061AFC,a3
                     bsr      patch_boss_door
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     move.l   #lbW0256FC,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW061D6C,a3
                     bsr      patch_boss_door
-                    lea      lbW008DAA(pc),a0
+                    lea      alien4_struct(pc),a0
                     move.l   #lbW025720,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW061FDC,a3
                     bsr      patch_boss_door
-                    lea      lbW008E04(pc),a0
+                    lea      alien5_struct(pc),a0
                     move.l   #lbW025744,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW06224C,a3
                     bsr      patch_boss_door
-                    lea      lbW008E5E(pc),a0
+                    lea      alien6_struct(pc),a0
                     move.l   #lbW025768,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
                     lea      lbW06258C,a3
                     bsr      patch_boss_door
-                    lea      lbW008EB8(pc),a0
+                    lea      alien7_struct(pc),a0
                     move.l   #lbW02578C,72(a0)
                     move.l   #lbW0256B4,68(a0)
                     lea      lbW009014(pc),a1
@@ -5719,7 +5706,7 @@ lbC00885C:          move.w   #1,lbW0004EA
 
 boss_nbr_1:         tst.w    lbW0004D8
                     bne.b    lbC0088F0
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     cmp.l    #lbW009114,26(a0)
                     beq.b    lbC0088F0
                     bsr      lbC00D2BA
@@ -5728,16 +5715,16 @@ boss_nbr_1:         tst.w    lbW0004D8
                     lea      lbW062D52,a3
                     bsr      patch_tiles
                     movem.l  (sp)+,d0-d7/a0-a6
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     lea      lbW009114(pc),a1
                     lea      lbW0619E8,a3
                     bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     lea      lbW009154(pc),a1
                     lea      lbW064204,a3
                     bsr      patch_boss_door
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     lea      lbW009194(pc),a1
                     lea      lbW064204,a3
                     bsr      patch_boss_door
@@ -5747,20 +5734,20 @@ lbC0088F0:          move.w   #1,lbW0004EA
 
 boss_nbr_2:         tst.w    lbW0004D8
                     bne      lbC008974
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     cmp.l    #lbW009254,$1A(a0)
                     beq.b    lbC008974
                     bsr      lbC00D2BA
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     lea      lbW009254(pc),a1
                     lea      lbW05F7A8,a3
                     bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     lea      lbW009294(pc),a1
                     lea      lbW063DB8,a3
                     bsr      patch_boss_door
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     lea      lbW0092D4(pc),a1
                     lea      lbW063DB8,a3
                     bsr      patch_boss_door
@@ -5770,7 +5757,7 @@ lbC008974:          move.w   #1,lbW0004EA
 
 boss_nbr_3:         tst.w    lbW0004D8
                     bne.b    lbC008AE0
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     cmp.l    #lbW009254,26(a0)
                     beq.b    lbC008AE0
                     bsr      lbC00D2BA
@@ -5782,16 +5769,16 @@ boss_nbr_3:         tst.w    lbW0004D8
                     lea      lbL020B2E,a2
                     bsr      patch_tiles
                     movem.l  (sp)+,d0-d7/a0-a6
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     lea      lbW009314(pc),a1
                     lea      lbW062872,a3
                     bsr      patch_boss_door
                     clr.w    lbW009C62
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     lea      lbW009354(pc),a1
                     lea      lbW062872,a3
                     bsr      patch_boss_door
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     lea      lbW009394(pc),a1
                     lea      lbW062872,a3
                     bsr      patch_boss_door
@@ -5919,15 +5906,15 @@ lbC008C8A:          movem.l  d0-d7/a0-a6,-(sp)
 
 lbW008C9A:          dc.w     0
 
-lbW008C9C:          dc.l     cur_alien1_dats
+alien1_struct:      dc.l     cur_alien1_dats
                     dc.w     $798,$64,-1,1,0,0,8
                     dc.l     lbW012B44                  ; 18
                     dc.l     lbW012B40                  ; 22
                     dc.l     lbW008F14                  ; 26
                     dc.w     $104,$37A,0,0,0,0,0,0,0,1
-lbL008CCE:          dcb.l    10,0                       ; 48
-
-lbW008CF6:          dc.l     cur_alien2_dats
+lbL008CCE:          dcb.l    10,0                       ; 50
+                    ; 90
+alien2_struct:      dc.l     cur_alien2_dats
                     dc.w     $798,$84,-1,2,0,0,8
                     dc.l     lbW012C60
                     dc.l     lbW012C5C
@@ -5936,7 +5923,7 @@ lbW008CF6:          dc.l     cur_alien2_dats
 lbL008D2E:          dcb.l    8,0
                     dc.w     0
 
-lbW008D50:          dc.l     cur_alien3_dats
+alien3_struct:      dc.l     cur_alien3_dats
                     dc.w     $798,$A4,-1,2,0,0,8
                     dc.l     lbW012D7C
                     dc.l     lbW012D78
@@ -5944,7 +5931,7 @@ lbW008D50:          dc.l     cur_alien3_dats
                     dc.w     $B4,$320,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
 
-lbW008DAA:          dc.l     cur_alien4_dats
+alien4_struct:      dc.l     cur_alien4_dats
                     dc.w     $798,$C4,-1,1,0,0,8
                     dc.l     lbW012E98
                     dc.l     lbW012E94
@@ -5952,7 +5939,7 @@ lbW008DAA:          dc.l     cur_alien4_dats
                     dc.w     $DC,$320,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
 
-lbW008E04:          dc.l     cur_alien5_dats
+alien5_struct:      dc.l     cur_alien5_dats
                     dc.w     $798,$E4,-1,1,0,0,8
                     dc.l     lbW012FB4
                     dc.l     lbW012FB0
@@ -5960,7 +5947,7 @@ lbW008E04:          dc.l     cur_alien5_dats
                     dc.w     $104,$320,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
 
-lbW008E5E:          dc.l     cur_alien6_dats
+alien6_struct:      dc.l     cur_alien6_dats
                     dc.w     $798,$104,-1,1,0,0,8
                     dc.l     lbW0130D0
                     dc.l     lbW0130CC
@@ -5968,13 +5955,15 @@ lbW008E5E:          dc.l     cur_alien6_dats
                     dc.w     $12C,$320,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
 
-lbW008EB8:          dc.l     cur_alien7_dats
+alien7_struct:      dc.l     cur_alien7_dats
                     dc.w     $798,$124,-1,1,0,0,8
                     dc.l     lbW0131EC
                     dc.l     lbW0131E8
                     dc.l     lbW008F14
                     dc.w     $154,$320,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0
                     dcb.w    8,0
+                    
+                    ; end of struct
                     dc.w     -1
 
 lbW008F14:          dc.l     lbC00987E
@@ -6350,12 +6339,6 @@ lbL00976C:          dc.l     lbL01BE96
 
 ; -----------------------------------------------------
 
-lbC0097D4:          move.l   #700,d0
-                    bsr      rand
-                    move.w   d0,lbW0097E8
-                    rts
-
-lbW0097E8:          dc.w     0
 lbL0097EA:          dcb.w    4,0
 
 lbW0097F2:          dc.w     20
@@ -6368,6 +6351,7 @@ lbC0097F6:          subq.w   #1,lbW0097F4
                     move.w   player_1_pos_y(pc),d1
                     tst.w    player_1_alive
                     bpl.b    lbC009826
+                    ; phony values
                     move.w   #2984,d0
                     move.w   #2984,d1
 lbC009826:          move.w   player_2_pos_x(pc),d2
@@ -6376,21 +6360,21 @@ lbC009826:          move.w   player_2_pos_x(pc),d2
                     bpl.b    lbC009842
                     move.w   #2984,d2
                     move.w   #2984,d3
-lbC009842:          lea      lbW0097F2(pc),a6
+lbC009842:          lea      lbL0097EA+8(pc),a6
                     movem.w  d0-d3,-(a6)
-lbC00984A:          lea      lbW008C9C(pc),a0
+lbC00984A:          lea      alien1_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008DAA(pc),a0
+                    lea      alien4_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008E04(pc),a0
+                    lea      alien5_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008E5E(pc),a0
+                    lea      alien6_struct(pc),a0
                     bsr.b    lbC009872
-                    lea      lbW008EB8(pc),a0
+                    lea      alien7_struct(pc),a0
 lbC009872:          move.l   64(a0),a6
                     jmp      (a6)
 
@@ -6537,7 +6521,7 @@ lbC009A16:          addq.w   #1,88(a0)
                     cmp.w    #25,88(a0)
                     bmi.b    lbC009A60
                     clr.w    88(a0)
-                    cmp.w    #0,82(a0)
+                    tst.w    82(a0)
                     beq.b    lbC009A4A
                     tst.w    78(a0)
                     beq.b    lbC009A40
@@ -6749,7 +6733,7 @@ lbC009C9E:          move.l   26(a0),a1
                     move.l   0(a0),a2
                     clr.l    34(a0)
                     clr.l    38(a0)
-                    lea      lbW008C9C(pc),a6
+                    lea      alien1_struct(pc),a6
                     move.w   ALIEN_POS_X(a6),d6
                     move.w   ALIEN_POS_Y(a6),d7
                     swap     d6
@@ -6759,7 +6743,7 @@ lbC009C9E:          move.l   26(a0),a1
                     move.l   d6,(a2)
                     add.l    8(a1),d6
                     move.l   d6,4(a2)
-                    move.l   $16(a0),a6
+                    move.l   22(a0),a6
                     move.l   #$CCC0CCC,(a6)
                     rts
 
@@ -6772,7 +6756,7 @@ lbC009CE2:          tst.w    lbL008D2E
 lbC009CF2:          tst.w    56(a0)
                     beq.b    .engage
                     cmp.w    #1,boss_nbr                        ; trigger self destruct
-                    bne.b    .engage                          ; after having killed boss #1
+                    bne.b    .engage                            ; after having killed boss #1
                     move.w   #1,self_destruct_initiated
 .engage:            tst.w    8(a0)
                     bmi      return
@@ -6809,7 +6793,7 @@ lbC009D80:          clr.w    lbL009C64
                     bra.b    lbC009DA0
 
 lbC009D98:          move.w   #1,lbL009C64
-lbC009DA0:          cmp.l    #1024,lbL000572
+lbC009DA0:          cmp.l    #1024,level_flag
                     bne.b    lbC009DCE
                     move.l   cur_palette_ptr,a5
                     move.w   32(a5),lbW099FBA
@@ -6950,13 +6934,13 @@ lbC009F62:          tst.w    lbW0004D8
                     clr.w    lbW0004EA
                     move.w   #1,lbW0004D8
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     move.l   0(a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
                     subq.w   #8,ALIEN_POS_X(a0)
                     move.w   ALIEN_POS_X(a0),d0
                     move.w   ALIEN_POS_Y(a0),d1
@@ -6964,25 +6948,25 @@ lbC009F62:          tst.w    lbW0004D8
                     add.w    #32,-4(a0)
                     sub.w    #16,d0
                     add.w    #30,d1
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     add.w    #32,d0
                     bsr      lbC00A212
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     add.w    #28,d0
                     bsr      lbC00A212
-                    lea      lbW008DAA(pc),a0
+                    lea      alien4_struct(pc),a0
                     sub.w    #32,d0
                     add.w    #28,d1
                     bsr      lbC00A212
-                    lea      lbW008E04(pc),a0
+                    lea      alien5_struct(pc),a0
                     add.w    #40,d0
                     addq.w   #4,d1
                     bsr      lbC00A212
-                    lea      lbW008E5E(pc),a0
+                    lea      alien6_struct(pc),a0
                     sub.w    #32,d0
                     add.w    #32,d1
                     bsr      lbC00A212
-                    lea      lbW008EB8(pc),a0
+                    lea      alien7_struct(pc),a0
                     add.w    #18,d0
                     bsr      lbC00A212
                     cmp.w    #1,boss_nbr
@@ -7273,11 +7257,12 @@ alien_dies:         subq.w   #1,58(a0)
                     move.w   56(a1),sample_to_play          ; alien shit sound
                     jmp      trigger_sample
 
-lbC00A61C:          lea      lbW008C9C(pc),a0
+init_aliens_variables:
+                    lea      alien1_struct(pc),a0
 lbC00A622:          move.l   26(a0),a1
                     move.l   0(a0),a2
                     bsr.b    lbC00A63A
-                    add.l    #90,a0
+                    add.l    #alien2_struct-alien1_struct,a0
                     tst.w    (a0)
                     bpl.b    lbC00A622
                     rts
@@ -7354,7 +7339,7 @@ lbC00A74C:          move.w   map_pos_x+2(pc),d0
                     move.w   d2,d3
                     sub.w    #66,d2
                     add.w    #258,d3
-                    lea      lbW008C9C(pc),a0
+                    lea      alien1_struct(pc),a0
 lbC00A772:          tst.w    (a0)
                     bmi      return
                     move.w   ALIEN_POS_X(a0),d4
@@ -7452,20 +7437,20 @@ lbC00A8CA:          movem.w  (sp)+,d0/d1
 lbC00A8D0:          rts
 
 cur_alien1_dats:    dcb.w    4,0
-                    dc.l     lbW008C9C
+                    dc.l     alien1_struct
 cur_alien2_dats:    dcb.w    4,0
-                    dc.l     lbW008CF6
+                    dc.l     alien2_struct
 cur_alien3_dats:    dcb.w    4,0
-                    dc.l     lbW008D50
+                    dc.l     alien3_struct
 cur_alien4_dats:    dcb.w    4,0
-                    dc.l     lbW008DAA
+                    dc.l     alien4_struct
 cur_alien5_dats:    dcb.w    4,0
-                    dc.l     lbW008E04
+                    dc.l     alien5_struct
 cur_alien6_dats:    dcb.w    4,0
-                    dc.l     lbW008E5E
+                    dc.l     alien6_struct
 cur_alien7_dats:    dcb.w    4,0
-                    dc.l     lbW008EB8
-                    dc.w     $FFFF
+                    dc.l     alien7_struct
+                    dc.w     -1
 
 lbC00A96C:          movem.w  d0/d5-d7,-(sp)
                     move.w   d6,d1
@@ -7549,7 +7534,7 @@ lbC00AA00:          movem.w  (a6)+,d4-d7
 lbC00AA3E:          movem.w  (sp)+,d0/d6/d7
                     rts
 
-lbC00AA44:          lea      player_1_dats(pc),a1
+lbC00AA44:          lea      player_1_data(pc),a1
                     move.l   PLAYER_POS_X(a1),d1
                     add.l    #$80008,d1
                     move.l   d1,d3
@@ -7559,7 +7544,7 @@ lbC00AA44:          lea      player_1_dats(pc),a1
                     move.l   d3,d2
                     swap     d2
                     bsr.b    lbC00AA86
-                    lea      player_2_dats(pc),a1
+                    lea      player_2_data(pc),a1
                     move.l   PLAYER_POS_X(a1),d1
                     add.l    #$80008,d1
                     move.l   d1,d3
@@ -8371,11 +8356,11 @@ lbC00CF00:          btst     #4,player_2_input
                     bne.b    lbC00CF00
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     bsr      copy_byte_array
                     lea      bottom_bar_gfx,a0
                     lea      player_2_status_bar,a1
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     bsr      copy_byte_array
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a0
@@ -8455,11 +8440,11 @@ lbC00D092:          btst     #4,player_2_input
                     bne.b    lbC00D092
                     lea      top_bar_gfx,a1
                     lea      player_1_status_bar,a0
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     jsr      copy_byte_array
                     lea      bottom_bar_gfx,a1
                     lea      player_2_status_bar,a0
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     jsr      copy_byte_array
                     move.w   #1,lbW0004C2
                     jmp      game_level_loop
@@ -8561,25 +8546,25 @@ lbC00D24C:          cmp.l    lbL00D29A(pc),a3
 lbL00D29A:          dc.l     0,0,50,0
 lbL00D2AA:          dc.l     0,0,50,0
 
-lbC00D2BA:          lea      lbW008C9C(pc),a0
+lbC00D2BA:          lea      alien1_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008CF6(pc),a0
+                    lea      alien2_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008D50(pc),a0
+                    lea      alien3_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008DAA(pc),a0
+                    lea      alien4_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008E04(pc),a0
+                    lea      alien5_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008E5E(pc),a0
+                    lea      alien6_struct(pc),a0
                     move.l   (a0),a2
                     bsr      lbC00A63A
-                    lea      lbW008EB8(pc),a0
+                    lea      alien7_struct(pc),a0
                     move.l   (a0),a2
                     bra      lbC00A63A
 
@@ -8589,8 +8574,8 @@ display_map_overview:
                     move.w   #1,frames_slowdown
                     lea      copper_main_palette,a0
                     lea      palette_black,a1
-                    bsr      lbC0108DA
-                    move.l   #32,d0
+                    bsr      clear_palette_black
+                    moveq    #32,d0
                     bsr      prep_fade_speeds_fade_out
                     jsr      wait
                     lea      lbL0FE76C,a0
@@ -8615,7 +8600,7 @@ display_map_overview:
 lbC00D3CA:          jsr      wait
                     tst.w    self_destruct_initiated
                     bne      exit_map_overview
-                    cmp.l    #1024,lbL000572
+                    cmp.l    #1024,level_flag
                     beq      exit_map_overview
                     lea      lbL0FCD7C,a0
                     move.l   #(32*40),d0
@@ -8646,7 +8631,7 @@ exit_map_overview:  bsr      wait_raster
                     moveq    #32,d0
                     bsr      prep_fade_speeds_fade_out
                     jsr      wait
-                    bsr      lbC003954
+                    bsr      draw_level_on_screen
                     bsr      wait_raster
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     lea      copper_main_palette,a0
@@ -8732,10 +8717,10 @@ text_scanning:      dc.w     100,100
                     even
 
 get_map_overview_player_pos:
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bpl.b    lbC00D5C0
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
 lbC00D5C0:          move.w   start_pos_x(pc),d0
                     move.w   start_pos_y(pc),d1
                     move.w   PLAYER_POS_X(a0),d2
@@ -8830,7 +8815,7 @@ on_map_font_struct: dc.l    lbL0FE744
                     dc.l    ascii_letters
 
 get_players_position:
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     moveq    #0,d0
                     moveq    #0,d1
                     cmp.w    #-1,PLAYER_ALIVE(a0)
@@ -8843,7 +8828,7 @@ get_players_position:
                     add.w    #20,d1
 .p1_not_alive:      move.w   d0,player_1_pos_x_map
                     move.w   d1,player_1_pos_y_map
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     moveq    #0,d0
                     moveq    #0,d1
                     cmp.w    #-1,PLAYER_ALIVE(a0)
@@ -8923,7 +8908,7 @@ run_intex:          tst.w    self_destruct_initiated
                     jsr      trigger_sample
                     lea      copper_main_palette,a0
                     lea      palette_black,a1
-                    bsr      lbC0108DA
+                    bsr      clear_palette_black
                     moveq    #32,d0
                     move.w   #1,frames_slowdown
                     bsr      prep_fade_speeds_fade_out
@@ -8960,7 +8945,7 @@ run_intex:          tst.w    self_destruct_initiated
                     beq.b    .dont_add_credits
                     move.l   player_1_credits(pc),d7
                     add.l    player_2_credits(pc),d7
-.dont_add_credits:  lea      cur_credits,a0
+.dont_add_credits:  lea      intex_struct,a0
                 IFNE    DEBUG
                     move.l   #1000000000,d7
                 ENDC
@@ -9047,7 +9032,7 @@ lbC00DABA:          ; purchased_supplies
                     move.w   PLAYER_OWNEDWEAPONS(a0),-(sp)
                     move.w   d0,PLAYER_OWNEDWEAPONS(a0)
                     movem.l  d0-d7/a0-a6,-(sp)
-                    cmp.l    #player_1_dats,a0
+                    cmp.l    #player_1_data,a0
                     bne.b    .player_2
                     jsr      player_1_select_weapon
                     bra.b    .player_weapon_selected
@@ -9063,7 +9048,7 @@ lbC00DABA:          ; purchased_supplies
                     moveq    #3,d2
                     jsr      trigger_sample_select_channel
                     movem.l  (sp)+,d0-d7/a0-a6
-                    jsr      lbC003954
+                    jsr      draw_level_on_screen
                     lea      copper_main_palette,a0
                     move.l   cur_palette_ptr,a1
                     moveq    #32,d0
@@ -9131,7 +9116,7 @@ do_level_destruction:
                     moveq    #32,d0
                     bsr      prep_fade_speeds_fade_to_rgb
                     lea      palette_black,a0
-                    bsr      lbC0108DA
+                    bsr      clear_palette_black
                     moveq    #64,d0
                     jsr      clear_array_byte
                     move.w   #150,d0
@@ -9144,7 +9129,7 @@ lbC00DD6A:          move.w   d0,-(sp)
                     bpl.b    lbC00DD6A
                     lea.l    level_palette2,a0
                     lea      palette_black,a1
-                    bsr      lbC0108DA
+                    bsr      clear_palette_black
                     lea      copper_main_palette,a2
                     move.w   #3,frames_slowdown
                     moveq    #32,d0
@@ -9350,7 +9335,7 @@ lbC00E0C8:          subq.w   #1,360(a0)
                     lea      smp_player_requires_struct_1,a6
                     move.w   #VOICE_AMMO,smp_player_requires_struct_4+2
                     move.w   #VOICE_ONE,smp_player_requires_struct_2+2
-                    cmp.l    #player_1_dats,a0
+                    cmp.l    #player_1_data,a0
                     beq      lbC00E118
                     move.w   #VOICE_TWO,smp_player_requires_struct_2+2
 lbC00E118:          jsr      schedule_sample_to_play
@@ -9815,7 +9800,7 @@ lbC00E7EE:          lea      lbL020D92,a2
                     lea      lbL020DBE,a2
                     bra      patch_tiles
 
-lbC00E83E:          cmp.l    #512,lbL000572
+lbC00E83E:          cmp.l    #512,level_flag
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
@@ -9824,7 +9809,7 @@ lbC00E83E:          cmp.l    #512,lbL000572
                     move.l   a5,a3
                     bra      lbC00516A
 
-lbC00E864:          cmp.l    #512,lbL000572
+lbC00E864:          cmp.l    #512,level_flag
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
@@ -9833,7 +9818,7 @@ lbC00E864:          cmp.l    #512,lbL000572
                     move.l   a5,a3
                     bra      lbC0051F8
 
-lbC00E88A:          cmp.l    #512,lbL000572
+lbC00E88A:          cmp.l    #512,level_flag
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
@@ -9842,7 +9827,7 @@ lbC00E88A:          cmp.l    #512,lbL000572
                     move.l   a5,a3
                     bra      lbC005286
 
-lbC00E8B0:          cmp.l    #512,lbL000572
+lbC00E8B0:          cmp.l    #512,level_flag
                     bne      return
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a5,a3
@@ -9887,31 +9872,31 @@ lbW00E940:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013308
                     dc.w     1,0,0,0
-                    dc.l     player_1_dats
+                    dc.l     player_1_data
 lbW00E958:          dc.w     0
 lbW00E95A:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013424
                     dc.w     1,0,0,0
-                    dc.l     player_1_dats
+                    dc.l     player_1_data
 lbW00E972:          dc.w     0
 lbW00E974:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013540
                     dc.w     1,0,0,0
-                    dc.l     player_1_dats
+                    dc.l     player_1_data
 lbW00E98C:          dc.w     0
 lbW00E98E:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW01365C
                     dc.w     1,0,0,0
-                    dc.l     player_1_dats
+                    dc.l     player_1_data
 lbW00E9A6:          dc.w     0
 lbW00E9A8:          dcb.w    2,32000
                     dcb.w    2,8
                     dc.l     lbW013778
                     dc.w     1,0,0,0
-                    dc.l     player_1_dats
+                    dc.l     player_1_data
 lbW00E9C0:          dc.w     0
 lbL00E9C2:          dc.l     lbW00E940
                     dc.l     lbW00E95A
@@ -10099,13 +10084,13 @@ lbC00EE8A:          move.l   #$7D007D00,lbW013304
 
 check_gameover:     tst.l    flag_jump_to_gameover
                     bne.b    lbC00EF2A
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bpl.b    lbC00EF14
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     tst.w    PLAYER_ALIVE(a0)
                     bpl.b    lbC00EF14
-                    bsr      lbC00F58E
+                    bsr      remove_screen
                     bsr.b    run_gameover_exe
                     addq.l   #4,sp
                     jmp      loop_from_gameover
@@ -10114,12 +10099,11 @@ lbC00EF14:          add.l    #30000,player_1_score
                     add.l    #30000,player_2_score
                     rts
 
-lbC00EF2A:          bsr      lbC00F58E
+lbC00EF2A:          bsr      remove_screen
                     bsr.b    run_gameover_exe
                     addq.l   #4,sp
-                    bsr      lbC00F58E
+                    bsr      remove_screen
                     jmp      loop_from_gameover
-
 
 run_gameover_exe:   jsr      no_more_struct_smp_to_play
                     move.w   #DMAF_AUD0|DMAF_AUD1|DMAF_AUD2|DMAF_AUD3,CUSTOM+DMACON
@@ -10199,10 +10183,10 @@ start_briefing:     movem.l  d0-d7/a0-a6,-(sp)
                     jsr      lbC023210
                     bsr      set_copper_blank
                     moveq    #2,d0
-                    lea      player_1_dats(pc),a1
+                    lea      player_1_data(pc),a1
                     tst.w    PLAYER_ALIVE(a1)
                     bmi.b    run_briefing_single
-                    lea      player_2_dats(pc),a1
+                    lea      player_2_data(pc),a1
                     tst.w    PLAYER_ALIVE(a1)
                     bmi.b    run_briefing_single
                     bra.b    run_briefing
@@ -10244,8 +10228,8 @@ run_menu:           move.w   #1,music_enabled
                     lea      exe_menu(pc),a0
                     lea      temp_buffer,a1
                     bsr      load_exe
-                    lea      player_1_dats(pc),a0
-                    lea      player_2_dats(pc),a0
+                    lea      player_1_data(pc),a0
+                    lea      player_2_data(pc),a0
                     move.l   number_players,d5
                     cmp.w    #1,d5
                     bne.b    lbC00F244
@@ -10262,10 +10246,10 @@ lbC00F244:          moveq    #0,d7
                     
                     ; init players credits & scores here
                     movem.l  d0-d7/a0-a6,-(sp)
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -10287,11 +10271,11 @@ lbC00F244:          moveq    #0,d7
 start_game_selected:
                     clr.w    music_enabled
                     jsr      stop_sound
-                    lea      player_1_dats(pc),a0
+                    lea      player_1_data(pc),a0
                     move.l   d2,364(a0)
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     move.l   d3,364(a0)
                     clr.l    PLAYER_CREDITS(a0)
                     clr.l    PLAYER_SCORE(a0)
@@ -10320,10 +10304,10 @@ set_copper_blank:   bsr      wait_raster
 
 hold_briefing_screen:
                     lea      top_bar_gfx,a0
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     jsr      clear_array_byte
                     lea      bottom_bar_gfx,a0
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     jsr      clear_array_byte
                     move.l   exe_return_palette(pc),a0
                     lea      lbL02266A,a1
@@ -10356,7 +10340,7 @@ lbC00F4D2:          lea      palette_white,a0
                     move.w   #2,d2
                     jmp      trigger_sample_select_channel
 
-lbC00F51C:          jsr      stop_sound
+install_level_tune: jsr      stop_sound
                     moveq    #SAMPLE_EMPTY,d0
                     moveq    #0,d2
                     jsr      trigger_sample_select_channel
@@ -10372,57 +10356,57 @@ lbC00F51C:          jsr      stop_sound
                     lea      leveltune,a0
                     lea      bpsong,a1
                     move.w   #(4304/2)-1,d0
-lbC00F57A:          move.w   (a0)+,(a1)+
-                    dbf      d0,lbC00F57A
+.copy:              move.w   (a0)+,(a1)+
+                    dbf      d0,.copy
                     jsr      start_music
                     lea      exe_return_palette(pc),a0
                     rts
 
-lbC00F58E:          lea      copper_main_palette,a0
+remove_screen:      lea      copper_main_palette,a0
                     lea      palette_black,a1
-                    bsr      lbC0108DA
-                    move.l   #32,d0
+                    bsr      clear_palette_black
+                    moveq    #32,d0
                     move.w   #1,frames_slowdown
                     bsr      prep_fade_speeds_fade_out
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     bsr      copy_byte_array
                     lea      bottom_bar_gfx,a0
                     lea      player_2_status_bar,a1
-                    move.l   #608,d0
+                    move.l   #(38*8*2),d0
                     bsr      copy_byte_array
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a1
                     moveq    #8,d0
-lbC00F5F6:          move.l   a0,a2
+.loop:              move.l   a0,a2
                     moveq    #19,d1
-lbC00F5FE:          clr.w    (a2)+
+.rem_line_top_bp1:  clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.b    lbC00F5FE
+                    bne.b    .rem_line_top_bp1
                     move.l   a0,a2
-                    add.l    #304,a2
+                    add.l    #(38*8),a2
                     moveq    #19,d1
-lbC00F612:          clr.w    (a2)+
+.rem_line_top_bp2:  clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.b    lbC00F612
+                    bne.b    .rem_line_top_bp2
                     move.l   a1,a2
                     moveq    #19,d1
-lbC00F620:          clr.w    (a2)+
+.rem_line_bot_bp1:  clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.b    lbC00F620
+                    bne.b    .rem_line_bot_bp1
                     move.l   a1,a2
-                    add.l    #304,a2
+                    add.l    #(38*8),a2
                     moveq    #19,d1
-lbC00F634:          clr.w    (a2)+
+.rem_line_bot_bp2:  clr.w    (a2)+
                     subq.l   #1,d1
-                    bne.b    lbC00F634
+                    bne.b    .rem_line_bot_bp2
                     jsr      wait_raster
                     jsr      wait_raster
                     add.l    #38,a0
                     add.l    #38,a1
                     subq.l   #1,d0
-                    bne.b    lbC00F5F6
+                    bne.b    .loop
                     jsr      wait
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     move.l   #copper_blank,CUSTOM+COP2LCH
@@ -10444,12 +10428,12 @@ init_main_copperlist:
                     bsr      clear_copper_palette
                     lea      top_bar_gfx,a0
                     lea      main_top_bar_bps,a1
-                    move.l   #304,d0
+                    move.l   #(38*8),d0
                     moveq    #2,d1
                     bsr      set_bps
                     lea      bottom_bar_gfx,a0
                     lea      main_bottom_bar_bps,a1
-                    move.l   #304,d0
+                    move.l   #(38*8),d0
                     moveq    #2,d1
                     bsr      set_bps
                     bra      load_level_tunes
@@ -10645,7 +10629,7 @@ lbC00FA4C:          move.l   #64,lbW00FE14
                     move.l   #263,lbL00FE4C
                     rts
 
-lbC00FB16:          lea      player_1_dats(pc),a0
+lbC00FB16:          lea      player_1_data(pc),a0
                     move.w   PLAYER_HEALTH(a0),lbW00FE16
                     move.w   PLAYER_LIVES(a0),lbW00FE1A
                     cmp.w    #4,lbW00FE1A
@@ -10658,7 +10642,7 @@ lbC00FB3E:          move.w   PLAYER_AMMOPACKS(a0),lbW00FE1E
                     bmi.b    lbC00FB68
                     move.w   #6,lbW00FE26
 lbC00FB68:          
-                    lea      player_2_dats(pc),a0
+                    lea      player_2_data(pc),a0
                     move.w   PLAYER_HEALTH(a0),lbW00FE52
                     move.w   PLAYER_LIVES(a0),lbW00FE56
                     cmp.w    #4,lbW00FE56
@@ -10933,8 +10917,6 @@ set_bps:            move.l   a0,d2
                     subq.w   #1,d1
                     bne.b    .loop
                     rts
-
-;lbC0100C0:          rts
 
 set_blank_copper:   move.l   #copper_blank,CUSTOM+COP1LCH
                     move.l   #$200,CUSTOM+BPLCON0
@@ -11429,7 +11411,8 @@ fade_palette_to_rgb:
                     clr.w    fading_go_flag
 .fade_end:          bra      lbC010ECE
 
-lbC0108DA:          movem.l  d0/a0,-(sp)
+clear_palette_black:
+                    movem.l  d0/a0,-(sp)
                     moveq    #32,d0
                     lea      palette_black,a0
 .loop:              clr.w    (a0)+
@@ -12769,7 +12752,7 @@ lbC012078:          tst.l    -4(a0)
                     move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
-lbC01208A:          clr.w    lbW0113B8
+copy_gfx:           clr.w    lbW0113B8
                     
                     lea      lbL0146B2(pc),a0
                     move.l   lbL000554,a1
