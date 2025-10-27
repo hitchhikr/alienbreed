@@ -157,7 +157,7 @@ open_library:       moveq    #0,d0
                     beq.b    err_open_library
                     rts
 
-err_open_library:   move.l   #$f,CUSTOM+COLOR00
+err_open_library:   move.l   #$F,CUSTOM+COLOR00
                     bra.b    err_open_library
 
 install_sound_interrupt:

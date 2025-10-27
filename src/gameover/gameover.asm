@@ -117,7 +117,7 @@ prep_fade_speeds_fade_in:
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne      .loop
+                    bne.b    .loop
                     move.l   d1,d4
                     subq.l   #2,a0
                     subq.l   #2,a1
@@ -129,7 +129,7 @@ prep_fade_speeds_fade_in:
 
 fade_palette_in:    tst.w    done_fade
                     bne      return
-                    add.w    #1,cur_frame_counter
+                    addq.w   #1,cur_frame_counter
                     move.w   cur_frame_counter(pc),d0
                     cmp.w    frames_slowdown(pc),d0
                     bmi      return
@@ -151,7 +151,7 @@ fade_palette_in:    tst.w    done_fade
                     and.w    #$F00,d2
                     and.w    #$F00,d3
                     cmp.w    d2,d3
-                    beq      .fade_red
+                    beq.b    .fade_red
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -159,14 +159,14 @@ fade_palette_in:    tst.w    done_fade
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-.fade_red:          add.l    #2,a2
-                    add.l    #2,a3
+.fade_red:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F0,d2
                     and.w    #$F0,d3
                     cmp.w    d2,d3
-                    beq      .fade_green
+                    beq.b    .fade_green
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -175,14 +175,14 @@ fade_palette_in:    tst.w    done_fade
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     subq.w   #1,d7
-.fade_green:        add.l    #2,a2
-                    add.l    #2,a3
+.fade_green:        addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     move.w   (a1),d3
                     and.w    #$F,d2
                     and.w    #$F,d3
                     cmp.w    d2,d3
-                    beq      .fade_blue
+                    beq.b    .fade_blue
                     move.w   (a2),d3
                     add.w    d3,(a3)
                     move.w   (a3),d3
@@ -194,9 +194,9 @@ fade_palette_in:    tst.w    done_fade
 .fade_blue:         addq.l   #2,a2
                     addq.l   #2,a3
                     subq.w   #1,d1
-                    bne      .loop
+                    bne.b    .loop
                     cmp.l    d6,d7
-                    bne      .fade_end
+                    bne.b    .fade_end
                     move.w   #1,done_fade
 .fade_end:          rts
 
@@ -205,10 +205,10 @@ prep_fade_speeds_fade_out:
                     moveq    #48,d2
 .clear:             clr.l    (a4)+
                     subq.l   #1,d2
-                    bne      .clear
+                    bne.b    .clear
                     move.l   d0,d7
                     move.l   a0,a2
-                    add.l    #2,a2
+                    addq.l   #2,a2
                     moveq    #0,d6
                     lea      rgb_speeds_block(pc),a3
 .set_speeds:        move.w   (a2),d6
@@ -230,7 +230,7 @@ prep_fade_speeds_fade_out:
                     ext.l    d6
                     move.w   d6,(a3)+
                     subq.w   #1,d7
-                    bne      .set_speeds
+                    bne.b    .set_speeds
                     lea      cur_rgb_block(pc),a3
                     move.l   a0,a2
                     addq.l   #2,a2
@@ -248,7 +248,7 @@ prep_fade_speeds_fade_out:
                     move.w   d7,(a3)+
                     addq.l   #4,a2
                     subq.l   #1,d4
-                    bne      .set_cur_rgb
+                    bne.b    .set_cur_rgb
                     lea      rgb_speeds_block(pc),a2
                     lea      cur_rgb_block(pc),a3
                     move.l   d1,d4
@@ -260,7 +260,7 @@ prep_fade_speeds_fade_out:
 
 fade_palette_out:   tst.w    done_fade
                     bne      return
-                    add.w    #1,cur_frame_counter
+                    addq.w   #1,cur_frame_counter
                     move.w   cur_frame_counter(pc),d0
                     cmp.w    frames_slowdown(pc),d0
                     bmi      return
@@ -283,8 +283,8 @@ fade_palette_out:   tst.w    done_fade
                     and.w    #$F0FF,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-.fade_red:          add.l    #2,a2
-                    add.l    #2,a3
+.fade_red:          addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F0,d2
                     beq.b    .fade_green
@@ -296,8 +296,8 @@ fade_palette_out:   tst.w    done_fade
                     and.w    #$FF0F,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-.fade_green:        add.l    #2,a2
-                    add.l    #2,a3
+.fade_green:        addq.l   #2,a2
+                    addq.l   #2,a3
                     move.w   (a0),d2
                     and.w    #$F,d2
                     beq.b    .fade_blue
@@ -309,10 +309,10 @@ fade_palette_out:   tst.w    done_fade
                     and.w    #$FFF0,(a0)
                     add.w    d3,(a0)
                     addq.w   #1,d7
-.fade_blue:         add.l    #2,a2
-                    add.l    #2,a3
+.fade_blue:         addq.l   #2,a2
+                    addq.l   #2,a3
                     subq.w   #1,d1
-                    bne      .loop
+                    bne.b    .loop
                     tst.l    d7
                     bne.b    .fade_end
                     move.w   #1,done_fade
