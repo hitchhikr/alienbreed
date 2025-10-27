@@ -79,7 +79,7 @@ wait_2_frames:      cmp.b    #255,$dff006
                     rts
 
 fade_out:           lea      copper_palette(pc),a0
-                    lea      black_palette(pc),a1
+                    lea      palette_black(pc),a1
                     moveq    #4,d0
                     move.w   #1,frames_slowdown
                     bsr      prep_fade_speeds_fade_out
@@ -138,7 +138,7 @@ prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a3,a6
                     movem.l  d0/d1/a0-a2,(a6)
                     clr.b    25(a6)
-                    clr.l    30(a6)
+                    ; source
                     move.l   (a2)+,d0
                     cmp.l    #'FORM',d0
                     bne      .error
@@ -146,24 +146,33 @@ prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
                     move.l   (a2)+,d0
                     cmp.l    #'ANIM',d0
                     bne      .error
+                    ; source
                     move.l   a2,a0
+                    ; screen buffer 1
                     move.l   8(a6),a1
+                    ; width
                     move.l   (a6),d0
+                    ; height
                     move.l   4(a6),d1
                     bsr      get_first_pic
                     move.l   a0,26(a6)
+                    ; screen buffer 2
                     move.l   12(a6),a1
+                    ; screen buffer 1
                     move.l   8(a6),a0
+                    ; width
                     move.l   (a6),d0
                     moveq    #0,d1
+                    ; depth
                     move.b   24(a6),d1
                     mulu     d1,d0
+                    ; height
                     move.l   4(a6),d1
                     mulu     d1,d0
                     subq.l   #1,d0
                     lsr.l    #2,d0
-.loop:              move.l   (a0)+,(a1)+
-                    dbra     d0,.loop
+.copy_first_pic:    move.l   (a0)+,(a1)+
+                    dbra     d0,.copy_first_pic
                     bra      .end
 
 .error:             move.w   #$F00,$dff180
@@ -174,6 +183,7 @@ prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
 
 decode_anim:        movem.l  d1-d7/a0-a6,-(sp)
                     move.l   a0,a6
+                    ; frame pointer
                     move.l   26(a6),d0
                     addq.l   #1,d0
                     and.w    #$FFFE,d0
@@ -196,6 +206,7 @@ decode_anim:        movem.l  d1-d7/a0-a6,-(sp)
 
 .get_ANHD_chunk:    addq.l   #4,a5
                     move.b   (a5)+,d0
+                    ; only anim5 type
                     cmp.b    #5,d0
                     bne      err_anim_chunk_name
                     lea      19(a5),a5
@@ -207,69 +218,74 @@ decode_anim:        movem.l  d1-d7/a0-a6,-(sp)
                     move.l   a5,a3
                     add.l    d4,a3
                     move.l   a5,a4
+                    ; width
                     move.l   (a6),d4
+                    ; depth
                     move.b   24(a6),d5
                     tst.b    25(a6)
-                    beq      lbC000A88
+                    beq      .odd_frame
+                    ; screen buffer 1
                     move.l   8(a6),a1
-                    bra      lbC000A8C
-
-lbC000A88:          move.l   12(a6),a1
-lbC000A8C:          move.w   20(a6),d6
+                    bra      .loop_decode_depth
+.odd_frame:         ; screen buffer 2
+                    move.l   12(a6),a1
+.loop_decode_depth: ; width
+                    move.w   20(a6),d6
                     move.l   a1,a2
                     move.l   (a5)+,d0
                     lea      0(a4,d0.l),a0
-lbC000A98:          move.b   (a0)+,d3
-                    beq      lbC000ACE
-lbC000A9C:          moveq    #0,d0
+.loop_decode_line:  move.b   (a0)+,d3
+                    beq      .no_copy
+.loop_copy:         moveq    #0,d0
                     move.b   (a0)+,d0
-                    bmi.b    lbC000ABC
-                    beq      lbC000AAA
+                    bmi.b    .lit_block
+                    beq      .rep_block
                     mulu     d4,d0
-                    add.w    d0,a1
-                    bra      lbC000ACA
-
-lbC000AAA:          moveq    #0,d0
+                    add.l    d0,a1
+                    bra      .next
+.rep_block:         moveq    #0,d0
                     move.b   (a0)+,d0
                     move.b   (a0)+,d1
                     subq.w   #1,d0
-lbC000AB2:          move.b   d1,(a1)
-                    add.w    d4,a1
-                    dbra     d0,lbC000AB2
-                    bra      lbC000ACA
-
-lbC000ABC:          and.w    #$7F,d0
+.copy_rep_byte:     move.b   d1,(a1)
+                    add.l    d4,a1
+                    dbra     d0,.copy_rep_byte
+                    bra      .next
+.lit_block:         and.w    #$7F,d0
                     subq.w   #1,d0
-lbC000AC2:          move.b   (a0)+,(a1)
-                    add.w    d4,a1
-                    dbra     d0,lbC000AC2
-lbC000ACA:          subq.b   #1,d3
-                    bne      lbC000A9C
-lbC000ACE:          addq.w   #1,a2
+.copy_lit_bytes:    move.b   (a0)+,(a1)
+                    add.l    d4,a1
+                    dbra     d0,.copy_lit_bytes
+.next:              subq.b   #1,d3
+                    bne      .loop_copy
+.no_copy:           addq.l   #1,a2
                     move.l   a2,a1
                     subq.w   #1,d6
-                    bne      lbC000A98
+                    bne      .loop_decode_line
                     sub.l    0(a6),a2
+                    ; width
                     move.l   0(a6),d0
+                    ; height
                     move.l   4(a6),d1
                     mulu     d1,d0
                     add.l    d0,a2
                     move.l   a2,a1
                     subq.b   #1,d5
-                    bne      lbC000A8C
+                    bne      .loop_decode_depth
                     move.l   a3,d0
+                    ; make sure the next frame is even
                     addq.l   #1,d0
                     and.l    #$FFFFFFFE,d0
                     move.l   d0,a3
+                    ; next frame
                     move.l   a3,26(a6)
+                    ; flip buffer
                     not.b    25(a6)
-                    tst.l    30(a6)
-                    bne      lbC000B0A
-                    move.l   a3,30(a6)
-lbC000B0A:          moveq    #0,d0
+                    ; OK
+                    moveq    #0,d0
                     bra.b    end_decode
-
 err_anim_chunk_name:
+                    ; not OK
                     moveq    #-1,d0
 end_decode:         movem.l  (sp)+,d1-d7/a0-a6
                     rts
@@ -296,13 +312,16 @@ get_first_pic:      movem.l  d0-d7/a1-a6,-(sp)
 .get_BMHD_chunk:    addq.l   #4,a0
                     move.w   (a0)+,d4
                     lsr.w    #3,d4
+                    ; width
                     move.w   d4,20(a6)
                     move.w   (a0)+,d5
+                    ; height
                     move.w   d5,22(a6)
                     addq.l   #4,a0
                     move.b   (a0)+,d3
+                    ; depth
                     move.b   d3,24(a6)
-                    add.w    #11,a0
+                    lea      11(a0),a0
                     bra      .loop
 
 .get_BODY_chunk:    addq.l   #4,a0
@@ -352,9 +371,9 @@ rle_depack:         movem.l  d2/a1,-(sp)
 
 ; -----------------------------------------------------
 
-anim_struct:        dcb.w    17,0
+anim_struct:        dcb.b    34,0
 frames_counter:     dc.l     0
-black_palette:      dcb.w    32,0
+palette_black:      dcb.w    32,0
 palette:            dc.w     0,$A99,$766,$333
 
 ; -----------------------------------------------------

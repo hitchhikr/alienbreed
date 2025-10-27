@@ -992,7 +992,7 @@ user_buying_weapon: move.l   owned_weapons(pc),d1
                     move.l   purchased_supplies(pc),d0
                     or.l     #2,d0
                     move.l   d0,purchased_supplies
-                    move.l   #2,d0
+                    moveq    #2,d0
                     lea      text_tool_bought(pc),a0
                     mulu     #41,d0
                     add.l    #29,d0
