@@ -101,7 +101,7 @@ wait_sync:          cmp.b    #255,VHPOSR(a6)
                     include  "typewriter.asm"
 
 play_sound:         movem.l  d0-d7/a0-a6,-(sp)
-                    moveq    #48,d0
+                    moveq    #SAMPLE_TYPE_WRITER,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)

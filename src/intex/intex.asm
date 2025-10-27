@@ -429,7 +429,7 @@ disp_caret_holocode:
 
 play_sample_caret_move:
                     movem.l  d0-d7/a0-a6,-(sp)
-                    moveq    #14,d0
+                    moveq    #SAMPLE_CARET_MOVE,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)
@@ -438,7 +438,7 @@ play_sample_caret_move:
 
 play_sample_disp_char:
                     movem.l  d0-d7/a0-a6,-(sp)
-                    moveq    #48,d0
+                    moveq    #SAMPLE_TYPE_WRITER,d0
                     moveq    #0,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)
@@ -546,31 +546,32 @@ purchased_supplies: dc.l     0
 play_sample_supply_purchased:
                     move.l   schedule_sample_to_play(pc),a5
                     tst.w    d0
-                    bne.b    lbC000E0A
-                    lea      lbW0071C8(pc),a6
+                    bne.b    smp_purchased_map
+                    lea      smp_map_struct(pc),a6
                     jmp      (a5)
 
-lbC000E0A:          cmp.w    #1,d0
-                    bne.b    lbC000E18
-                    lea      lbW0071D2(pc),a6
+smp_purchased_map:  cmp.w    #1,d0
+                    bne.b    smp_purchased_ammo
+                    lea      smp_ammo_struct_1(pc),a6
                     jmp      (a5)
 
-lbC000E18:          cmp.w    #2,d0
-                    bne.b    lbC000E26
-                    lea      lbW00720E(pc),a6
+smp_purchased_ammo: cmp.w    #2,d0
+                    bne.b    smp_purchased_injection
+                    lea      smp_injection_struct_1(pc),a6
                     jmp      (a5)
 
-lbC000E26:          cmp.w    #3,d0
-                    bne.b    lbC000E34
-                    lea      lbW0071FA(pc),a6
+smp_purchased_injection:
+                    cmp.w    #3,d0
+                    bne.b    smp_purchased_key
+                    lea      smp_key_struct_1(pc),a6
                     jmp      (a5)
 
-lbC000E34:          cmp.w    #4,d0
-                    bne.b    lbC000E42
-                    lea      lbW0071E6(pc),a6
+smp_purchased_key:  cmp.w    #4,d0
+                    bne.b    smp_purchased_life
+                    lea      smp_life_struct_1(pc),a6
                     jmp      (a5)
 
-lbC000E42:          rts
+smp_purchased_life: rts
 
 text_tool_supplies: dc.w     0,36
                     dc.b     '          INTEX TOOL SUPPLIES           ',0
@@ -985,7 +986,7 @@ user_buying_weapon: move.l   owned_weapons(pc),d1
                     or.l     d2,owned_weapons
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   schedule_sample_to_play(pc),a5
-                    lea      lbW0071D2(pc),a6
+                    lea      smp_ammo_struct_1(pc),a6
                     jsr      (a5)
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   purchased_supplies(pc),d0
@@ -2247,24 +2248,32 @@ welcome_sample_struct:
 welcome_sample_struct_2:
                     dc.w     18,VOICE_INTEX_SYSTEM,3
                     dc.l     0
-lbW0071C8:          dc.w     1,13,3
+
+smp_map_struct:     dc.w     1,SAMPLE_INTEX_SHUTDOWN,3
                     dc.l     0
-lbW0071D2:          dc.w     1,13,3
-                    dc.l     lbW0071DC
-lbW0071DC:          dc.w     21,24,3
+
+smp_ammo_struct_1:  dc.w     1,SAMPLE_INTEX_SHUTDOWN,3
+                    dc.l     smp_ammo_struct_2
+smp_ammo_struct_2:  dc.w     21,SAMPLE_AMMO,3
                     dc.l     0
-lbW0071E6:          dc.w     1,13,3
-                    dc.l     lbW0071F0
-lbW0071F0:          dc.w     21,27,3
+
+smp_life_struct_1:  dc.w     1,SAMPLE_INTEX_SHUTDOWN,3
+                    dc.l     smp_life_struct_2
+smp_life_struct_2:  dc.w     21,SAMPLE_1UP,3
                     dc.l     0
-lbW0071FA:          dc.w     1,13,3
-                    dc.l     lbW007204
-lbW007204:          dc.w     21,23,3
+
+smp_key_struct_1:   dc.w     1,SAMPLE_INTEX_SHUTDOWN,3
+                    dc.l     smp_key_struct_2
+smp_key_struct_2:   dc.w     21,SAMPLE_OPENING_DOOR,3
                     dc.l     0
-lbW00720E:          dc.w     1,13,3
-                    dc.l     lbW007218
-lbW007218:          dc.w     21,73,3
+
+smp_injection_struct_1:
+                    dc.w     1,SAMPLE_INTEX_SHUTDOWN,3
+                    dc.l     smp_injection_struct_2
+smp_injection_struct_2:
+                    dc.w     21,SAMPLE_DYING_PLAYER,3
                     dc.l     0
+
 weapon_mask_pic:    dcb.b    (128*20),0
 
 ; -----------------------------------------------------

@@ -521,7 +521,7 @@ void:               rts
 
 run_end:            jsr      stop_sound
                     jsr      lbC023210
-                    jsr      lbC023D72
+                    jsr      no_more_struct_smp_to_play
                     jsr      wait_raster
                     jsr      wait_raster
                     move.l   #copper_blank,CUSTOM+COP1LCH
@@ -890,7 +890,7 @@ lbC00160A:          addq.w   #1,lbW0004BC
                     move.w   #1,lbW0004BA
                     tst.w    music_enabled
                     bne.b    lbC00163E
-                    jsr      lbC023D20
+                    jsr      trigger_sample_from_struct
 lbC00163E:          bra.b    lbC001650
 
 lbC001640:          move.w   #256,d0
@@ -1302,7 +1302,7 @@ destruction_sequence:
                     move.w   #1,lbW002FDE
                     jsr      compute_palette_fading_directions
                     move.w   #1,lbW00057A
-                    move.l   #lbW02316A,lbL023200
+                    move.l   #lbW02316A,sample_struct_to_play
                     clr.w    lbW023204
 
 lbC0030AA:          addq.w   #1,lbW002FE0
@@ -1315,7 +1315,7 @@ lbC0030AA:          addq.w   #1,lbW002FE0
                     bne.b    lbC0030F4
                     tst.b    cur_timer_digit_lo
                     bne.b    lbC0030F4
-                    move.l   #lbW0231A6,lbL023200
+                    move.l   #lbW0231A6,sample_struct_to_play
                     clr.w    lbW023204
 lbC0030F4:          
                 IFEQ    DEBUG
@@ -9156,7 +9156,7 @@ lbC00DDA2:          bsr      lbC00DE18
 lbC00DDB8:          cmp.w    #1,lbW00DC72
                     beq.b    lbC00DDE2
                     movem.l  d0-d7/a0-a6,-(sp)
-                    move.l   #lbW0231BA,lbL023200
+                    move.l   #lbW0231BA,sample_struct_to_play
                     clr.w    lbW023204
                     move.w   #1,lbW00DC72
                     movem.l  (sp)+,d0-d7/a0-a6
@@ -9216,7 +9216,7 @@ lbC00DE6E:          addq.l   #4,lbL00DF32
                     movem.l  d0-d7/a0-a6,-(sp)
                     moveq    #2,d0
                     jsr      rand
-                    clr.l    lbL023200
+                    clr.l    sample_struct_to_play
                     tst.w    d0
                     beq.b    lbC00DEFE
                     cmp.w    #1,d0
@@ -10118,7 +10118,7 @@ lbC00EF2A:          bsr      lbC00F58E
                     jmp      loop_from_gameover
 
 
-run_gameover_exe:   jsr      lbC023D72
+run_gameover_exe:   jsr      no_more_struct_smp_to_play
                     move.w   #DMAF_AUD0|DMAF_AUD1|DMAF_AUD2|DMAF_AUD3,CUSTOM+DMACON
                     bsr      start_main_tune
                     lea      exe_gameover,a0
@@ -17039,12 +17039,13 @@ lbW0231EC:          dc.w     150,42,2
 lbW0231F6:          dc.w     50,76,1
                     dc.l     0
 
-lbL023200:          dc.l     0
-lbW023204:          dcb.w    2,0
+sample_struct_to_play:
+                    dc.l     0
+lbW023204:          dc.l     0
 lbL023208:          dc.l     0
 lbL02320C:          dc.l     0
 
-lbC023210:          clr.l    lbL023200
+lbC023210:          clr.l    sample_struct_to_play
                     clr.l    lbW023204
                     clr.l    lbL023208
                     clr.l    lbL02320C
@@ -17059,9 +17060,9 @@ lbC023210:          clr.l    lbL023200
                     rts
 
 schedule_sample_to_play:
-                    tst.l    lbL023200
+                    tst.l    sample_struct_to_play
                     bne.b    lbC023280
-                    move.l   a6,lbL023200
+                    move.l   a6,sample_struct_to_play
                     move.l   a6,lbL02320C
                     clr.w    lbL023208
                     move.w   #1,lbW02328A
@@ -17087,7 +17088,8 @@ lbC0232A4:          lea      lbL02328C(pc),a0
 
 lbC0232BC:          rts
 
-lbC023D20:          move.l   lbL023200(pc),a0
+trigger_sample_from_struct:
+                    move.l   sample_struct_to_play(pc),a0
                     cmp.l    #0,a0
                     beq      lbC0232A4
                     addq.w   #1,lbW023204
@@ -17097,14 +17099,15 @@ lbC023D20:          move.l   lbL023200(pc),a0
                     move.w   2(a0),d0
                     move.w   4(a0),d2
                     bsr      trigger_sample_select_channel
-                    move.l   lbL023200(pc),a0
+                    move.l   sample_struct_to_play(pc),a0
                     move.l   6(a0),d0
-                    beq.b    lbC023D72
-                    move.l   d0,lbL023200
+                    beq.b    no_more_struct_smp_to_play
+                    move.l   d0,sample_struct_to_play
                     clr.w    lbW023204
                     rts
 
-lbC023D72:          clr.l    lbL023200
+no_more_struct_smp_to_play:
+                    clr.l    sample_struct_to_play
                     clr.w    lbW023204
                     clr.l    lbL02320C
                     clr.l    lbL02328C
@@ -17134,7 +17137,7 @@ lbC023DD4:          moveq    #3,d2
 
 lbC023DD8:          move.w   sample_to_play(pc),d0
                     move.w   lbW023D8E(pc),d2
-                    tst.l    lbL023200
+                    tst.l    sample_struct_to_play
                     beq.b    lbC023DFA
                     cmp.w    #2,d2
                     bmi.b    lbC023DFA
@@ -17165,7 +17168,7 @@ lbC023E3E:          cmp.w    #3,d2
                     moveq    #2,d2
 lbC023E46:          cmp.w    #17,d0
                     beq.b    lbC023E76
-                    cmp.w    #18,d0
+                    cmp.w    #SAMPLE_DESTRUCT_IMM,d0
                     beq.b    lbC023E76
                     cmp.w    #50,d0
                     bmi.b    lbC023E78
@@ -17187,7 +17190,7 @@ lbC023E90:          movem.l  d1/d3-d7/a0-a6,-(sp)
                     movem.l  (sp)+,d1/d3-d7/a0-a6
 lbC023E9A:          rts
 
-lbW023E9C:          dcb.w    2,0
+lbW023E9C:          dc.w     0
 lbW023EA0:          dc.w     0
 lbW023EA2:          dc.w     0
 
@@ -17203,11 +17206,11 @@ play_sample:        lea      CUSTOM,a6
                     lea      0(a0,d0.w),a0
                     moveq    #0,d0
                     tst.w    d2
-                    beq      lbC023F68
+                    beq      play_sample_channel_1
                     subq.w   #1,d2
-                    beq      lbC023FF2
+                    beq      play_sample_channel_2
                     subq.w   #1,d2
-                    beq      lbC02407C
+                    beq      play_sample_channel_3
                     move.w   #DMAF_AUD3,DMACON(a6)
                     pea      (a0)
                     moveq    #0,d0
@@ -17237,7 +17240,8 @@ lbC023F56:          or.w     #DMAF_SETCLR|DMAF_AUD3,audio_dmacon
                     move.w   #1,bpchannel4_status
                     rts
 
-lbC023F68:          move.w   #DMAF_AUD0,DMACON(a6)
+play_sample_channel_1:
+                    move.w   #DMAF_AUD0,DMACON(a6)
                     move.l   (a0),AUD0LCH(a6)
                     move.w   4(a0),AUD0LEN(a6)
                     move.w   6(a0),AUD0VOL(a6)
@@ -17261,7 +17265,8 @@ lbC023FE0:          or.w     #DMAF_SETCLR|DMAF_AUD0,audio_dmacon
                     move.w   #1,bpchannel1_status
                     rts
 
-lbC023FF2:          move.w   #DMAF_AUD1,DMACON(a6)
+play_sample_channel_2:
+                    move.w   #DMAF_AUD1,DMACON(a6)
                     move.l   (a0),AUD1LCH(a6)
                     move.w   4(a0),AUD1LEN(a6)
                     move.w   6(a0),AUD1VOL(a6)
@@ -17285,7 +17290,8 @@ lbC02406A:          or.w     #DMAF_SETCLR|DMAF_AUD1,audio_dmacon
                     move.w   #1,bpchannel2_status
                     rts
 
-lbC02407C:          move.w   #DMAF_AUD2,DMACON(a6)
+play_sample_channel_3:
+                    move.w   #DMAF_AUD2,DMACON(a6)
                     move.l   (a0),AUD2LCH(a6)
                     move.w   4(a0),AUD2LEN(a6)
                     move.w   6(a0),AUD2VOL(a6)
@@ -18307,9 +18313,9 @@ samples_table:      dc.l     sample1                            ; 0
                     dc.w     1000,8,1400,1,26,0,0
                     dc.l     smp_intex_startup                  ; 40
                     dc.w     1000,8,1000,0,10,0,508
-                    dc.l     sample22                           ; 41
+                    dc.l     smp_descent                        ; 41
                     dc.w     727,40,1000,1,10,0,0
-                    dc.l     sample24                           ; 42
+                    dc.l     smp_descent_end                    ; 42
                     dc.w     2206,37,1000,0,61,0,0
                     dc.l     sample2                            ; 43
                     dc.w     4150,32,202,0,22,0,0
@@ -19049,9 +19055,9 @@ sample18:           incbin   'sample18.raw'
 smp_hurt_player:    incbin   'hurt_player.raw'
 smp_acid_pool:      incbin   'acid_pool.raw'
 smp_fire_gun:       incbin   'fire_gun.raw'
-sample22:           incbin   'sample22.raw'
+smp_descent:        incbin   'descent.raw'
 sample23:           incbin   'sample23.raw'
-sample24:           incbin   'sample24.raw'
+smp_descent_end:    incbin   'descent_end.raw'
 smp_first_aid_and_credits:
                     incbin   'first_aid_and_credits.raw'
 sample26:           incbin   'sample26.raw'

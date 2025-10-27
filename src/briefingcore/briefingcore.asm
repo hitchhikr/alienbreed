@@ -32,7 +32,7 @@ only_1_player:      bsr      set_copperlist
                     moveq    #32,d0
                     bsr      prep_fade_speeds_fade_in
                     move.l   sound_routine(pc),a0
-                    moveq    #41,d0
+                    moveq    #SAMPLE_DESCENT,d0
                     moveq    #0,d2
                     jsr      (a0)
 .loop:              bsr      wait_sync
@@ -68,7 +68,7 @@ only_1_player:      bsr      set_copperlist
                     lea      sprite_7_8_struct(pc),a0
                     bsr      disp_sprite
                     move.l   sound_routine(pc),a0
-                    moveq    #42,d0
+                    moveq    #SAMPLE_DESCENT_END,d0
                     moveq    #0,d2
                     jsr      (a0)
                     move.l   text_to_display(pc),a0
@@ -118,7 +118,7 @@ FADE_SPEED          equ      1
                     include  "typewriter.asm"
 
 play_sound:         movem.l  d0-d7/a0-a6,-(sp)
-                    moveq    #48,d0
+                    moveq    #SAMPLE_TYPE_WRITER,d0
                     moveq    #2,d2
                     move.l   sound_routine(pc),a0
                     jsr      (a0)
