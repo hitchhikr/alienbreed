@@ -66,7 +66,8 @@ player_2_input:     dc.b     0
 player_1_input:     dc.b     0
 player_2_old_input: dc.b     0
 player_1_old_input: dc.b     0
-lbW0001E2:          dc.w     5
+slowdown_pause_display:
+                    dc.w     5
 
 some_variable:      dc.w     0
 
@@ -573,28 +574,29 @@ lbC000E8C:          jsr      lbC00AB0C
                     tst.w    flag_end_level
                     bne      lbC0010B2
                     tst.w    map_overview_on
-                    beq.b    lbC000F12
+                    beq.b    dont_display_overview
                     btst     #7,player_2_input
                     bne.b    map_overview_trigger
                     btst     #7,player_1_input
                     bne.b    map_overview_trigger
                     cmp.b    #KEY_M,key_pressed
-                    bne      lbC000F12
+                    bne      dont_display_overview
 map_overview_trigger:          
                     jmp      display_map_overview
 
-lbC000F12:          cmp.b    #KEY_P,key_pressed
+dont_display_overview:
+                    cmp.b    #KEY_P,key_pressed
                     beq.b    key_pause
                     btst     #4,player_2_input
                     bne.b    lbC000F30
                     btst     #4,player_1_input
                     beq.b    lbC000F3E
-lbC000F30:          subq.w   #1,lbW0001E2
+lbC000F30:          subq.w   #1,slowdown_pause_display
                     bne.b    lbC000F46
 
 key_pause:          jmp      display_pause
 
-lbC000F3E:          move.w   #10,lbW0001E2
+lbC000F3E:          move.w   #10,slowdown_pause_display
 lbC000F46:          
                     tst.w    music_enabled
                     beq.b    lbC000F7A
@@ -1463,10 +1465,8 @@ text_time:          dc.w     100,212
 global_time:        dc.b     0,0,':',0,0,':',0,0
                     dc.b     -1
 
-map_pos_y:          dc.b     0,0
-lbW0035D2:          dc.w     16
-map_pos_x:          dc.b     0,0
-lbW0035D6:          dc.w     0
+map_pos_y:          dc.l     16
+map_pos_x:          dc.l     0
 lbL0035D8:          dc.l     0
 lbL0035DC:          dc.l     0
 lbL0035E0:          dc.l     0
@@ -1492,8 +1492,8 @@ set_players_starting_pos:
                     move.w   d3,PLAYER_POS_Y(a1)
                     move.w   #1,lbW003644
                     bsr.b    lbC003646
-                    move.w   d0,lbW0035D6
-                    move.w   d1,lbW0035D2
+                    move.w   d0,map_pos_x+2
+                    move.w   d1,map_pos_y+2
                     rts
 
 lbW003644:          dc.w     0
@@ -1542,7 +1542,7 @@ lbC0036F4:          sub.w    #128,d0
                     sub.w    #120,d1
                     tst.w    lbW003644
                     bne      void
-                    move.w   lbW0035D6(pc),d2
+                    move.w   map_pos_x+2(pc),d2
                     sub.w    d2,d0
                     move.w   d0,d2
                     tst.w    d0
@@ -1558,17 +1558,17 @@ lbC003724:          move.w   d4,lbW0039B4
                     beq.b    lbC00377C
                     bset     #1,lbB0039B2
                     bclr     #2,lbB0039B2
-                    cmp.w    #$660,lbW0035D6
+                    cmp.w    #1632,map_pos_x+2
                     bpl.b    lbC00377C
-                    add.w    d4,lbW0035D6
+                    add.w    d4,map_pos_x+2
                     bra.b    lbC00377C
 
 lbC00375A:          bset     #2,lbB0039B2
                     bclr     #1,lbB0039B2
-                    cmp.w    #16,lbW0035D6
+                    cmp.w    #16,map_pos_x+2
                     bmi.b    lbC00377C
-                    sub.w    d4,lbW0035D6
-lbC00377C:          move.w   lbW0035D2(pc),d2
+                    sub.w    d4,map_pos_x+2
+lbC00377C:          move.w   map_pos_y+2(pc),d2
                     sub.w    d2,d1
                     move.w   d1,d2
                     tst.w    d1
@@ -1584,16 +1584,16 @@ lbC00379C:          move.w   d4,lbW0039B4+2
                     beq      void
                     bset     #3,lbB0039B2
                     bclr     #4,lbB0039B2
-                    cmp.w    #1344,lbW0035D2
+                    cmp.w    #1344,map_pos_y+2
                     bpl      void
-                    add.w    d4,lbW0035D2
+                    add.w    d4,map_pos_y+2
                     rts
 
 lbC0037D0:          bset     #4,lbB0039B2
                     bclr     #3,lbB0039B2
-                    cmp.w    #20,lbW0035D2
+                    cmp.w    #20,map_pos_y+2
                     bmi      void
-                    sub.w    d4,lbW0035D2
+                    sub.w    d4,map_pos_y+2
                     rts
 
 copy_map_datas:     move.l   #(end_map_datas-cur_map_datas),d0
@@ -1927,12 +1927,12 @@ lbC003F0C:          tst.w    0(a0)
                     clr.w    0(a0)
                     tst.w    2(a0)
                     bne      lbC003F68
-                    WAIT_BLIT2
                     move.w   4(a0),d0
                     move.w   #21,d1
                     sub.w    d0,d1
                     add.w    d1,d1
                     or.w     #$400,d0
+                    WAIT_BLIT2
                     move.w   d1,BLTAMOD(a6)
                     move.w   d1,BLTDMOD(a6)
                     move.l   #$9f00000,BLTCON0(a6)
@@ -1940,7 +1940,7 @@ lbC003F0C:          tst.w    0(a0)
                     move.l   10(a0),a1
                     move.l   a1,a2
                     move.l   a1,a3
-                    sub.l    #123480,a2
+                    sub.l    #(294*42*10),a2
                     sub.l    #61740,a3
                     bra      lbC003FE6
 
@@ -1968,15 +1968,14 @@ lbC003F68:
                     lea      lbL101098,a1
                     add.l    6(a0),a1
                     bra      lbC003FC4
-
-lbC003FC4:          
-                    WAIT_BLIT2
+lbC003FC4:
                     lsl.w    #6,d0
                     or.w     #1,d0
                     move.l   a1,a2
                     move.l   a1,a3
-                    sub.l    #123480,a2
+                    sub.l    #(294*42*10),a2
                     sub.l    #61740,a3
+                    WAIT_BLIT2
                     bra      lbC003FE6
 
 lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
@@ -1987,9 +1986,9 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    add.l    #12348,a1
-                    add.l    #12348,a2
-                    add.l    #12348,a3
+                    add.l    #(294*42),a1
+                    add.l    #(294*42),a2
+                    add.l    #(294*42),a3
                     WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
@@ -1998,9 +1997,9 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    add.l    #12348,a1
-                    add.l    #12348,a2
-                    add.l    #12348,a3
+                    add.l    #(294*42),a1
+                    add.l    #(294*42),a2
+                    add.l    #(294*42),a3
                     WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
@@ -2009,9 +2008,9 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    add.l    #12348,a1
-                    add.l    #12348,a2
-                    add.l    #12348,a3
+                    add.l    #(294*42),a1
+                    add.l    #(294*42),a2
+                    add.l    #(294*42),a3
                     WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
@@ -2020,9 +2019,9 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     move.l   a1,BLTAPTH(a6)
                     move.l   a3,BLTDPTH(a6)
                     move.w   d0,BLTSIZE(a6)
-                    add.l    #12348,a1
-                    add.l    #12348,a2
-                    add.l    #12348,a3
+                    add.l    #(294*42),a1
+                    add.l    #(294*42),a2
+                    add.l    #(294*42),a3
                     WAIT_BLIT
                     move.l   a1,BLTAPTH(a6)
                     move.l   a2,BLTDPTH(a6)
@@ -2038,8 +2037,7 @@ lbC003FE6:          move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
 lbL00411C:          dc.l     0
 lbL004120:          dc.l     0
 lbL004124:          dc.l     0
-lbB004128:          dcb.b    2,0
-lbW00412A:          dc.w     0
+lbL004128:          dc.l     0
 
 lbC00412C:          clr.l    lbL004124
 lbC004132:          move.l   map_pos_x(pc),d0
@@ -2064,7 +2062,7 @@ lbC004182:          lsr.w    #4,d0
                     move.l   0(a6,d1.l),a6
                     add.l    d0,a6
                     subq.l   #2,a6
-                    move.l   a6,lbB004128
+                    move.l   a6,lbL004128
                     lea      lbC004384(pc),a4
                     move.l   lbL00411C(pc),a5
                     moveq    #0,d6
@@ -2599,7 +2597,7 @@ lbC004A28:          move.l   #lbW009414,lbL00D226
 
 lbC004A38:          cmp.w    #2,boss_nbr
                     beq      lbC004A86
-                    add.l    #2,a3
+                    addq.l   #2,a3
                     bsr      lbC00AE2E
                     lea      lbL0202D2,a1
                     bsr      lbC00AF10
@@ -3157,7 +3155,7 @@ display_tiles:      move.l   map_pos_x(pc),d0
                     lea      lbL0023D4(pc),a6
                     move.l   (a6,d1.l),a1
                     add.l    d0,a1
-                    add.l    #123480,a1
+                    add.l    #(294*42*10),a1
                     lea      map_lines_table+4(pc),a2
                     move.l   0(a2,d1.l),a2
                     add.l    d0,a2
@@ -3280,15 +3278,15 @@ lbC005620:          move.l   map_pos_x(pc),d0
                     add.l    d1,a4
                     move.l   d0,d0
                     move.l   #248,d1
-                    move.l   #12348,d2
+                    move.l   #(294*42),d2
                     move.l   lbL0039A6(pc),d3
                     move.l   (a4),a1
-                    add.l    #123480,a1
+                    add.l    #(294*42*10),a1
                     add.l    d0,a1
                     bsr      lbC003EC4
                     moveq    #0,d4
 .loop:              move.l   (a4)+,a1
-                    add.l    #123480,a1
+                    add.l    #(294*42*10),a1
                     add.l    d0,a1
                     move.w   (a2),d4
                     add.l    d1,a2
@@ -3440,10 +3438,10 @@ lbC0058AC:          cmp.l    #$ffd7fffe,lbW09A298
                     move.l   #$2401ff00,lbW09A308
 lbC0058C4:          cmp.w    #1,frame_bkgnd_flag
                     beq.b    lbC0058DC
-                    add.l    #12348*5,d4
-                    add.l    #12348*5,d5
+                    add.l    #(294*42)*5,d4
+                    add.l    #(294*42)*5,d5
 
-lbC0058DC:          move.l   #12348,d7
+lbC0058DC:          move.l   #(294*42),d7
                     move.w   d4,scroll_bp1+6
                     swap     d4
                     move.w   d4,scroll_bp1+2
@@ -4784,11 +4782,11 @@ lbC00788E:          move.w   #PLAYER_MAX_HEALTH,PLAYER_HEALTH(a0)
 lbC0078AC:          bsr      lbC0078B6
                     bra      lbC0078F0
 
-lbC0078B6:          move.w   lbW0035D2(pc),d0
+lbC0078B6:          move.w   map_pos_y+2(pc),d0
                     add.w    #20,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bpl      void
-                    move.w   lbW0035D2(pc),d0
+                    move.w   map_pos_y+2(pc),d0
                     add.w    #218,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bmi      void
@@ -4798,11 +4796,11 @@ lbC0078B6:          move.w   lbW0035D2(pc),d0
                     move.w   #1,lbB006FEA
                     rts
 
-lbC0078F0:          move.w   lbW0035D6,d0
+lbC0078F0:          move.w   map_pos_x+2,d0
                     add.w    #256,d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bmi      void
-                    move.w   lbW0035D6(pc),d0
+                    move.w   map_pos_x+2(pc),d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bpl      void
                     move.w   PLAYER_EXTRA_SPD_X(a0),d0
@@ -4813,7 +4811,7 @@ lbC0078F0:          move.w   lbW0035D6,d0
 
 lbC007926:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D6(pc),d0
+                    move.w   map_pos_x+2(pc),d0
                     add.w    #256,d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bmi      void
@@ -4828,7 +4826,7 @@ lbC00794A:          move.l   16(a0),a6
 
 lbC007962:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D6(pc),d0
+                    move.w   map_pos_x+2(pc),d0
                     cmp.w    PLAYER_POS_X(a0),d0
                     bpl      void
                     move.w   308(a0),d0
@@ -4842,7 +4840,7 @@ lbC007982:          move.l   16(a0),a6
 
 lbC00799A:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D2(pc),d0
+                    move.w   map_pos_y+2(pc),d0
                     add.w    #20,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bpl      void
@@ -4857,7 +4855,7 @@ lbC0079BE:          move.l   16(a0),a6
 
 lbC0079D6:          tst.w    278(a0)
                     bne      void
-                    move.w   lbW0035D2(pc),d0
+                    move.w   map_pos_y+2(pc),d0
                     add.w    #218,d0
                     cmp.w    PLAYER_POS_Y(a0),d0
                     bmi      void
@@ -7323,13 +7321,13 @@ lbC00A6D0:          addq.w   #1,lbL00A6A6
                     cmp.w    #16,lbL00A6A6
                     bmi      return
                     clr.w    lbL00A6A6
-                    move.w   lbW00412A(pc),d0
+                    move.w   lbL004128+2(pc),d0
                     cmp.w    lbW00A6AC(pc),d0
                     bne.b    lbC00A700
                     move.w   #1,lbL00A6A2
                     rts
 
-lbC00A700:          move.w   lbW00412A(pc),lbW00A6AC
+lbC00A700:          move.w   lbL004128+2(pc),lbW00A6AC
                     clr.w    lbL00A6A2
                     rts
 
@@ -7345,11 +7343,11 @@ lbC00A718:          clr.w    play_alien_hatching_sample
                     move.w   rnd_number,d1
                     cmp.w    d0,d1
                     bpl      return
-lbC00A74C:          move.w   lbW0035D6(pc),d0
+lbC00A74C:          move.w   map_pos_x+2(pc),d0
                     move.w   d0,d1
                     sub.w    #66,d0
                     add.w    #306,d1
-                    move.w   lbW0035D2(pc),d2
+                    move.w   map_pos_y+2(pc),d2
                     move.w   d2,d3
                     sub.w    #66,d2
                     add.w    #258,d3
@@ -8362,7 +8360,7 @@ lbW00CEE2:          dc.w     50
 
 display_pause:      clr.w    lbW0004C2
                     clr.b    key_pressed
-                    move.w   #10,lbW0001E2
+                    move.w   #10,slowdown_pause_display
                     move.w   #50,lbW00CEE2
 lbC00CF00:          btst     #4,player_2_input
                     bne.b    lbC00CF00
@@ -8479,11 +8477,11 @@ lbC00D168:          tst.w    player_1_alive
                     move.l   #lbL00E9DE,lbL0064E4
 lbC00D17C:          rts
 
-lbC00D17E:          move.w   lbW0035D6(pc),d0
+lbC00D17E:          move.w   map_pos_x+2(pc),d0
                     sub.w    #80,d0
                     move.w   d0,d1
                     add.w    #480,d1
-                    move.w   lbW0035D2(pc),d2
+                    move.w   map_pos_y+2(pc),d2
                     sub.w    #80,d2
                     move.w   d2,d3
                     add.w    #416,d3
@@ -9203,13 +9201,13 @@ lbC00DE6E:          addq.l   #4,lbL00DF32
                     move.l   a1,-(sp)
                     bsr      rand
                     move.l   (sp)+,a1
-                    add.w    lbW0035D6,d0
+                    add.w    map_pos_x+2,d0
                     move.w   d0,-4(a1)
                     move.w   #224,d0
                     move.l   a1,-(sp)
                     bsr      rand
                     move.l   (sp)+,a1
-                    add.w    lbW0035D2,d0
+                    add.w    map_pos_y+2,d0
                     move.w   d0,-2(a1)
                     addq.w   #1,lbW00DC74
                     cmp.w    #4,lbW00DC74
@@ -11920,7 +11918,7 @@ lbC0111E6:          move.l   16(a0),a1
                     bra.b    lbC0111CE
 
 lbC0111FA:          move.w   -4(a0),d0
-                    sub.w    lbW0035D6,d0
+                    sub.w    map_pos_x+2,d0
                     cmp.w    #-32,d0
                     bpl.b    lbC01120E
                     move.w   #320,d0
@@ -11929,7 +11927,7 @@ lbC01120E:          cmp.w    #320,d0
                     move.w   #320,d0
 lbC011218:          move.w   d0,(a0)
                     move.w   -2(a0),d0
-                    sub.w    lbW0035D2,d0
+                    sub.w    map_pos_y+2,d0
                     cmp.w    #-16,d0
                     bpl.b    lbC01122E
                     move.w   #256,d0
@@ -12187,7 +12185,7 @@ lbC0117A8:          move.l   a0,BLTAPTH(a6)
                     rts
 
 lbC0117DC:          moveq    #0,d1
-                    move.w   lbW0035D2,d1
+                    move.w   map_pos_y+2,d1
                     add.l    #-12,d1
                     move.l   d1,d3
                     lsr.w    #4,d1
@@ -12202,7 +12200,7 @@ lbC0117DC:          moveq    #0,d1
                     lsr.w    #2,d3
                     add.w    d3,d6
                     moveq    #0,d0
-                    move.w   lbW0035D6,d0
+                    move.w   map_pos_x+2,d0
                     add.w    #15,d0
                     move.l   d0,d5
                     lsr.w    #4,d0
@@ -12215,8 +12213,8 @@ lbC0117DC:          moveq    #0,d1
                     and.w    #$F,d5
                     move.w   #$F,d7
                     sub.w    d5,d7
-                    move.w   lbW0035D6,d2
-                    move.w   lbW0035D2,d3
+                    move.w   map_pos_x+2,d2
+                    move.w   map_pos_y+2,d3
 lbC01183E:          move.l   (a0)+,a1
                     move.w   -4(a1),d0
                     sub.w    d2,d0
@@ -12233,7 +12231,7 @@ lbC01183E:          move.l   (a0)+,a1
 lbC011860:          moveq    #0,d1
                     moveq    #0,d3
                     moveq    #0,d6
-                    move.w   lbW0035D2,d1
+                    move.w   map_pos_y+2,d1
                     add.l    #-12,d1
                     move.l   d1,d3
                     lsr.w    #4,d1
@@ -12260,7 +12258,7 @@ lbC011860:          moveq    #0,d1
                     clr.w    lbW0113B2
                     move.l   #temp_buffer,d0
                     move.l   #map_overview_background_pic,d1
-                    move.l   #12348,d3
+                    move.l   #(294*42),d3
                     bsr      lbC011936
                     clr.w    lbW0113AA
                     move.w   (sp)+,lbW0113AC
@@ -12281,7 +12279,7 @@ lbC01190C:          move.l   (a0)+,a4
                     bra      lbC011962
 
 lbC011936:          moveq    #0,d2
-                    move.w   lbW0035D6,d2
+                    move.w   map_pos_x+2,d2
                     add.w    #15,d2
                     lsr.w    #4,d2
                     add.w    d2,d2
@@ -19087,7 +19085,7 @@ lbL0FE08C:          ds.l     430
 lbL0FE744:          ds.l     10
 lbL0FE76C:          ds.l     2635
 lbL101098:          ds.l     3087
-lbL1040D4:          ds.l     12348
+lbL1040D4:          ds.l     (294*42)
 lbL1101C4:          ds.l     4928
 lbL114EC4:          ds.l     128
 blank_sample:          ds.l     4
