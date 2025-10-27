@@ -95,10 +95,8 @@ disable_cache:      movem.l  d0/d1/d2/d6/d7/a0/a1/a5/a6,-(sp)
                     lea      supervisor_cache(pc),a5
                     jsr      _LVOSupervisor(a6)
                     bra.b    .proc_68020
-.new_kickstart:
-                    jsr      _LVOCacheControl(a6)
-.proc_68020:
-                    movem.l  (sp)+,d0/d1/d2/d6/d7/a0/a1/a5/a6
+.new_kickstart:     jsr      _LVOCacheControl(a6)
+.proc_68020:        movem.l  (sp)+,d0/d1/d2/d6/d7/a0/a1/a5/a6
                     rts
 supervisor_cache:
                     move.l   d6,d0
@@ -125,8 +123,7 @@ get_vbr:            move.l   4.w,a6
                     movec    vbr,d1
                     jsr      _LVOUserState(a6)
                     move.l   d1,d0
-.proc_68010:     
-                    rts
+.proc_68010:        rts
 
                     mc68000
 
