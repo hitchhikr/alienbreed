@@ -362,7 +362,7 @@ set_copper:         lea      copperlist_main(pc),a0
 
 prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
                     move.l   a3,a6
-                    movem.l  d0/d1/a0-a2,0(a6)
+                    movem.l  d0/d1/a0-a2,(a6)
                     clr.b    25(a6)
                     clr.l    30(a6)
                     move.l   (a2)+,d0
@@ -374,13 +374,13 @@ prepare_anim:       movem.l  d0-d7/a0-a6,-(sp)
                     bne      .error
                     move.l   a2,a0
                     move.l   8(a6),a1
-                    move.l   0(a6),d0
+                    move.l   (a6),d0
                     move.l   4(a6),d1
                     bsr      get_first_pic
                     move.l   a0,26(a6)
                     move.l   12(a6),a1
                     move.l   8(a6),a0
-                    move.l   0(a6),d0
+                    move.l   (a6),d0
                     moveq    #0,d1
                     move.b   24(a6),d1
                     mulu     d1,d0
@@ -433,7 +433,7 @@ decode_anim:        movem.l  d1-d7/a0-a6,-(sp)
                     move.l   a5,a3
                     add.l    d4,a3
                     move.l   a5,a4
-                    move.l   0(a6),d4
+                    move.l   (a6),d4
                     move.b   24(a6),d5
                     tst.b    25(a6)
                     beq      lbC000A88

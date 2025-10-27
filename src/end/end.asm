@@ -30,14 +30,14 @@ set_bkgnd_bps:      move.w   d0,6(a0)
                     swap     d0
                     add.l    #40,d0
                     move.l   #copperlist_main,CUSTOM+COP1LCH
-                    move.l   #$1A,d0
+                    moveq    #26,d0
 scroll_background:  bsr.b    wait_frame
-                    subq.b   #8,diwstrt
+                    subq.b   #8,copper_diwstrt
                     subq.w   #1,d0
                     bne.b    scroll_background
-                    move.b   #$2C,diwstrt
+                    move.b   #$2C,copper_diwstrt
                     move.l   #scroll_pic,d0
-                    move.l   #$300,d1
+                    move.l   #768,d1
                     moveq    #0,d7
 scroll_text:        btst     #CIAB_GAMEPORT1,CIAA
                     beq.b    exit
@@ -56,10 +56,10 @@ scroll_text:        btst     #CIAB_GAMEPORT1,CIAA
                     bne.b    scroll_text
 exit:               moveq    #26,d0
 remove_background:  bsr.b    wait_frame
-                    add.b    #8,diwstrt
+                    addq.b   #8,copper_diwstrt
                     subq.w   #1,d0
                     bne.b    remove_background
-                    move.b   #$FF,diwstrt
+                    move.b   #$FF,copper_diwstrt
                     moveq    #0,d0
                     rts
 
@@ -77,7 +77,7 @@ copperlist_main:    dc.w     SPR0PTH,0,SPR0PTL,0,SPR0POS,0,SPR0CTL,0,SPR1PTH,0,S
                     dc.w     SPR6PTH,0,SPR6PTL,0,SPR6POS,0,SPR6CTL,0,SPR7PTH,0,SPR7PTL,0,SPR7POS,0,SPR7CTL,0
                     dc.w     BPLCON0,$5200
                     dc.w     DIWSTRT
-diwstrt:            dc.w     $FF81
+copper_diwstrt:     dc.w     $FF81
                     dc.w     DIWSTOP,$2CC1
                     dc.w     DDFSTRT,$38,DDFSTOP,$D0
                     dc.w     BPL1MOD,0,BPL2MOD,0

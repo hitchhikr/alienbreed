@@ -154,16 +154,16 @@ lbC000260:          move.w   #2,lbW000BEC
                     ; no rts
 
 lbC0002AA:          btst     #CIAB_GAMEPORT1,CIAA
-                    beq.b    lbC0002D0
+                    beq.b    .interrupted
                     btst     #CIAB_GAMEPORT0,CIAA
-                    beq.b    lbC0002D0
+                    beq.b    .interrupted
                     bsr      wait_frame_joystick
                     bsr      lbC0007B8
                     tst.w    lbW000BF0
                     beq.b    lbC0002AA
                     rts
 
-lbC0002D0:          move.w   #1,end_text_flag
+.interrupted:       move.w   #1,end_text_flag
                     move.l   #-1,exit_flag
                     move.w   #1,lbW000BF0
                     rts
@@ -185,9 +185,9 @@ set_bps:            move.w   d0,6(a0)
                     rts
 
 scroll_blit_text:   not.w    scroll_slown_down
-                    beq     scroll_text
+                    beq      scroll_text
                     WAIT_BLIT
-                    move.w   #$8400,CUSTOM+DMACON
+                    move.w   #DMAF_SETCLR|DMAF_BLITHOG,CUSTOM+DMACON
                     clr.l    CUSTOM+BLTAMOD
                     move.l   #text_bitplane1+40,CUSTOM+BLTAPTH
                     move.l   #text_bitplane1,CUSTOM+BLTDPTH
@@ -199,7 +199,7 @@ scroll_blit_text:   not.w    scroll_slown_down
                     move.l   #text_bitplane2,CUSTOM+BLTDPTH
                     move.w   #(255*64)+20,CUSTOM+BLTSIZE
                     WAIT_BLIT
-                    move.w   #$400,CUSTOM+DMACON
+                    move.w   #DMAF_BLITHOG,CUSTOM+DMACON
                     rts
 
 scroll_text:        addq.w   #1,lbW00045C
