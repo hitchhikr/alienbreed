@@ -502,7 +502,10 @@ scr_tool_supplies:  bsr      copy_bkgnd_pic
                     bsr      clear_insufficient_funds_back
                     bra      .loop
 
-enough_money:       sub.l    d1,(a5)
+enough_money:
+                IFNE    DEBUG
+                    sub.l    d1,(a5)
+                ENDC
                     cmp.w    #2,d0                      ; energy injection
                     bne.b    add_player_health
                     add.l    #32,player_health
@@ -981,7 +984,9 @@ user_buying_weapon: move.l   owned_weapons(pc),d1
                     move.l   cur_credits(pc),a0
                     move.l   (a0),d1
                     mulu     #50,d0
+                IFNE    DEBUG
                     sub.l    d0,d1
+                ENDC
                     move.l   d1,(a0)
                     or.l     d2,owned_weapons
                     movem.l  d0-d7/a0-a6,-(sp)

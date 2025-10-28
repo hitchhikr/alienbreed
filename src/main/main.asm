@@ -671,7 +671,7 @@ player_2_next_weapon:
                     move.l   #14,player_2_tbl_weapon_pos
 
 copy_new_weapon_attrs:
-                    move.w   0(a1),PLAYER_WEAPON_BEHAVIOUR(a0)
+                    move.w   0(a1),PLAYER_WEAPON_INDEX(a0)
                     move.w   2(a1),PLAYER_WEAPON_SPEED+2(a0)
                     move.w   4(a1),PLAYER_WEAPON_RATE+2(a0)
                     move.w   6(a1),PLAYER_WEAPON_STRENGTH(a0)
@@ -680,7 +680,7 @@ copy_new_weapon_attrs:
                     move.w   12(a1),PLAYER_SHOT_AMOUNT(a0)
                     bra      game_level_loop
 
-copy_weapon_attrs:  move.w   0(a1),PLAYER_WEAPON_BEHAVIOUR(a0)
+copy_weapon_attrs:  move.w   0(a1),PLAYER_WEAPON_INDEX(a0)
                     move.w   2(a1),PLAYER_WEAPON_SPEED+2(a0)
                     move.w   4(a1),PLAYER_WEAPON_RATE+2(a0)
                     move.w   6(a1),PLAYER_WEAPON_STRENGTH(a0)
@@ -827,7 +827,7 @@ lbC0014E8:          moveq    #1,d0
                     cmp.w    #1,lbW0004BC
                     bne.b    lbC00152C
 lbC001518:          jsr      keyboard_handler
-                    jsr      lbC00B6D4
+                    jsr      retrieve_holocode_by_keyboard
 
 lbC00152C:          tst.w    game_running_flag
                     beq      lbC001596
@@ -1451,9 +1451,12 @@ global_time:        dc.b     0,0,':',0,0,':',0,0
 
 map_pos_y:          dc.l     16
 map_pos_x:          dc.l     0
-lbL0035D8:          dc.l     0
-lbL0035DC:          dc.l     0
-lbL0035E0:          dc.l     0
+offset_draw_tiles_horiz_y:
+                    dc.l     0
+offset_draw_tiles_vert_x:
+                    dc.l     0
+number_of_tiles_lines_to_draw:
+                    dc.l     0
 
 set_players_starting_pos: 
                     move.w   start_pos_x(pc),d0
@@ -1597,8 +1600,8 @@ copy_map_datas:     move.l   #(end_map_datas-cur_map_datas),d0
 
 lbC003832:          clr.w    lbW0039A4
                     clr.l    number_of_tiles_to_draw
-                    clr.l    lbL0039AA
-                    clr.l    lbL0039AE
+                    clr.l    offset_draw_tiles_horiz_x
+                    clr.l    offset_draw_tiles_vert_y
                     clr.w    lbB0039B2
                     clr.l    lbW0039B4
                     lea      lbW003E92(pc),a0
@@ -1642,26 +1645,28 @@ finalize_level:     bsr      lbC003832
                     rts
 
 draw_level_on_screen:
-                    move.l   #-1,lbL0035D8
-                    move.l   #18,lbL0035E0
+                    move.l   #-1,offset_draw_tiles_horiz_y
+                    move.l   #18,number_of_tiles_lines_to_draw
                     move.l   #21,number_of_tiles_to_draw
-                    clr.l    lbL0039AA
+                    clr.l    offset_draw_tiles_horiz_x
                     lea      lbW003E92(pc),a0
                     clr.w    0(a0)
                     lea      lbW003EA0(pc),a0
                     clr.w    0(a0)
 .loop:              bsr      draw_tiles_horiz
                     bsr      lbC003EFC
-                    addq.l   #1,lbL0035D8
-                    subq.l   #1,lbL0035E0
+                    addq.l   #1,offset_draw_tiles_horiz_y
+                    subq.l   #1,number_of_tiles_lines_to_draw
                     bne.b    .loop
                     rts
 
 lbW0039A4:          dc.w     0
 number_of_tiles_to_draw:
                     dc.l     0
-lbL0039AA:          dc.l     0
-lbL0039AE:          dc.l     0
+offset_draw_tiles_horiz_x:
+                    dc.l     0
+offset_draw_tiles_vert_y:
+                    dc.l     0
 lbB0039B2:          dc.b     0
                     even
 lbW0039B4:          dc.w     0
@@ -1748,128 +1753,128 @@ lbL003ADE:          dc.l     lbC003DAA
                     dc.l     lbC003E58
                     dc.l     -1
 
-lbC003AF2:          move.l   #-1,lbL0035D8
-                    move.l   #0,lbL0039AA
+lbC003AF2:          move.l   #-1,offset_draw_tiles_horiz_y
+                    move.l   #0,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW0041D8,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003B2C:          move.l   #-1,lbL0035D8
-                    move.l   #5,lbL0039AA
+lbC003B2C:          move.l   #-1,offset_draw_tiles_horiz_y
+                    move.l   #5,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW0041E4,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003B66:          move.l   #-1,lbL0035D8
-                    move.l   #10,lbL0039AA
+lbC003B66:          move.l   #-1,offset_draw_tiles_horiz_y
+                    move.l   #10,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW0041F0,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003BA0:          move.l   #-1,lbL0035D8
-                    move.l   #15,lbL0039AA
+lbC003BA0:          move.l   #-1,offset_draw_tiles_horiz_y
+                    move.l   #15,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW0041FC,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003BDA:          move.l   #16,lbL0035D8
-                    move.l   #0,lbL0039AA
+lbC003BDA:          move.l   #16,offset_draw_tiles_horiz_y
+                    move.l   #0,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW00422E,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003C14:          move.l   #16,lbL0035D8
-                    move.l   #5,lbL0039AA
+lbC003C14:          move.l   #16,offset_draw_tiles_horiz_y
+                    move.l   #5,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW00423A,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003C4E:          move.l   #16,lbL0035D8
-                    move.l   #10,lbL0039AA
+lbC003C4E:          move.l   #16,offset_draw_tiles_horiz_y
+                    move.l   #10,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_horiz
                     move.l   #lbW004246,lbL00411C
                     move.l   #7,lbL004120
                     bra      lbC004176
 
-lbC003C88:          move.l   #15,lbL0039AA
+lbC003C88:          move.l   #15,offset_draw_tiles_horiz_x
                     move.l   #6,number_of_tiles_to_draw
-                    move.l   #$10,lbL0035D8
+                    move.l   #16,offset_draw_tiles_horiz_y
                     bsr      draw_tiles_horiz
                     move.l   #lbW004252,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003CC2:          move.l   #20,lbL0035DC
-                    move.l   #0,lbL0039AE
+lbC003CC2:          move.l   #20,offset_draw_tiles_vert_x
+                    move.l   #0,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW004206,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003CFC:          move.l   #20,lbL0035DC
-                    move.l   #5,lbL0039AE
+lbC003CFC:          move.l   #20,offset_draw_tiles_vert_x
+                    move.l   #5,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW004210,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003D36:          move.l   #20,lbL0035DC
-                    move.l   #10,lbL0039AE
+lbC003D36:          move.l   #20,offset_draw_tiles_vert_x
+                    move.l   #10,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW00421A,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003D70:          move.l   #20,lbL0035DC
-                    move.l   #12,lbL0039AE
+lbC003D70:          move.l   #20,offset_draw_tiles_vert_x
+                    move.l   #12,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW004224,lbL00411C
                     move.l   #5,lbL004120
                     bra      lbC004176
 
-lbC003DAA:          move.l   #0,lbL0035DC
-                    move.l   #0,lbL0039AE
+lbC003DAA:          move.l   #0,offset_draw_tiles_vert_x
+                    move.l   #0,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW00425C,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003DE4:          move.l   #0,lbL0035DC
-                    move.l   #5,lbL0039AE
+lbC003DE4:          move.l   #0,offset_draw_tiles_vert_x
+                    move.l   #5,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW004266,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003E1E:          move.l   #0,lbL0035DC
-                    move.l   #10,lbL0039AE
+lbC003E1E:          move.l   #0,offset_draw_tiles_vert_x
+                    move.l   #10,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW004270,lbL00411C
                     move.l   #6,lbL004120
                     bra      lbC004176
 
-lbC003E58:          move.l   #0,lbL0035DC
-                    move.l   #12,lbL0039AE
+lbC003E58:          move.l   #0,offset_draw_tiles_vert_x
+                    move.l   #12,offset_draw_tiles_vert_y
                     move.l   #6,number_of_tiles_to_draw
                     bsr      draw_tiles_vert
                     move.l   #lbW00427A,lbL00411C
@@ -3130,10 +3135,10 @@ none:               rts
 draw_tiles_horiz:   move.l   map_pos_x(pc),d0
                     move.l   map_pos_y(pc),d1
                     lsr.l    #4,d0
-                    add.l    lbL0039AA(pc),d0
+                    add.l    offset_draw_tiles_horiz_x(pc),d0
                     add.w    d0,d0
                     lsr.w    #4,d1
-                    add.l    lbL0035D8(pc),d1
+                    add.l    offset_draw_tiles_horiz_y(pc),d1
                     add.w    d1,d1
                     add.w    d1,d1
                     lea      map_lines_pointers(pc),a6
@@ -3247,8 +3252,8 @@ draw_tiles_vert:    move.l   map_pos_x(pc),d0
                     move.l   map_pos_y(pc),d1
                     lsr.w    #4,d0
                     lsr.w    #4,d1
-                    add.l    lbL0039AE(pc),d1
-                    add.l    lbL0035DC(pc),d0
+                    add.l    offset_draw_tiles_vert_y(pc),d1
+                    add.l    offset_draw_tiles_vert_x(pc),d0
                     subq.l   #1,d1
                     add.w    d0,d0
                     add.w    d1,d1
@@ -3680,7 +3685,7 @@ lbL005D44:          dc.l     lbL00E9C2              ; 248
                     dc.w     16                     ; 254 (weapon speed)
 player_1_cur_weapon:
                     dc.w     0                      ; 256
-                    dc.w     1                      ; 258 (some weapon behaviour)
+                    dc.w     1                      ; 258 (weapon index)
                     dc.w     0                      ; 260
                     dc.w     3                      ; 262 (weapon frequency)
                     dc.w     0                      ; 264
@@ -5319,7 +5324,7 @@ tile_key:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
                     lea      lbL020EFE,a2
                     bsr      patch_tiles                        ; possibly changing the tile's gfx
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC008078
                     and.w    #$FFC0,(a3)                        ; change the property of the tile to 'floor'
                     move.w   #SAMPLE_KEY,sample_to_play
@@ -5340,7 +5345,7 @@ tile_first_aid:     movem.l  d0-d7/a0-a6,-(sp)
 .max:               move.w   d0,PLAYER_HEALTH(a0)
                     lea      lbL020ED2,a2
                     bsr      patch_tiles
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC0080CC
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
@@ -5357,7 +5362,7 @@ tile_ammo:          movem.l  d0-d7/a0-a6,-(sp)
                     move.w   #PLAYER_MAX_AMMOPCKS,PLAYER_AMMOPACKS(a0)
 .max:               lea      lbL020F2A,a2
                     bsr      patch_tiles
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC00811A
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_AMMO,sample_to_play
@@ -5369,7 +5374,7 @@ tile_1up:           movem.l  d0-d7/a0-a6,-(sp)
                     bsr      lbC00D144
                     lea      lbL020EA6,a2
                     bsr      patch_tiles
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC008154
                     and.w    #$FFC0,(a3)
                     addq.w   #1,PLAYER_LIVES(a0)
@@ -5384,7 +5389,7 @@ tile_add_100_credits:
                     add.l    #5000,PLAYER_CREDITS(a0)
                     move.l   #lbL020F56,a2
                     bsr      patch_tiles
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC008192
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
@@ -5398,7 +5403,7 @@ tile_add_1000_credits:
                     add.l    #50000,PLAYER_CREDITS(a0)
                     move.l   #lbL020F82,a2
                     bsr      patch_tiles
-                    tst.w    lbW00AD50
+                    tst.w    tile_patched_flag
                     beq.b    lbC0081D0
                     and.w    #$FFC0,(a3)
                     move.w   #SAMPLE_1STAID_CREDS,sample_to_play
@@ -6785,6 +6790,7 @@ lbC009C9E:          move.l   26(a0),a1
                     clr.l    34(a0)
                     clr.l    38(a0)
                     lea      alien1_struct(pc),a6
+                    ; swap x/y
                     move.w   ALIEN_POS_X(a6),d6
                     move.w   ALIEN_POS_Y(a6),d7
                     swap     d6
@@ -7398,7 +7404,7 @@ lbC00A772:          tst.w    (a0)
                     bmi      return
                     move.w   ALIEN_POS_X(a0),d4
                     move.w   ALIEN_POS_Y(a0),d5
-                    add.w    #90,a0
+                    add.w    #alien2_struct-alien1_struct,a0
                     cmp.w    d4,d0
                     bpl.b    lbC00A794
                     cmp.w    d1,d4
@@ -7407,7 +7413,7 @@ lbC00A772:          tst.w    (a0)
                     bpl.b    lbC00A794
                     cmp.w    d3,d5
                     bmi.b    lbC00A772
-lbC00A794:          sub.w    #90,a0
+lbC00A794:          sub.w    #alien2_struct-alien1_struct,a0
 
 patch_boss_door:    tst.w    lbW0004EA
                     bne      return
@@ -7538,6 +7544,7 @@ lbC00A994:          movem.w  (a6)+,d4-d7
                     move.w   (a2),d6
                     sub.w    4(a1),d6
                     subq.w   #4,a6
+                    ; referent alien struct
                     move.l   (a6),a6
                     move.l   a6,38(a0)
                     move.w   #1,34(a0)
@@ -7736,15 +7743,30 @@ lbC00AC26:          move.w   #32000,0(a1)
                     move.l   #lbL018CBA,40(a6)
 lbC00AC38:          rts
 
-lbL00AC3E:          dcb.l    2,0
-lbL00AC46:          dc.l     0
-lbL00AC4A:          dcb.l    3,0
-lbL00AC56:          dcb.l    3,0
-lbL00AC62:          dcb.l    3,0
-lbL00AC6E:          dcb.l    3,0
-lbL00AC7A:          dcb.l    3,0
-lbL00AC86:          dcb.l    3,0
-lbL00AC92:          dcb.l    3,0
+lbL00AC3E:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC4A:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC56:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC62:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC6E:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC7A:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC86:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
+lbL00AC92:          dc.w     0,0
+                    dc.l     0
+                    dc.l     0
 lbB00AC9E:          dc.l     0
 lbL00ACA2:          dc.l     lbL00AC3E
                     dc.l     lbL00AC4A
@@ -7788,16 +7810,16 @@ lbC00ACE4:          tst.w    lbW00ACE2
                     move.l   4(a1),a1
                     bra      lbC00AF00
 
-lbW00AD50:          dc.w     0
+tile_patched_flag:  dc.w     0
 
-patch_tiles:        clr.w    lbW00AD50
+patch_tiles:        clr.w    tile_patched_flag
                     cmp.l    lbW012A6A(pc),a3
                     beq      return
-                    lea      lbL00AC46(pc),a1
+                    lea      lbL00AC3E+8(pc),a1
                     move.l   #32,d7
 lbC00AD6E:          cmp.l    (a1),a3
                     beq      return
-                    add.l    #12,a1
+                    add.l    #3*4,a1
                     subq.w   #4,d7
                     bpl.b    lbC00AD6E
                     lea      lbL00ACA2(pc),a1
@@ -7820,7 +7842,7 @@ lbC00AD6E:          cmp.l    (a1),a3
                     move.l   a3,8(a1)
                     move.w   d0,(a1)
                     move.w   d1,2(a1)
-                    move.w   #1,lbW00AD50
+                    move.w   #1,tile_patched_flag
                     rts
 
 lbC00ADD6:          lea      lbL012380(pc),a0
@@ -7947,88 +7969,88 @@ lbC00AF8A:          move.l   a4,62(a0)
                     move.l   (sp)+,a4
                     rts
 
-lev1_dats:          dc.l    'L0MA',aliens_sprites_block
+lev1_load_struct:   dc.l    'L0MA',aliens_sprites_block
                     dc.l    'L0AN',bkgnd_anim_block
                     dc.l    'L0BO',aliens_sprites_block
                     
-lev2_dats:          dc.l    'L1MA',aliens_sprites_block
+lev2_load_struct:   dc.l    'L1MA',aliens_sprites_block
                     dc.l    'L1AN',bkgnd_anim_block
                     dc.l    'L1BO',aliens_sprites_block
 
-lev3_dats:          dc.l    'L2MA',aliens_sprites_block
+lev3_load_struct:   dc.l    'L2MA',aliens_sprites_block
                     dc.l    'L3AN',bkgnd_anim_block
                     dc.l    'L3BO',aliens_sprites_block
                     
-lev4_dats:          dc.l    'L3MA',aliens_sprites_block
+lev4_load_struct:   dc.l    'L3MA',aliens_sprites_block
                     dc.l    'L4AN',bkgnd_anim_block
                     dc.l    'L4BO',aliens_sprites_block
 
-lev5_dats:          dc.l    'L4MA',aliens_sprites_block
+lev5_load_struct:   dc.l    'L4MA',aliens_sprites_block
                     dc.l    'L4AN',bkgnd_anim_block
                     dc.l    'L4BO',aliens_sprites_block
                     
-lev6_dats:          dc.l    'L5MA',aliens_sprites_block
+lev6_load_struct:   dc.l    'L5MA',aliens_sprites_block
                     dc.l    'L3AN',bkgnd_anim_block
                     dc.l    'L3BO',aliens_sprites_block
 
-lev7_dats:          dc.l    'L6MA',aliens_sprites_block
+lev7_load_struct:   dc.l    'L6MA',aliens_sprites_block
                     dc.l    'L3AN',bkgnd_anim_block
                     dc.l    'L2BO',aliens_sprites_block
                     
-lev8_dats:          dc.l    'L7MA',aliens_sprites_block
+lev8_load_struct:   dc.l    'L7MA',aliens_sprites_block
                     dc.l    'L3AN',bkgnd_anim_block
                     dc.l    'L2BO',aliens_sprites_block
 
-lev9_dats:          dc.l    'L8MA',aliens_sprites_block
+lev9_load_struct:   dc.l    'L8MA',aliens_sprites_block
                     dc.l    'L2AN',bkgnd_anim_block
                     dc.l    'L2BO',aliens_sprites_block
                     
-lev10_dats:         dc.l    'L9MA',aliens_sprites_block
+lev10_load_struct:  dc.l    'L9MA',aliens_sprites_block
                     dc.l    'L1AN',bkgnd_anim_block
                     dc.l    'L1BO',aliens_sprites_block
                     
-lev11_dats:         dc.l    'LAMA',aliens_sprites_block
+lev11_load_struct:  dc.l    'LAMA',aliens_sprites_block
                     dc.l    'L1AN',bkgnd_anim_block
                     dc.l    'L2BO',aliens_sprites_block
                     
-lev12_dats:         dc.l    'LBMA',aliens_sprites_block
+lev12_load_struct:  dc.l    'LBMA',aliens_sprites_block
                     dc.l    'L5AN',bkgnd_anim_block
                     dc.l    'L5BO',aliens_sprites_block
                     
-load_level_1:       lea      lev1_dats(pc),a2
+load_level_1:       lea      lev1_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_2:       lea      lev2_dats(pc),a2
+load_level_2:       lea      lev2_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_3:       lea      lev3_dats(pc),a2
+load_level_3:       lea      lev3_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_4:       lea      lev4_dats(pc),a2
+load_level_4:       lea      lev4_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_5:       lea      lev5_dats(pc),a2
+load_level_5:       lea      lev5_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_6:       lea      lev6_dats(pc),a2
+load_level_6:       lea      lev6_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_7:       lea      lev7_dats(pc),a2
+load_level_7:       lea      lev7_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_8:       lea      lev8_dats(pc),a2
+load_level_8:       lea      lev8_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_9:       lea      lev9_dats(pc),a2
+load_level_9:       lea      lev9_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_10:      lea      lev10_dats(pc),a2
+load_level_10:      lea      lev10_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_11:      lea      lev11_dats(pc),a2
+load_level_11:      lea      lev11_load_struct(pc),a2
                     bra.b    load_level
 
-load_level_12:      lea      lev12_dats(pc),a2
+load_level_12:      lea      lev12_load_struct(pc),a2
                     ; no rts
 
 load_level:         bsr      load_map_file
@@ -8064,9 +8086,9 @@ load_map_file:      move.l   (a2)+,file_name
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   (a2)+,a1
                     move.l   #23040,d0
-.move_map_datas:    move.b   (a0)+,(a1)+
+.move_map_data:     move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    .move_map_datas
+                    bne.b    .move_map_data
                     rts
 
 file_name:          dc.b     '    ',0
@@ -8203,18 +8225,19 @@ retrieve_holocode:  move.l   a0,cur_holocode
                     bpl.b    .loop
                     bra      search_keysequence
 
-lbL00B6D0:          dc.l     0
+slowdown_keypress:  dc.l     0
 
-lbC00B6D4:          tst.w    input_enabled
+retrieve_holocode_by_keyboard:
+                    tst.w    input_enabled
                     beq      return
                     tst.w    in_intex_map_flag
                     beq      return
-                    subq.l   #1,lbL00B6D0
-                    tst.l    lbL00B6D0
+                    subq.l   #1,slowdown_keypress
+                    tst.l    slowdown_keypress
                     bpl      return
                     tst.b    key_pressed
                     beq      return
-                    move.l   #2,lbL00B6D0
+                    move.l   #2,slowdown_keypress
                     move.b   key_pressed,d0
                     move.l   keysequence_ptr(pc),a0            ; store the key value in the sequences buffer
                     move.b   d0,(a0)
@@ -8222,24 +8245,25 @@ lbC00B6D4:          tst.w    input_enabled
 
 search_keysequence: lea      input_table(pc),a0
                     moveq    #0,d5
-lbC00B728:          move.l   (a0),a1
+loop_next_keysequence:
+                    move.l   (a0),a1
                     lea      current_keysequence(pc),a2
                     moveq    #0,d4
-lbC00B732:          move.b   (a2)+,d1
+.search_index:      move.b   (a2)+,d1
                     cmp.b    (a1)+,d1
-                    bne.b    search_next_key_sequence
+                    bne.b    search_next_keysequence
                     tst.b    (a1)
                     bmi      run_keysequence_routine
                     addq.w   #1,d4
                     cmp.w    d4,d5
-                    bhi.b    lbC00B732
+                    bhi.b    .search_index
                     move.w   d4,d5
-                    bra      lbC00B732
+                    bra      .search_index
 
-search_next_key_sequence:
+search_next_keysequence:
                     addq.l   #8,a0
                     tst.l    (a0)
-                    bpl      lbC00B728
+                    bpl      loop_next_keysequence
                     lea      current_keysequence(pc),a0
                     tst.b    0(a0,d5.w)
                     beq      return
@@ -9189,13 +9213,13 @@ lbC00DDA2:          bsr      lbC00DE18
                     rts
 
 lbC00DDB8:          cmp.w    #1,lbW00DC72
-                    beq.b    lbC00DDE2
+                    beq.b    .loop
                     movem.l  d0-d7/a0-a6,-(sp)
                     move.l   #lbW0231BA,sample_struct_to_play
                     clr.w    lbW023204
                     move.w   #1,lbW00DC72
                     movem.l  (sp)+,d0-d7/a0-a6
-lbC00DDE2:          add.l    d1,map_pos_x
+.loop:              add.l    d1,map_pos_x
                     add.l    d1,map_pos_y
                     movem.l  d0/d1,-(sp)
                     bsr      lbC00DE18
@@ -9228,7 +9252,7 @@ lbC00DE46:          subq.w   #1,lbW00DF30
                     move.l   a0,lbL00DF32
 lbC00DE6E:          addq.l   #4,lbL00DF32
                     move.l   (a0),a1
-                    move.l   #lbL018C2E,$28(a1)
+                    move.l   #lbL018C2E,40(a1)
                     tst.w    lbW00DF2E
                     beq      return
                     move.w   #1,lbW00DF30
@@ -9428,20 +9452,20 @@ lbC00E1AA:          addq.l   #4,244(a0)
                     move.l   PLAYER_WEAPON_SPEED(a0),d1
                     tst.l    lbW0039B4
                     beq.b    lbC00E1DC
-                    cmp.w    #5,PLAYER_WEAPON_BEHAVIOUR(a0)
+                    cmp.w    #5,PLAYER_WEAPON_INDEX(a0)
                     bne.b    lbC00E1DC
                     addq.l   #4,d1
 lbC00E1DC:          move.w   d4,d6
                     move.w   d5,d7
                     mulu     d1,d4
                     mulu     d1,d5
-                    cmp.w    #3,PLAYER_WEAPON_BEHAVIOUR(a0)
+                    cmp.w    #3,PLAYER_WEAPON_INDEX(a0)
                     beq.b    lbC00E200
                     add.w    d6,d6
                     add.w    d7,d7
-                    cmp.w    #4,PLAYER_WEAPON_BEHAVIOUR(a0)
+                    cmp.w    #4,PLAYER_WEAPON_INDEX(a0)
                     beq.b    lbC00E200
-                    cmp.w    #6,PLAYER_WEAPON_BEHAVIOUR(a0)
+                    cmp.w    #6,PLAYER_WEAPON_INDEX(a0)
                     bne.b    lbC00E21E
 lbC00E200:          lea      lbL00EAA6(pc),a1
                     addq.w   #1,(a1)
@@ -9462,7 +9486,7 @@ lbC00E21E:          move.w   d4,4(a3)
                     move.w   270(a0),18(a3)
                     move.l   a0,PROJECTILE_PLAYER(a3)
                     lea      weapons_behaviour_table(pc),a2
-                    move.w   PLAYER_WEAPON_BEHAVIOUR(a0),d3
+                    move.w   PLAYER_WEAPON_INDEX(a0),d3
                     add.w    d3,d3
                     add.w    d3,d3
                     move.l   0(a2,d3.w),a2
@@ -9470,7 +9494,7 @@ lbC00E21E:          move.w   d4,4(a3)
                     move.l   8(a3),a1
                     move.l   a4,40(a1)
                     lea      lbW00EA3E(pc),a2
-                    cmp.w    #2,PLAYER_WEAPON_BEHAVIOUR(a0)
+                    cmp.w    #2,PLAYER_WEAPON_INDEX(a0)
                     bpl.b    lbC00E264
                     add.l    #32,a2
 lbC00E264:          move.l   16(a0),a4
