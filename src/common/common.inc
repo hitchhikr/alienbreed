@@ -95,6 +95,8 @@ PLAYER_MAX_HEALTH   equ      64
 
 PLAYER_HW_REGISTER  equ      0
 PLAYER_CUR_WEAPON   equ      256
+PLAYER_WEAPON_BEHAVIOUR equ  258
+PLAYER_WEAPON_STRENGTH equ   266
 PLAYER_POS_X        equ      300
 PLAYER_POS_Y        equ      302
 PLAYER_ALIVE        equ      316
@@ -107,11 +109,16 @@ PLAYER_KEYS         equ      352
 PLAYER_CREDITS      equ      356
 PLAYER_EXTRA_SPD_X  equ      376
 PLAYER_EXTRA_SPD_Y  equ      378
+PLAYER_WEAPON_SMP   equ      384
+PLAYER_SHOT_AMOUNT  equ      398
 PLAYER_OWNEDWEAPONS equ      402
 PLAYER_OLD_POS_X    equ      428
 PLAYER_OLD_POS_Y    equ      432
 PLAYER_SHOTS        equ      436
 PLAYER_SCORE        equ      440
+
+PROJECTILE_STRENGTH equ      16
+PROJECTILE_PLAYER   equ      20
 
 PLAYER_FACE_UP      equ      1
 PLAYER_FACE_UP_LEFT equ      8
