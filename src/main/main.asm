@@ -189,10 +189,10 @@ old_intena:         dc.w     0
 lbW0004BA:          dc.w     0
 lbW0004BC:          dc.w     0
 old_lev3irq:        dc.l     0
-lbW0004C2:          dc.w     0
+game_running_flag:  dc.w     0
 lbW0004C4:          dc.w     0
 run_intex_ptr:      dc.l     0
-lbW0004D0:          dc.w     0
+in_intex_map_flag:  dc.w     0
 player_using_intex: dc.l     0
 lbW0004D6:          dc.w     8
 lbW0004D8:          dc.w     0,1,0
@@ -232,7 +232,8 @@ cur_briefing_text:  dc.l     text_briefing_level_2
 number_players:     dc.l     1
 level_flag:         dc.l     -1
 flag_end_level:     dcb.w    2,0
-lbW00057A:          dcb.w    2,0
+in_destruction_sequence_flag:
+                    dcb.w    2,0
 flag_jump_to_gameover:
                     dc.l     0
 flag_destruct_level:
@@ -518,7 +519,7 @@ run_end:            jsr      stop_sound
                     rts
 
 game_level_loop:    jsr      destruction_sequence
-                    move.w   #1,lbW0004C2
+                    move.w   #1,game_running_flag
                     clr.w    lbW0004BA
 lbC000E0E:          tst.w    lbW0004BA
                     beq.b    lbC000E0E
@@ -609,10 +610,10 @@ lbC001036:          cmp.b    #KEY_RIGHT_ALT,key_pressed
 lbC001064:          bra      game_level_loop
 
 trigger_game_over:  move.l   #1,flag_jump_to_gameover
-                    clr.w    lbW0004C2
+                    clr.w    game_running_flag
                     rts
 
-lbC0010B2:          clr.w    lbW0004C2
+lbC0010B2:          clr.w    game_running_flag
                     rts
 
 set_player_cur_weapon:
@@ -671,8 +672,8 @@ player_2_next_weapon:
 
 copy_new_weapon_attrs:
                     move.w   0(a1),PLAYER_WEAPON_BEHAVIOUR(a0)
-                    move.w   2(a1),254(a0)
-                    move.w   4(a1),262(a0)
+                    move.w   2(a1),PLAYER_WEAPON_SPEED+2(a0)
+                    move.w   4(a1),PLAYER_WEAPON_RATE+2(a0)
                     move.w   6(a1),PLAYER_WEAPON_STRENGTH(a0)
                     move.w   8(a1),270(a0)
                     move.w   10(a1),PLAYER_WEAPON_SMP(a0)
@@ -680,8 +681,8 @@ copy_new_weapon_attrs:
                     bra      game_level_loop
 
 copy_weapon_attrs:  move.w   0(a1),PLAYER_WEAPON_BEHAVIOUR(a0)
-                    move.w   2(a1),254(a0)
-                    move.w   4(a1),262(a0)
+                    move.w   2(a1),PLAYER_WEAPON_SPEED+2(a0)
+                    move.w   4(a1),PLAYER_WEAPON_RATE+2(a0)
                     move.w   6(a1),PLAYER_WEAPON_STRENGTH(a0)
                     move.w   8(a1),270(a0)
                     move.w   10(a1),PLAYER_WEAPON_SMP(a0)
@@ -821,14 +822,14 @@ lbC0014E8:          moveq    #1,d0
                     moveq    #0,d0
                     jsr      user_input
                     move.b   d0,player_2_input
-                    tst.w    lbW0004D0
+                    tst.w    in_intex_map_flag
                     bne      lbC001518
                     cmp.w    #1,lbW0004BC
                     bne.b    lbC00152C
 lbC001518:          jsr      keyboard_handler
                     jsr      lbC00B6D4
 
-lbC00152C:          tst.w    lbW0004C2
+lbC00152C:          tst.w    game_running_flag
                     beq      lbC001596
                     lea      player_1_data(pc),a0
                     bsr      lbC007B4C
@@ -995,10 +996,10 @@ init_player_dats:   clr.l    PLAYER_SHOTS(a0)
                     move.w   #%10,PLAYER_OWNEDWEAPONS(a0)
                 ENDC
                     move.w   #4,PLAYER_SHOT_AMOUNT(a0)
-                    clr.w    394(a0)
+                    clr.w    PLAYER_SHOT_AMOUNT_COUNTER(a0)
                     move.w   #37,PLAYER_WEAPON_SMP(a0)
-                    move.l   #16,252(a0)
-                    move.l   #3,260(a0)
+                    move.l   #16,PLAYER_WEAPON_SPEED(a0)
+                    move.l   #3,PLAYER_WEAPON_RATE(a0)
                     move.l   #WEAPON_MACHINEGUN,PLAYER_CUR_WEAPON(a0)
                     move.w   #1,PLAYER_ALIVE(a0)
                     move.w   #3,PLAYER_CUR_SPRITE(a0)
@@ -1249,12 +1250,13 @@ cur_timer_digit_hi: dc.b     0
 cur_timer_digit_lo: dc.b     0
 self_destruct_initiated:
                     dc.w     0
-lbW002FDE:          dc.w     0
+destruction_sequence_already_initialized:
+                    dc.w     0
 lbW002FE0:          dc.w     0
 
 set_destruction_timer:
                     clr.w    self_destruct_initiated
-                    clr.w    lbW002FDE
+                    clr.w    destruction_sequence_already_initialized
                     move.b   timer_digit_hi(pc),d0
                     move.b   timer_digit_lo(pc),d1
                     move.b   d0,cur_timer_digit_hi
@@ -1264,8 +1266,8 @@ set_destruction_timer:
 destruction_sequence:
                     tst.w    self_destruct_initiated
                     beq      void
-                    tst.w    lbW002FDE
-                    bne      lbC0030AA
+                    tst.w    destruction_sequence_already_initialized
+                    bne      .proceed
                     lea      lbW0122F0,a0
                     move.w   #6,(a0)
                     jsr      lbC0111C4
@@ -1282,13 +1284,13 @@ destruction_sequence:
                     lea      copper_main_palette,a2
                     moveq    #32,d0
                     move.w   #4,frames_slowdown
-                    move.w   #1,lbW002FDE
+                    move.w   #1,destruction_sequence_already_initialized
                     jsr      prep_fade_speeds_fade_to_rgb
-                    move.w   #1,lbW00057A
+                    move.w   #1,in_destruction_sequence_flag
                     move.l   #lbW02316A,sample_struct_to_play
                     clr.w    lbW023204
 
-lbC0030AA:          addq.w   #1,lbW002FE0
+.proceed:           addq.w   #1,lbW002FE0
                     cmp.w    #25,lbW002FE0
                     bne      void
                     clr.w    lbW002FE0
@@ -1409,7 +1411,6 @@ create_time_decimal_table:
                     clr.b    d1
                     subq.w   #1,d2
                     bne.b    create_time_decimal_table
-                    
                     lea      global_time(pc),a0
                     moveq    #0,d0
                     move.b   time_hours,d0
@@ -3680,7 +3681,7 @@ lbL005D44:          dc.l     lbL00E9C2              ; 248
 player_1_cur_weapon:
                     dc.w     0                      ; 256
                     dc.w     1                      ; 258 (some weapon behaviour)
-                    dc.w     0                      ; 260 (not used ?)
+                    dc.w     0                      ; 260
                     dc.w     3                      ; 262 (weapon frequency)
                     dc.w     0                      ; 264
                     dc.w     9                      ; 266 (weapon strength)
@@ -3701,7 +3702,8 @@ player_1_ammos:     dc.w     0                      ; 348
                     dc.w     0                      ; 350
 player_1_keys:      dc.l     0                      ; 352
 player_1_credits:   dc.l     0                      ; 356
-                    dc.l     0                      ; 360
+                    dc.w     0                      ; 360
+                    dc.w     0                      ; 362
                     dc.l     0                      ; 364 (not used ?)
                     dc.l     0                      ; 368
 lbW005DC0:          dc.w     0                      ; 372
@@ -5186,7 +5188,7 @@ tile_exit:          tst.w    lbW007B46
                     move.w   #1,372(a0)
                     tst.w    exit_unlocked
                     bne.b    lbC007EA6
-                    tst.w    lbW00057A
+                    tst.w    in_destruction_sequence_flag
                     beq      void
 lbC007EA6:          cmp.l    #player_1_data,a0
                     beq.b    lbC007EC4
@@ -7757,9 +7759,9 @@ lbC00ACC2:          clr.l    lbB00AC9E
                     clr.w    lbW00ACE2
                     lea      lbL00AC3E(pc),a6
                     moveq    #96,d0
-lbC00ACDA:          clr.b    (a6)+
+.clear:             clr.b    (a6)+
                     subq.l   #1,d0
-                    bne.b    lbC00ACDA
+                    bne.b    .clear
                     rts
 
 lbW00ACE2:          dc.w     0
@@ -8031,9 +8033,9 @@ load_level_12:      lea      lev12_dats(pc),a2
 
 load_level:         bsr      load_map_file
                     bsr      copy_map_datas
-                    bsr      load_map_sprites           ; load animated tiles
-                    bsr      load_map_bkgnd_tiles       ; load background tiles
-                    bra      load_map_sprites           ; load sprites
+                    bsr      load_map_sprites                   ; load animated tiles
+                    bsr      load_map_bkgnd_tiles               ; load background tiles
+                    bra      load_map_sprites                   ; load sprites
 
 load_map_bkgnd_tiles:
                     move.l   tilespic_filename(pc),file_name    ; filename coming from the map file
@@ -8062,9 +8064,9 @@ load_map_file:      move.l   (a2)+,file_name
                     movem.l  (sp)+,d0-d7/a0-a6
                     move.l   (a2)+,a1
                     move.l   #23040,d0
-move_map_datas:     move.b   (a0)+,(a1)+
+.move_map_datas:    move.b   (a0)+,(a1)+
                     subq.w   #1,d0
-                    bne.b    move_map_datas
+                    bne.b    .move_map_datas
                     rts
 
 file_name:          dc.b     '    ',0
@@ -8117,7 +8119,7 @@ search_starting_pos_loop:
                     move.w   (a0)+,d1
                     and.w    #$3F,d1
                     cmp.w    #53,d1
-                    beq.b    lbC00B58A
+                    beq.b    set_start_pos
                     add.w    #16,d2
                     cmp.w    #124*16,d2
                     bne.b    starting_pos_next_line
@@ -8126,19 +8128,20 @@ search_starting_pos_loop:
 starting_pos_next_line:
                     subq.l   #1,d0
                     bne.b    search_starting_pos_loop
+                    ; default
                     move.w   #1280,start_pos_x
                     move.w   #320,start_pos_y
                     rts
 
-lbC00B58A:          addq.w   #4,d2
+set_start_pos:      addq.w   #4,d2
                     add.w    #58,d3
                     tst.w    d2
-                    bpl.b    lbC00B598
+                    bpl.b    .bound_x
                     clr.w    d2
-lbC00B598:          tst.w    d3
-                    bpl.b    lbC00B59E
+.bound_x:           tst.w    d3
+                    bpl.b    .bound_y
                     clr.w    d3
-lbC00B59E:          ext.l    d2
+.bound_y:           ext.l    d2
                     ext.l    d3
                     move.w   d2,start_pos_x
                     move.w   d3,start_pos_y
@@ -8204,7 +8207,7 @@ lbL00B6D0:          dc.l     0
 
 lbC00B6D4:          tst.w    input_enabled
                     beq      return
-                    tst.w    lbW0004D0
+                    tst.w    in_intex_map_flag
                     beq      return
                     subq.l   #1,lbL00B6D0
                     tst.l    lbL00B6D0
@@ -8269,29 +8272,24 @@ input_table:        dc.l     holocode_level_2,enter_level_2_holocode
                     dc.l     holocode_level_10,enter_level_10_holocode
                     dc.l     -1,-1
 
-holocode_level_2:   dc.b     '55955'
-                    dc.b     -1
-holocode_level_4:   dc.b     '48361'
-                    dc.b     -1
-holocode_level_6:   dc.b     '63556'
-                    dc.b     -1
-holocode_level_8:   dc.b     '86723'
-                    dc.b     -1
-holocode_level_10:  dc.b     '25194'
-                    dc.b     -1
+holocode_level_2:   dc.b     '55955',-1
+holocode_level_4:   dc.b     '48361',-1
+holocode_level_6:   dc.b     '63556',-1
+holocode_level_8:   dc.b     '86723',-1
+holocode_level_10:  dc.b     '25194',-1
 
 convert_input_table_to_keycodes: 
                     lea      input_table(pc),a0
-lbC00C004:          move.l   (a0),a1
-lbC00C006:          move.b   (a1),d0
+.next_holocode:     move.l   (a0),a1
+.convert_code:      move.b   (a1),d0
                     bsr.b    get_ascii_keycode
                     move.b   d0,(a1)
                     addq.l   #1,a1
                     tst.b    (a1)
-                    bpl.b    lbC00C006
+                    bpl.b    .convert_code
                     addq.l   #8,a0
                     tst.l    (a0)
-                    bpl.b    lbC00C004
+                    bpl.b    .next_holocode
                     rts
 
 get_ascii_keycode:  lea      keycode_ascii_letters(pc),a5
@@ -8307,12 +8305,11 @@ get_ascii_keycode:  lea      keycode_ascii_letters(pc),a5
                     rts
 
 keycode_ascii_letters:
-                    dc.b     ' ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
-                    dc.b     -1
+                    dc.b     ' ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890',-1
 ascii_keycodes_table:
                     dc.b     $40,$20,$35,$33,$22,$12,$23,$24,$25,$17,$26,$27
                     dc.b     $28,$37,$36,$18,$19,$10,$13,$21,$14,$16,$34,$11
-                    dc.b     $32,$15,$31,1,2,3,4,5,6,7,8,9,10,$FF
+                    dc.b     $32,$15,$31,1,2,3,4,5,6,7,8,9,10,-1
 cur_level:          dc.l     0
 
 enter_level_2_holocode:
@@ -8400,16 +8397,17 @@ player_1_not_invincible:
 player_2_not_invincible:
                     rts
 
-lbW00CEE2:          dc.w     50
+pause_counter:      dc.w     50
 
-display_pause:      clr.w    lbW0004C2
+display_pause:      clr.w    game_running_flag
                     clr.b    key_pressed
                     move.w   #10,slowdown_pause_display
-                    move.w   #50,lbW00CEE2
-lbC00CF00:          btst     #4,player_2_input
-                    bne.b    lbC00CF00
+                    move.w   #50,pause_counter
+.wait_user_input_release:
+                    btst     #4,player_2_input
+                    bne.b    .wait_user_input_release
                     btst     #4,player_1_input
-                    bne.b    lbC00CF00
+                    bne.b    .wait_user_input_release
                     lea      top_bar_gfx,a0
                     lea      player_1_status_bar,a1
                     move.l   #(38*8*2),d0
@@ -8421,17 +8419,17 @@ lbC00CF00:          btst     #4,player_2_input
                     lea      top_bar_gfx,a0
                     lea      bottom_bar_gfx,a0
                     move.l   #304,d0
-lbC00CF56:          st.b     (a0)+
+.fill:              st.b     (a0)+
                     st.b     (a1)+
                     subq.w   #1,d0
-                    bne.b    lbC00CF56
+                    bne.b    .fill
 lbC00CF62:          lea      lbL099B34,a0
                     move.l   #304,d0
                     bsr      clear_array_byte
                     lea      lbL099D94,a0
                     move.l   #304,d0
                     bsr      clear_array_byte
-                    move.l   #$19,d0
+                    moveq    #25,d0
 lbC00CF8C:          btst     #4,player_2_input
                     bne      remove_pause
                     btst     #4,player_1_input
@@ -8446,7 +8444,7 @@ lbC00CFBA:          cmp.b    #254,CUSTOM+VHPOSR
                     bne.b    lbC00CFDA
                     btst     #5,player_1_input
                     beq.b    lbC00CFE8
-lbC00CFDA:          subq.w   #1,lbW00CEE2
+lbC00CFDA:          subq.w   #1,pause_counter
                     bne.b    lbC00CFE8
                     jmp      trigger_game_over
 
@@ -8481,7 +8479,7 @@ lbC00D058:          cmp.b    #$FE,CUSTOM+VHPOSR
                     beq.b    lbC00D084
                     btst     #5,player_1_input
                     beq.b    lbC00D084
-                    subq.w   #1,lbW00CEE2
+                    subq.w   #1,pause_counter
                     bne.b    lbC00D084
                     jmp      trigger_game_over
 
@@ -8490,10 +8488,11 @@ lbC00D084:          subq.w   #1,d0
                     bra      lbC00CF62
 
 remove_pause:       clr.b    key_pressed
-lbC00D092:          btst     #4,player_2_input
-                    bne.b    lbC00D092
+wait_user_input_release:
+                    btst     #4,player_2_input
+                    bne.b    wait_user_input_release
                     btst     #4,player_1_input
-                    bne.b    lbC00D092
+                    bne.b    wait_user_input_release
                     lea      top_bar_gfx,a1
                     lea      player_1_status_bar,a0
                     move.l   #(38*8*2),d0
@@ -8502,7 +8501,7 @@ lbC00D092:          btst     #4,player_2_input
                     lea      player_2_status_bar,a0
                     move.l   #(38*8*2),d0
                     jsr      copy_byte_array
-                    move.w   #1,lbW0004C2
+                    move.w   #1,game_running_flag
                     jmp      game_level_loop
 
 game_paused_pic:    incbin   'game_paused_96x7.lo1'
@@ -8626,8 +8625,8 @@ set_all_aliens_to_default:
                     bra      set_alien_default_vars
 
 display_map_overview:
-                    clr.w    lbW0004C2
-                    move.w   #1,lbW0004D0
+                    clr.w    game_running_flag
+                    move.w   #1,in_intex_map_flag
                     move.w   #1,frames_slowdown
                     lea      copper_main_palette,a0
                     lea      palette_black,a1
@@ -8663,24 +8662,22 @@ lbC00D3CA:          jsr      wait
                     move.l   #(32*40),d0
                     jsr      clear_array_long
                     bsr      plot_map_overview_data
-
 .loop:              jsr      wait_raster
                     bsr      display_elapsed_time
-                    
                     btst     #6,player_2_input
-                    bne.b    lbC00D430
+                    bne.b    .wait_user_input_release
                     btst     #6,player_1_input
-                    bne.b    lbC00D430
+                    bne.b    .wait_user_input_release
                     cmp.b    #KEY_M,key_pressed
                     bne.b    .loop
-
-lbC00D426:          cmp.b    #KEY_M,key_pressed
-                    beq.b    lbC00D426
-
-lbC00D430:          btst     #6,player_2_input
-                    bne.b    lbC00D430
+.wait_m_key_release:
+                    cmp.b    #KEY_M,key_pressed
+                    beq.b    .wait_m_key_release
+.wait_user_input_release:
+                    btst     #6,player_2_input
+                    bne.b    .wait_user_input_release
                     btst     #6,player_1_input
-                    bne.b    lbC00D430
+                    bne.b    .wait_user_input_release
 
 exit_map_overview:  bsr      wait_raster
                     lea      overmap_palette,a0
@@ -8695,22 +8692,22 @@ exit_map_overview:  bsr      wait_raster
                     move.l   cur_palette_ptr,a1
                     moveq    #32,d0
                     bsr      prep_fade_speeds_fade_in
-                    clr.w    lbW0004D0
-                    move.w   #1,lbW0004C2
+                    clr.w    in_intex_map_flag
+                    move.w   #1,game_running_flag
                     jmp      game_level_loop
 
 display_elapsed_time:
-                    bsr      lbC00D4D4
+                    bsr      clear_elapsed_time
                     bsr      calc_elapsed_time
                     lea      text_time(pc),a0
                     lea      font_struct(pc),a1
                     bra      display_text
 
-lbC00D4D4:
+clear_elapsed_time:
                     WAIT_BLIT
                     move.l   #$1000000,CUSTOM+BLTCON0
                     clr.w    CUSTOM+BLTDMOD
-                    move.l   #lbL0FE08C,CUSTOM+BLTDPTH
+                    move.l   #elapsed_time_plane,CUSTOM+BLTDPTH
                     move.w   #(12*64)+20,CUSTOM+BLTSIZE
                     WAIT_BLIT
                     rts
@@ -8783,26 +8780,24 @@ get_map_overview_player_pos:
                     move.w   PLAYER_POS_Y(a0),d3
                     sub.w    d0,d2
                     tst.w    d2
-                    bpl.b    lbC00D5DC
+                    bpl.b    .delta_x
                     neg.w    d2
-lbC00D5DC:          sub.w    d1,d3
+.delta_x:           sub.w    d1,d3
                     tst.w    d3
-                    bpl.b    lbC00D5E4
+                    bpl.b    .delta_y
                     neg.w    d3
-lbC00D5E4:          cmp.w    d2,d3
-                    bpl.b    lbC00D5EA
+.delta_y:           cmp.w    d2,d3
+                    bpl.b    .greater_delta
                     move.w   d2,d3
-lbC00D5EA:          ext.l    d3
+.greater_delta:     ext.l    d3
                     lsr.l    #4,d3
                     cmp.w    #150,d3
-                    bmi.b    lbC00D5F8
+                    bmi.b    .max
                     move.w   #150,d3
-lbC00D5F8:          tst.l    d3
+.max:               tst.l    d3
                     beq      return
                     move.l   d3,d0
                     move.l   d0,lbL000520
-                    ; no rts
-display_map_overview_interference:
                     move.l   d0,-(sp)
                     moveq    #74,d0
                     moveq    #0,d2
@@ -8956,8 +8951,8 @@ discard_intex:      clr.l    run_intex_ptr
 run_intex:          tst.w    self_destruct_initiated
                     bne.b    discard_intex
                     jsr      clear_samples_vars
-                    clr.w    lbW0004C2
-                    move.w   #1,lbW0004D0
+                    clr.w    game_running_flag
+                    move.w   #1,in_intex_map_flag
                     move.w   #13,sample_to_play
                     jsr      trigger_sample
                     lea      copper_main_palette,a0
@@ -9112,8 +9107,8 @@ run_intex:          tst.w    self_destruct_initiated
                     move.l   #copperlist_main,CUSTOM+COP1LCH
                     jsr      wait
                     jsr      clear_samples_vars
-                    clr.w    lbW0004D0
-                    move.w   #1,lbW0004C2
+                    clr.w    in_intex_map_flag
+                    move.w   #1,game_running_flag
                     rts
 
 save_player_owned_weapons:
@@ -9134,7 +9129,7 @@ lbW00DC72:          dc.w     0
 lbW00DC74:          dc.w     0
 
 do_level_destruction:
-                    clr.w    lbW0004C2
+                    clr.w    game_running_flag
                     clr.w    lbW00DC72
                     clr.w    lbW00DC74
                     bsr      lbC00DF6A
@@ -9159,9 +9154,7 @@ do_level_destruction:
                     moveq    #10,d0
                     moveq    #4,d1
                     bsr      lbC00DDB8
-
                     jsr      wait
-
                     move.w   #DMAF_SPRITE,sprites_dma
                     lea      palette_white,a0
                     lea.l    level_palette2,a1
@@ -9314,12 +9307,6 @@ lbL00DF82:          dc.l     lbW013308
                     dc.l     lbW012A28
                     dc.l     0
 
-lbC00DFEE:          move.l   #19200,d0
-.clear_loop:        clr.l    (a0)+
-                    subq.l   #1,d0
-                    bne.b    .clear_loop
-                    rts
-
 get_rnd_number:     movem.l  d2/d3,-(sp)
                     movem.l  (random_seed)(pc),d0/d1
                     and.b    #$E,d0
@@ -9343,14 +9330,14 @@ get_rnd_number:     movem.l  d2/d3,-(sp)
 
 rand:               addq.w   #1,d0
                     move.w   d0,d2
-                    beq.b    lbC00E062
+                    beq.b    .nop
                     bsr.b    get_rnd_number
                     clr.w    d0
                     swap     d0
                     divu     d2,d0
                     clr.w    d0
                     swap     d0
-lbC00E062:          rts
+.nop:               rts
 
 random_seed:        dcb.l    2,0
 
@@ -9362,9 +9349,9 @@ get_alien_rnd_speed:
 
 cur_aliens_speed:   dc.w     0
 
-lbC00E08A:          cmp.w    #$8000,360(a0)
+lbC00E08A:          cmp.w    #$8000,PLAYER_WEAPON_RATE_COUNTER(a0)
                     beq.b    lbC00E096
-                    subq.w   #1,360(a0)
+                    subq.w   #1,PLAYER_WEAPON_RATE_COUNTER(a0)
 lbC00E096:          rts
 
 no_more_ammo_packs: subq.w   #1,lbW0004E4
@@ -9373,13 +9360,13 @@ no_more_ammo_packs: subq.w   #1,lbW0004E4
                     move.w   #4,lbW0004E4
                     move.w   #47,d0
                     move.w   #1,d2
-                    tst.w    lbW00057A
-                    bne.b    lbC00E0C2
+                    tst.w    in_destruction_sequence_flag
+                    bne.b    .play_on_channel_2
                     move.w   #2,d2
-lbC00E0C2:          jmp      trigger_sample_select_channel
+.play_on_channel_2: jmp      trigger_sample_select_channel
 
-lbC00E0C8:          subq.w   #1,360(a0)
-                    tst.w    360(a0)
+lbC00E0C8:          subq.w   #1,PLAYER_WEAPON_RATE_COUNTER(a0)
+                    tst.w    PLAYER_WEAPON_RATE_COUNTER(a0)
                     bpl      return
                     cmp.w    #1,PLAYER_AMMOPACKS(a0)
                     bpl.b    lbC00E136
@@ -9405,9 +9392,9 @@ lbC00E13A:          cmp.w    #2,PLAYER_AMMUNITIONS(a0)
                     tst.w    PLAYER_AMMOPACKS(a0)
                     beq      no_more_ammo_packs
 lbC00E14A:          addq.l   #1,PLAYER_SHOTS(a0)
-                    subq.w   #1,394(a0)
+                    subq.w   #1,PLAYER_SHOT_AMOUNT_COUNTER(a0)
                     bpl.b    lbC00E178
-                    move.w   PLAYER_SHOT_AMOUNT(a0),394(a0)
+                    move.w   PLAYER_SHOT_AMOUNT(a0),PLAYER_SHOT_AMOUNT_COUNTER(a0)
                 IFEQ    DEBUG
                     subq.w   #1,PLAYER_AMMUNITIONS(a0)
                 ENDC
@@ -9420,11 +9407,11 @@ lbC00E14A:          addq.l   #1,PLAYER_SHOTS(a0)
 lbC00E178:          moveq    #0,d0
                     move.w   PLAYER_WEAPON_SMP(a0),d0
                     move.w   #1,d2
-                    tst.w    lbW00057A
-                    bne.b    lbC00E18E
+                    tst.w    in_destruction_sequence_flag
+                    bne.b    .play_on_channel_2
                     move.w   #2,d2
-lbC00E18E:          jsr      trigger_sample_select_channel
-                    move.w   262(a0),360(a0)
+.play_on_channel_2: jsr      trigger_sample_select_channel
+                    move.w   PLAYER_WEAPON_RATE+2(a0),PLAYER_WEAPON_RATE_COUNTER(a0)
                     move.l   244(a0),a2
                     tst.l    (a2)
                     bne.b    lbC00E1AA
@@ -9438,7 +9425,7 @@ lbC00E1AA:          addq.l   #4,244(a0)
                     add.w    d2,d2
                     move.w   0(a2,d2.w),d4
                     move.w   2(a2,d2.w),d5
-                    move.l   252(a0),d1
+                    move.l   PLAYER_WEAPON_SPEED(a0),d1
                     tst.l    lbW0039B4
                     beq.b    lbC00E1DC
                     cmp.w    #5,PLAYER_WEAPON_BEHAVIOUR(a0)
@@ -9651,7 +9638,7 @@ reactor_up_done:    dc.w     0
 reactor_left_done:  dc.w     0
 reactor_down_done:  dc.w     0
 reactor_right_done: dc.w     0
-door_strength:      dc.w     0
+door_impact:        dc.w     0
 lbL00E4EC:          dc.l     0
 lbW00E4F0:          dc.w     0
 
@@ -9663,10 +9650,9 @@ impact_on_door:     movem.l  d0-d7/a0-a6,-(sp)
                     cmp.l    lbL00E4EC(pc),a5
                     beq.b    lbC00E520
                     move.l   a5,lbL00E4EC
-                    clr.w    door_strength
-
-lbC00E520:          move.w   16(a3),d0
-                    add.w    d0,door_strength
+                    clr.w    door_impact
+lbC00E520:          move.w   PROJECTILE_STRENGTH(a3),d0
+                    add.w    d0,door_impact
                     addq.w   #1,lbW00E4F0
                     cmp.w    #1,lbW00E4F0
                     bmi.b    lbC00E556
@@ -9678,10 +9664,10 @@ lbC00E520:          move.w   16(a3),d0
                     cmp.w    #1,PLAYER_AMMUNITIONS(a4)
                     bpl.b    lbC00E556
                     clr.w    PLAYER_AMMUNITIONS(a4)
-lbC00E556:          cmp.w    #300,door_strength
+lbC00E556:          cmp.w    #300,door_impact
                     bmi.b    lbC00E576
                     ; open it
-                    clr.w    door_strength
+                    clr.w    door_impact
                     move.l   PROJECTILE_PLAYER(a3),a0
                     ; temporary key
                     addq.w   #1,PLAYER_KEYS(a0)
@@ -9707,7 +9693,7 @@ lbC00E5BA:          cmp.w    #6,24(a3)
                     bpl      lbC00E6A8
 lbC00E5C4:          tst.w    4(a3)
                     bmi.b    lbC00E5FE
-                    tst.w    lbW00057A
+                    tst.w    in_destruction_sequence_flag
                     bne.b    lbC00E5E8
                     movem.l  d0/d2,-(sp)
                     move.w   #46,d0
@@ -10127,7 +10113,7 @@ lbL00EE22:          dc.l     lbL01883E,32000,-1
 lbC00EE2E:          movem.l  d0-d7/a0-a6,-(sp)
                     bsr      get_raster_pos
                     move.l   d0,old_raster_pos
-                    tst.w    lbW0004C2
+                    tst.w    game_running_flag
                     beq.b    lbC00EE50
                     bsr      lbC00D154
                     bsr      lbC00FB16
@@ -10397,14 +10383,14 @@ hold_briefing_screen:
                     moveq    #32,d0
                     jsr      copy_briefing_palette
                     move.w   #1000,d0
-wait_user_input_after_briefing:
+wait_user_input_release_after_briefing:
                     bsr      wait_raster
                     btst     #CIAB_GAMEPORT1,CIAA
                     beq.b    lbC00F4A6
                     btst     #CIAB_GAMEPORT0,CIAA
                     beq.b    lbC00F4A6
                     subq.w   #1,d0
-                    bne.b    wait_user_input_after_briefing
+                    bne.b    wait_user_input_release_after_briefing
 lbC00F4A6:          lea      lbL02266A,a0
                     lea      palette_white,a1
                     move.l   exe_return_palette(pc),a2
@@ -16153,7 +16139,7 @@ init_level_variables:
                     clr.w    lbW0004D8
                     clr.w    lbW0004B2
                     clr.w    flag_end_level
-                    clr.w    lbW00057A
+                    clr.w    in_destruction_sequence_flag
                     jsr      lbC00E8D8
                     jsr      set_all_aliens_to_default
                     lea      lbL00D29A,a0
@@ -16520,7 +16506,7 @@ bpchannel3_status:  dc.w     0
 bpchannel4_status:  dc.w     0
 lbW022C70:          dc.l     0
 
-lbC022D1E:          tst.w    lbW0004C2
+lbC022D1E:          tst.w    game_running_flag
                     beq      return2
                     move.l   #smp_zone_struct_1,d0
                     cmp.l    lbL02328C(pc),d0
@@ -18892,7 +18878,7 @@ lbL0FBF6C:          ds.b     205
 map_overview_planes:
                     ds.b     3395
 lbL0FCD7C:          ds.l     1220
-lbL0FE08C:          ds.l     430
+elapsed_time_plane: ds.l     430
 lbL0FE744:          ds.l     10
 lbL0FE76C:          ds.l     2635
 lbL101098:          ds.l     3087
